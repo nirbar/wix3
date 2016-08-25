@@ -791,7 +791,7 @@ extern "C" HRESULT ApplyExecute(
         }
 
 		// New transaction
-		if (!fInTransaction)
+		if (pRollbackBoundary && pRollbackBoundary->fTransaction && !fInTransaction)
 		{
 			Trace(REPORT_STANDARD, "Starting an MSI transaction");
 			hr = DoMsiBeginTransaction(&context, pEngineState);
@@ -1626,6 +1626,10 @@ static void DoRollbackCache(
     }
 }
 
+/* MSI Transactions:
+ * All MSI/MSP/MSU packages wrapped in MsiBeginTranasaction-MsiEndTransaction pair are installed or uninstalled together.
+ * Currently only supporting machine level transactions, since we don't know ahead the context of each package in a rollback boundary (though it's probably just another loop to add or so)
+*/
 static HRESULT ExecuteMsiBeginTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext
 	, __in BURN_ENGINE_STATE* pEngineState

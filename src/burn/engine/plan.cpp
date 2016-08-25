@@ -2919,7 +2919,7 @@ static void CacheActionLog(
         break;
 
     case BURN_CACHE_ACTION_TYPE_TRANSACTION_BOUNDARY:
-        LogStringLine(REPORT_STANDARD, "%ls action[%u]: TRANSACTION_BOUNDARY id: %ls, event handle: 0x%x, vital: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.hEvent, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no");
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: TRANSACTION_BOUNDARY id: %ls, event handle: 0x%x, vital: %ls, transaction: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.hEvent, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no", pAction->rollbackBoundary.pRollbackBoundary->fTransaction ? L"yes" : L"no");
         break;
 
     default:
@@ -2978,7 +2978,7 @@ static void ExecuteActionLog(
         break;
 
     case BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY:
-        LogStringLine(REPORT_STANDARD, "%ls action[%u]: ROLLBACK_BOUNDARY id: %ls, vital: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no");
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: ROLLBACK_BOUNDARY id: %ls, vital: %ls, transaction: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no", pAction->rollbackBoundary.pRollbackBoundary->fTransaction ? L"yes" : L"no");
         break;
 
     case BURN_EXECUTE_ACTION_TYPE_WAIT_SYNCPOINT:
