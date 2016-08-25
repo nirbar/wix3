@@ -4395,6 +4395,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     writer.WriteStartElement("RollbackBoundary");
                     writer.WriteAttributeString("Id", rollbackBoundary.Id);
                     writer.WriteAttributeString("Vital", YesNoType.Yes == rollbackBoundary.Vital ? "yes" : "no");
+                    writer.WriteAttributeString("Transaction", YesNoType.Yes == rollbackBoundary.Transaction ? "yes" : "no");
                     writer.WriteEndElement();
                 }
 
@@ -4508,6 +4509,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (chain.ParallelCache)
                 {
                     writer.WriteAttributeString("ParallelCache", "yes");
+                }
+
+                if (chain.Transaction)
+                {
+                    writer.WriteAttributeString("Transaction", "yes");
                 }
 
                 // Build up the list of target codes from all the MSPs in the chain.

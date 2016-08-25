@@ -21187,6 +21187,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 attributes |= BundleChainAttributes.ParallelCache;
                             }
                             break;
+                        case "Transaction":
+                            if (YesNoType.Yes == this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib))
+                            {
+                                attributes |= BundleChainAttributes.Transaction;
+                            }
+                            break;
                         default:
                             this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
                             break;
@@ -21455,6 +21461,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             YesNoType permanent = YesNoType.NotSet;
             YesNoType visible = YesNoType.NotSet;
             YesNoType vital = YesNoType.Yes;
+            YesNoType transaction = YesNoType.No;
             string installCommand = null;
             string repairCommand = null;
             YesNoType repairable = YesNoType.NotSet;
@@ -21912,6 +21919,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (YesNoType.NotSet != displayInternalUI)
                 {
                     row[22] = (YesNoType.Yes == displayInternalUI) ? 1 : 0;
+                }
+
+                if (YesNoType.NotSet != transaction)
+                {
+                    row[32] = (YesNoType.Yes == transaction) ? 1 : 0;
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, after);

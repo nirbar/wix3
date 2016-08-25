@@ -565,6 +565,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="Transaction" type="YesNoTypeUnion">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies whether the first rollback boundary (or the entire chain, if there are no internal rollback boundaries) is wrapped in an MSI transaction. The default is "no"
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
     </xs:complexType>
   </xs:element>
   <xs:element name="MsiPackage">
@@ -847,6 +854,13 @@
             Specifies whether the rollback boundary aborts the chain. The default "yes" indicates that if
             the rollback boundary is encountered then the chain will fail and rollback or stop. If "no"
             is specified then the chain should continue successfuly at the next rollback boundary.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="Transaction" type="YesNoTypeUnion">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies whether the rollback boundary is wrapped in an MSI transaction. The default is "no"
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
