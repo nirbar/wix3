@@ -1683,7 +1683,7 @@ static HRESULT OnMsiBeginTransaction(
 
 	pContext->hMsiTrns = NULL;
 	pContext->hMsiTrnsEvent = NULL;
-	uResult = MsiBeginTransaction(L"WiX", 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent);
+	uResult = ::MsiBeginTransaction(L"WiX", 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent);
 	ExitOnWin32Error(uResult, hr, "Failed beginning an MSI transaction");
 
 LExit:
@@ -1696,7 +1696,7 @@ static HRESULT OnMsiCommitTransaction(
 	UINT uResult = ERROR_SUCCESS;
 	HRESULT hr = S_OK;
 
-	uResult = MsiEndTransaction(MSITRANSACTIONSTATE_COMMIT);
+	uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_COMMIT);
 	ExitOnWin32Error(uResult, hr, "Failed committing an MSI transaction");
 
 LExit:
@@ -1710,7 +1710,7 @@ static HRESULT OnMsiRollbackTransaction(
 	UINT uResult = ERROR_SUCCESS;
 	HRESULT hr = S_OK;
 
-	uResult = MsiEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
+	uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
 	ExitOnWin32Error(uResult, hr, "Failed rolling back an MSI transaction");
 
 LExit:

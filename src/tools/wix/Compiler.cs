@@ -21335,6 +21335,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
             string id = null;
             YesNoType vital = YesNoType.Yes;
+            YesNoType transaction = YesNoType.No;
 
             // This crazy list lets us evaluate extension attributes *after* all core attributes
             // have been parsed and dealt with, regardless of authoring order.
@@ -21353,6 +21354,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             break;
                         case "Vital":
                             vital = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
+                            break;
+                        case "Transaction":
+                            transaction = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
                         default:
                             allowed = false;
@@ -21420,6 +21424,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (YesNoType.NotSet != vital)
                 {
                     row[10] = (YesNoType.Yes == vital) ? 1 : 0;
+                }
+                if (YesNoType.NotSet != transaction)
+                {
+                    row[23] = (YesNoType.Yes == vital) ? 1 : 0;
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);
