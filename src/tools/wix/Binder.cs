@@ -4177,6 +4177,16 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             row.UpgradeCode = package.UpgradeCode;
                         }
                         break;
+                    case Compiler.ChainPackageType.MsiInstance:
+                        Table chainMsiPackageInstanceTable = bundle.EnsureTable(this.core.TableDefinitions["ChainMsiPackageInstance"]);
+                        ChainMsiInstancePackageRow instanceRow = (ChainMsiInstancePackageRow)chainMsiPackageInstanceTable.CreateRow(null);
+                        instanceRow.ChainPackage = package.Parent.Id;
+                        instanceRow.Instance = package.Id;
+                        instanceRow.ProductCode = package.ProductCode;
+                        instanceRow.ProductLanguage = Convert.ToInt32(package.Language, CultureInfo.InvariantCulture);
+                        instanceRow.ProductName = package.DisplayName;
+                        instanceRow.ProductVersion = package.Version;
+                        break;
                     default:
                         break;
                 }

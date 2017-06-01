@@ -125,6 +125,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             Msu,
             Exe,
             RollbackBoundary,
+			MsiInstance
         }
 
         /// <summary>
@@ -21770,6 +21771,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                     this.ParseSlipstreamMspElement(child, id);
                                 }
                                 break;
+                            case "MsiInstance":
+                                allowed = (packageType == ChainPackageType.Msi);
+                                if (allowed)
+                                {
+                                    this.ParseMsiInstanceElement(node, child, id);
+                                }
+                                break;
                             case "MsiProperty":
                                 allowed = (packageType == ChainPackageType.Msi || packageType == ChainPackageType.Msp);
                                 if (allowed)
@@ -22214,6 +22222,80 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
         }
 
+        /// <summary>
+        /// Parse MsiProperty element
+        /// </summary>
+        /// <param name="parent">Parent MSI node</param>
+        /// <param name="node">Element to parse</param>
+        /// <param name="msiPackageId">Id of parent MSI element</param>
+        private void ParseMsiInstanceElement(XmlNode parent, XmlNode node, string msiPackageId)
+        {
+            SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
+            string instance = null;
+            string condition = null;
+            string productCode = null;
+            string value = null;
+
+            foreach (XmlAttribute attrib in node.Attributes)
+            {
+                if (0 == attrib.NamespaceURI.Length || attrib.NamespaceURI == this.schema.TargetNamespace)
+                {
+                    switch (attrib.LocalName)
+                    {
+                        case "Instance":
+                            instance = this.core.GetAttributeMsiPropertyNameValue(sourceLineNumbers, attrib);
+                            break;
+                        case "Value":
+                            value = this.core.GetAttributeValue(sourceLineNumbers, attrib);
+                            break;
+                        default:
+                            this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
+                            break;
+                    }
+                }
+                else
+                {
+                    this.core.UnsupportedExtensionAttribute(sourceLineNumbers, attrib);
+                }
+            }
+
+            if (string.IsNullOrEmpty(instance))
+            {
+                this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Instance"));
+            }
+
+            // Get condition
+            foreach (XmlNode child1 in node.ChildNodes)
+            {
+                if (XmlNodeType.Element == child1.NodeType)
+                {
+                    if (child1.NamespaceURI == this.schema.TargetNamespace)
+                    {
+                        this.Core.UnexpectedElement(node, child1);
+                    }
+                    else
+                    {
+                        this.Core.UnsupportedExtensionElement(node, child1);
+                    }
+                }
+                else if (XmlNodeType.CDATA == child1.NodeType || XmlNodeType.Text == child1.NodeType)
+                {
+                    condition = child1.Value.Trim();
+                }
+            }
+
+            if (!this.core.EncounteredError)
+            {
+                Row row = this.core.CreateRow(sourceLineNumbers, "ChainMsiPackageInstance");
+                row[0] = msiPackageId;
+                row[1] = instance;
+                row[2] = null; //TODO: LogPathVariable
+                row[3] = null; //TODO: RollbackLogPathVariable
+                row[4] = null; //TODO: ProductCode
+                row[5] = condition;
+            }
+        }
+		
         /// <summary>
         /// Parse MsiProperty element
         /// </summary>

@@ -18,6 +18,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
     /// </summary>
     internal class ChainPackageInfo : Row
     {
+        private const string TransformViewPropertySqlFormat = "SELECT `Data` FROM `_TransformView` WHERE `Table`='Property' AND `Column`='Value' AND `Row`='{0}'";
         private const string PropertySqlFormat = "SELECT `Value` FROM `Property` WHERE `Property` = '{0}'";
         private const string PatchMetadataFormat = "SELECT `Value` FROM `MsiPatchMetadata` WHERE `Property` = '{0}'";
 
@@ -1208,6 +1209,37 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Queries a Windows Installer database for a Property value in the _TransformView table after applying a transform.
+        /// </summary>
+        /// <remarks>
+        /// The caller is responsible to apply the transform before calling this function and to free it when no longer in use.
+        /// </remarks>
+        /// <param name="db">Database to query.</param>
+        /// <param name="transform">Transform to apply view on.</param>
+        /// <param name="property">Property to examine.</param>
+        /// <returns>String value for result or null if query doesn't match a single result.</returns>
+        public static string GetTransformProperty(Microsoft.Deployment.WindowsInstaller.Database db, string transform, string property)
+        {
+            try
+            {
+                return db.ExecuteScalar(TransformViewPropertyQuery(property)).ToString();
+            }
+            catch (Microsoft.Deployment.WindowsInstaller.InstallerException)
+            {
+            }
+
+            return null;
+        }
+
+        private static string TransformViewPropertyQuery(string property)
+        {
+            // quick sanity check that we'll be creating a valid query...
+            // TODO: Are there any other special characters we should be looking for?
+            Debug.Assert(!property.Contains("'"));
+            return String.Format(CultureInfo.InvariantCulture, ChainPackageInfo.TransformViewPropertySqlFormat, property);
         }
 
         private static string PropertyQuery(string property)

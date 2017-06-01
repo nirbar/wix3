@@ -1841,6 +1841,15 @@
         <columnDefinition name="InstallCondition" type="string" length="0" nullable="yes" />
         <columnDefinition name="Cache" type="string" length="0" nullable="yes" minValue="0" maxValue="2" />
     </tableDefinition>
+    <tableDefinition name="ChainMsiPackageInstance" unreal="yes" bootstrapperApplicationData="yes">
+        <columnDefinition name="Package"  type="string" length="0" category="identifier" primaryKey="yes"
+                          keyTable="ChainMsiPackage" keyColumn="1" description="Reference to a ChainPackage entry in the ChainMsiPackage table."/>
+        <columnDefinition name="Instance" type="string" length="0" category="identifier" primaryKey="yes"/>
+        <columnDefinition name="LogPathVariable" type="string" length="0" nullable="yes"/>
+        <columnDefinition name="RollbackLogPathVariable" type="string" length="0" nullable="yes"/>
+        <columnDefinition name="ProductCode" type="string" length="0" nullable="no"/>
+        <columnDefinition name="InstallCondition" type="string" length="0" nullable="yes" />
+    </tableDefinition>
     <tableDefinition name="WixPayloadProperties" unreal="yes" bootstrapperApplicationData="yes">
         <columnDefinition name="Payload"  type="string" length="0" category="identifier" primaryKey="yes" />
         <columnDefinition name="Package"  type="string" length="0" category="identifier" primaryKey="yes" nullable="yes"

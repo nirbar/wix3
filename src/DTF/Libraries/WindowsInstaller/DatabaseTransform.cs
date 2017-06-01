@@ -126,6 +126,20 @@ namespace Microsoft.Deployment.WindowsInstaller
         }
 
         /// <summary>
+        /// Free the _TransformView Table
+        /// </summary>
+        /// <exception cref="InstallerException">the transform could not be applied</exception>
+        /// <exception cref="InvalidHandleException">the Database handle is invalid</exception>
+        /// <remarks><p>
+        /// Win32 MSI API:
+        /// <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa372926(v=vs.85).aspx">_TransformView Table</a>
+        /// </p></remarks>
+        public void ViewTransformFree()
+        {
+            Execute("ALTER TABLE `_TransformView` FREE");
+        }
+
+        /// <summary>
         /// Apply a transform to the database, suppressing any error conditions
         /// specified by the transform's summary information.
         /// </summary>
