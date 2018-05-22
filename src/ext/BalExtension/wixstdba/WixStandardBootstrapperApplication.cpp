@@ -247,7 +247,7 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnStartup();
+			hr = m_pBAFunction->OnStartup();
 		}
 
     LExit:
@@ -257,7 +257,8 @@ public: // IBootstrapperApplication
 
     virtual STDMETHODIMP_(int) OnShutdown()
     {
-        int nResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
 
         // wait for UI thread to terminate
         if (m_hUiThread)
@@ -296,10 +297,10 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnShutdown();
+			nBafResult = m_pBAFunction->OnShutdown();
 		}
 
-        return nResult;
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
 	STDMETHODIMP_(int) OnDetectBegin(
@@ -307,12 +308,13 @@ public: // IBootstrapperApplication
 		__in DWORD cPackages
 	) override
 	{
+		int nBafResult = IDNOACTION;
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnDetectBegin(fInstalled, cPackages);
+			nBafResult = m_pBAFunction->OnDetectBegin(fInstalled, cPackages);
 		}
 	
-		return CheckCanceled() ? IDCANCEL : IDNOACTION;
+		return CheckCanceled() ? IDCANCEL : nBafResult;
 	}
 
 
@@ -325,7 +327,8 @@ public: // IBootstrapperApplication
         __in BOOTSTRAPPER_RELATED_OPERATION operation
         )
     {
-        BalInfoAddRelatedBundleAsPackage(&m_Bundle.packages, wzBundleId, relationType, fPerMachine);
+		int nBafResult = IDOK;
+		BalInfoAddRelatedBundleAsPackage(&m_Bundle.packages, wzBundleId, relationType, fPerMachine);
 
         // If we're not doing a prerequisite install, remember when our bundle would cause a downgrade.
         if (!m_fPrereq && BOOTSTRAPPER_RELATED_OPERATION_DOWNGRADE == operation)
@@ -335,10 +338,10 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnDetectRelatedBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, operation);
+			nBafResult = m_pBAFunction->OnDetectRelatedBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, operation);
 		}
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
+        return CheckCanceled() ? IDCANCEL : nBafResult;
     }
 
 
@@ -430,7 +433,8 @@ public: // IBootstrapperApplication
         __inout_z BOOTSTRAPPER_REQUEST_STATE* pRequestedState
         )
     {
-        // If we're only installing prerequisites, do not touch related bundles.
+		int nBafResult = IDOK;
+		// If we're only installing prerequisites, do not touch related bundles.
         if (m_fPrereq)
         {
             *pRequestedState = BOOTSTRAPPER_REQUEST_STATE_NONE;
@@ -438,10 +442,10 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnPlanRelatedBundle(wzBundleId, pRequestedState);
+			nBafResult = m_pBAFunction->OnPlanRelatedBundle(wzBundleId, pRequestedState);
 		}
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
+        return CheckCanceled() ? IDCANCEL : nBafResult;
     }
 
 
@@ -453,6 +457,7 @@ public: // IBootstrapperApplication
         HRESULT hr = S_OK;
         WIXSTDBA_PREREQ_PACKAGE* pPrereqPackage = NULL;
         BAL_INFO_PACKAGE* pPackage = NULL;
+		int nBafResult = IDOK;
 
         // If we're planning to install a prerequisite, install it. The prerequisite needs to be installed
         // in all cases (even uninstall!) so the BA can load next.
@@ -517,10 +522,10 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnPlanPackageBegin(wzPackageId, pRequestState);
+			nBafResult = m_pBAFunction->OnPlanPackageBegin(wzPackageId, pRequestState);
 		}
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
+        return CheckCanceled() ? IDCANCEL : nBafResult;
     }
 
 
@@ -567,7 +572,9 @@ public: // IBootstrapperApplication
         __in DWORD64 dw64PackageCacheSize
         )
     {
-        if (wzPackageId && *wzPackageId)
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		if (wzPackageId && *wzPackageId)
         {
             BAL_INFO_PACKAGE* pPackage = NULL;
             HRESULT hr = BalInfoFindPackageById(&m_Bundle.packages, wzPackageId, &pPackage);
@@ -584,10 +591,11 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+			nBafResult = m_pBAFunction->OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
 		}
 
-        return __super::OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+		nResult = __super::OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
 
@@ -600,6 +608,8 @@ public: // IBootstrapperApplication
         )
     {
         WCHAR wzProgress[5] = { };
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
 
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnCacheAcquireProgress() - container/package: %ls, payload: %ls, progress: %I64u, total: %I64u, overall progress: %u%%", wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
@@ -617,11 +627,12 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
+			nBafResult = m_pBAFunction->OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
 		}
 
-        return __super::OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
-    }
+		nResult = __super::OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnCacheAcquireComplete(
@@ -631,15 +642,19 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
-        SetProgressState(hrStatus);
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		
+		SetProgressState(hrStatus);
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+			nBafResult = m_pBAFunction->OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
 		}
 		
-		return __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
-    }
+		nResult = __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnCacheVerifyComplete(
@@ -649,14 +664,19 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
-        SetProgressState(hrStatus);
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		
+		SetProgressState(hrStatus);
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+			nBafResult = m_pBAFunction->OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
 		}
-		return __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
-    }
+
+		nResult = __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(void) OnCacheComplete(
@@ -685,7 +705,8 @@ public: // IBootstrapperApplication
         )
     {
         int nResult = nRecommendation;
-        LPWSTR sczError = NULL;
+		int nBafResult = IDNOACTION;
+		LPWSTR sczError = NULL;
 
         if (BOOTSTRAPPER_DISPLAY_EMBEDDED == m_command.display)
         {
@@ -748,12 +769,12 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnError(errorType, wzPackageId, dwCode, wzError, dwUIHint, cData, rgwzData, nRecommendation);
+			nBafResult = m_pBAFunction->OnError(errorType, wzPackageId, dwCode, wzError, dwUIHint, cData, rgwzData, nRecommendation);
 		}
 
         ReleaseStr(sczError);
-        return nResult;
-    }
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnExecuteMsiMessage(
