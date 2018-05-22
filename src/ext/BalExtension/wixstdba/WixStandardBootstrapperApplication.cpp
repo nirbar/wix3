@@ -245,6 +245,11 @@ public: // IBootstrapperApplication
             ExitWithLastError(hr, "Failed to create UI thread.");
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnStartup();
+		}
+
     LExit:
         return hr;
     }
@@ -289,16 +294,34 @@ public: // IBootstrapperApplication
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "The prerequisites were not successfully installed, error: 0x%x. The bootstrapper application will be not reloaded.", m_hrFinal);
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnShutdown();
+		}
+
         return nResult;
     }
+
+	STDMETHODIMP_(int) OnDetectBegin(
+		__in BOOL fInstalled,
+		__in DWORD cPackages
+	) override
+	{
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectBegin(fInstalled, cPackages);
+		}
+	
+		return CheckCanceled() ? IDCANCEL : IDNOACTION;
+	}
 
 
     virtual STDMETHODIMP_(int) OnDetectRelatedBundle(
         __in LPCWSTR wzBundleId,
         __in BOOTSTRAPPER_RELATION_TYPE relationType,
-        __in LPCWSTR /*wzBundleTag*/,
+        __in LPCWSTR wzBundleTag,
         __in BOOL fPerMachine,
-        __in DWORD64 /*dw64Version*/,
+        __in DWORD64 dw64Version,
         __in BOOTSTRAPPER_RELATED_OPERATION operation
         )
     {
@@ -310,13 +333,18 @@ public: // IBootstrapperApplication
             m_fDowngrading = TRUE;
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectRelatedBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, operation);
+		}
+
         return CheckCanceled() ? IDCANCEL : IDOK;
     }
 
 
     virtual STDMETHODIMP_(void) OnDetectPackageComplete(
         __in LPCWSTR wzPackageId,
-        __in HRESULT /*hrStatus*/,
+        __in HRESULT hrStatus,
         __in BOOTSTRAPPER_PACKAGE_STATE state
         )
     {
@@ -328,19 +356,18 @@ public: // IBootstrapperApplication
             // If the prerequisite package is already installed, remember that.
             pPrereqPackage->fWasAlreadyInstalled = TRUE;
         }
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectPackageComplete(wzPackageId, hrStatus, state);
+		}
+	}
 
 
     virtual STDMETHODIMP_(void) OnDetectComplete(
         __in HRESULT hrStatus
         )
     {
-        if (SUCCEEDED(hrStatus) && m_pBAFunction)
-        {
-            BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect complete BA function");
-            m_pBAFunction->OnDetectComplete();
-        }
-
         if (SUCCEEDED(hrStatus))
         {
             hrStatus = EvaluateConditions();
@@ -390,11 +417,16 @@ public: // IBootstrapperApplication
                 ::PostMessageW(m_hWnd, WM_WIXSTDBA_PLAN_PACKAGES, 0, m_command.action);
             }
         }
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnPlanRelatedBundle(
-        __in_z LPCWSTR /*wzBundleId*/,
+        __in_z LPCWSTR wzBundleId,
         __inout_z BOOTSTRAPPER_REQUEST_STATE* pRequestedState
         )
     {
@@ -403,6 +435,11 @@ public: // IBootstrapperApplication
         {
             *pRequestedState = BOOTSTRAPPER_REQUEST_STATE_NONE;
         }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanRelatedBundle(wzBundleId, pRequestedState);
+		}
 
         return CheckCanceled() ? IDCANCEL : IDOK;
     }
@@ -478,6 +515,11 @@ public: // IBootstrapperApplication
             }
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanPackageBegin(wzPackageId, pRequestState);
+		}
+
         return CheckCanceled() ? IDCANCEL : IDOK;
     }
 
@@ -486,12 +528,6 @@ public: // IBootstrapperApplication
         __in HRESULT hrStatus
         )
     {
-        if (SUCCEEDED(hrStatus) && m_pBAFunction)
-        {
-            BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan complete BA function");
-            m_pBAFunction->OnPlanComplete();
-        }
-
         if (m_fPrereq)
         {
             m_fPrereqAlreadyInstalled = TRUE;
@@ -517,7 +553,12 @@ public: // IBootstrapperApplication
         m_fStartedExecution = FALSE;
         m_dwCalculatedCacheProgress = 0;
         m_dwCalculatedExecuteProgress = 0;
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnCachePackageBegin(
@@ -540,6 +581,11 @@ public: // IBootstrapperApplication
                 ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_OVERALL_PROGRESS_PACKAGE_TEXT, wz);
             }
         }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+		}
 
         return __super::OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
     }
@@ -569,6 +615,11 @@ public: // IBootstrapperApplication
 
         SetTaskbarButtonProgress(m_dwCalculatedCacheProgress + m_dwCalculatedExecuteProgress);
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
+		}
+
         return __super::OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
     }
 
@@ -581,7 +632,13 @@ public: // IBootstrapperApplication
         )
     {
         SetProgressState(hrStatus);
-        return __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+		}
+		
+		return __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
     }
 
 
@@ -593,17 +650,27 @@ public: // IBootstrapperApplication
         )
     {
         SetProgressState(hrStatus);
-        return __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+		}
+		return __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
     }
 
 
     virtual STDMETHODIMP_(void) OnCacheComplete(
-        __in HRESULT /*hrStatus*/
+        __in HRESULT hrStatus
         )
     {
         ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_CACHE_PROGRESS_PACKAGE_TEXT, L"");
         SetState(WIXSTDBA_STATE_CACHED, S_OK); // we always return success here and let OnApplyComplete() deal with the error.
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCacheComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnError(
@@ -612,8 +679,8 @@ public: // IBootstrapperApplication
         __in DWORD dwCode,
         __in_z LPCWSTR wzError,
         __in DWORD dwUIHint,
-        __in DWORD /*cData*/,
-        __in_ecount_z_opt(cData) LPCWSTR* /*rgwzData*/,
+        __in DWORD cData,
+        __in_ecount_z_opt(cData) LPCWSTR* rgwzData,
         __in int nRecommendation
         )
     {
@@ -679,6 +746,11 @@ public: // IBootstrapperApplication
             BalRetryErrorOccurred(wzPackageId, dwCode);
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnError(errorType, wzPackageId, dwCode, wzError, dwUIHint, cData, rgwzData, nRecommendation);
+		}
+
         ReleaseStr(sczError);
         return nResult;
     }
@@ -711,6 +783,11 @@ public: // IBootstrapperApplication
             ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_EXECUTE_PROGRESS_ACTIONDATA_TEXT, wzMessage);
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
+		}
+
         return __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
     }
 
@@ -731,6 +808,11 @@ public: // IBootstrapperApplication
 
         ThemeSetProgressControl(m_pTheme, WIXSTDBA_CONTROL_OVERALL_PROGRESS_BAR, dwOverallProgressPercentage);
         SetTaskbarButtonProgress(dwOverallProgressPercentage);
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
+		}
 
         return __super::OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
     }
@@ -791,6 +873,11 @@ public: // IBootstrapperApplication
             m_fShowingInternalUiThisPackage = FALSE;
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecutePackageBegin(wzPackageId, fExecute);
+		}
+
         ReleaseStr(sczFormattedString);
         return __super::OnExecutePackageBegin(wzPackageId, fExecute);
     }
@@ -817,6 +904,11 @@ public: // IBootstrapperApplication
         ThemeSetProgressControl(m_pTheme, WIXSTDBA_CONTROL_OVERALL_CALCULATED_PROGRESS_BAR, m_dwCalculatedCacheProgress + m_dwCalculatedExecuteProgress);
 
         SetTaskbarButtonProgress(m_dwCalculatedCacheProgress + m_dwCalculatedExecuteProgress);
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
+		}
 
         return __super::OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
     }
@@ -848,6 +940,11 @@ public: // IBootstrapperApplication
             }
         }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
+		}
+
         return nResult;
     }
 
@@ -863,7 +960,12 @@ public: // IBootstrapperApplication
 
         SetState(WIXSTDBA_STATE_EXECUTED, S_OK); // we always return success here and let OnApplyComplete() deal with the error.
         SetProgressState(hrStatus);
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecuteComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnResolveSource(
@@ -915,6 +1017,12 @@ public: // IBootstrapperApplication
         }
         // else there's nothing more we can do in non-interactive mode
 
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnResolveSource(wzPackageOrContainerId, wzPayloadId, wzLocalSource, wzDownloadSource);
+		}
+
         return CheckCanceled() ? IDCANCEL : nResult;
     }
 
@@ -964,12 +1072,17 @@ public: // IBootstrapperApplication
         SetState(WIXSTDBA_STATE_APPLIED, hrStatus);
         SetTaskbarButtonProgress(100); // show full progress bar, green, yellow, or red
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnApplyComplete(hrStatus, restart);
+		}
+
         return IDNOACTION;
     }
 
     virtual STDMETHODIMP_(void) OnLaunchApprovedExeComplete(
         __in HRESULT hrStatus,
-        __in DWORD /*processId*/
+        __in DWORD processId
         )
     {
         if (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hrStatus)
@@ -981,7 +1094,12 @@ public: // IBootstrapperApplication
         {
             ::PostMessageW(m_hWnd, WM_CLOSE, 0, 0);
         }
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnLaunchApprovedExeComplete(hrStatus, processId);
+		}
+	}
 
     virtual STDMETHODIMP_(int) OnExecuteFilesInUse(
         __in_z LPCWSTR wzPackageId,
@@ -1000,6 +1118,11 @@ public: // IBootstrapperApplication
                 return ShowFilesInUseModal(cFiles, rgwzFiles);
             }
         }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+		}
 
         return __super::OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
     }
@@ -2281,13 +2404,6 @@ private: // privates
     {
         HRESULT hr = S_OK;
 
-        if (m_pBAFunction)
-        {
-            BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect BA function");
-            hr = m_pBAFunction->OnDetect();
-            BalExitOnFailure(hr, "Failed calling detect BA function.");
-        }
-
         SetState(WIXSTDBA_STATE_DETECTING, hr);
 
         // If the UI should be visible, display it now and hide the splash screen
@@ -2338,12 +2454,6 @@ private: // privates
         }
 
         SetState(WIXSTDBA_STATE_PLANNING, hr);
-
-        if (m_pBAFunction)
-        {
-            BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan BA function");
-            m_pBAFunction->OnPlan();
-        }
 
         hr = m_pEngine->Plan(action);
         BalExitOnFailure(hr, "Failed to start planning packages.");
@@ -3303,10 +3413,10 @@ private: // privates
         m_hBAFModule = ::LoadLibraryExW(sczBafPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
         if (m_hBAFModule)
         {
-            PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBootstrapperBAFunction"));
-            BalExitOnNullWithLastError1(pfnBAFunctionCreate, hr, "Failed to get CreateBootstrapperBAFunction entry-point from: %ls", sczBafPath);
+			PFN_BOOTSTRAPPER_APPLICATION_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BOOTSTRAPPER_APPLICATION_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBootstrapperApplication"));
+            BalExitOnNullWithLastError1(pfnBAFunctionCreate, hr, "Failed to get CreateBootstrapperApplication entry-point from: %ls", sczBafPath);
 
-            hr = pfnBAFunctionCreate(m_pEngine, m_hBAFModule, &m_pBAFunction);
+            hr = pfnBAFunctionCreate(m_pEngine, &m_command, &m_pBAFunction);
             BalExitOnFailure(hr, "Failed to create BA function.");
         }
 #ifdef DEBUG
@@ -3660,7 +3770,7 @@ private:
     int m_nLastFilesInUseResult;
 
     HMODULE m_hBAFModule;
-    IBootstrapperBAFunction* m_pBAFunction;
+	IBootstrapperApplication* m_pBAFunction;
 
     BOOL m_fUseUILanguages;
 };

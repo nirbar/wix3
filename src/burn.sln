@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test related", "test related", "{9FF20224-B6C0-4378-BD15-4857EAD6A3DC}"
 	ProjectSection(SolutionItems) = preProject
@@ -91,6 +91,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WixTestTools", "..\test\src\WixTestTools\WixTestTools.csproj", "{55CB1042-647B-4347-9876-3EA607AF8DCE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "setup", "setup", "{556BE3B5-4C70-4E0A-A926-E30869F7B0C5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bafunctions", "burn\Samples\bafunctions\bafunctions.vcxproj", "{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -639,6 +641,36 @@ Global
 		{55CB1042-647B-4347-9876-3EA607AF8DCE}.Template|Win32.ActiveCfg = Release|arm
 		{55CB1042-647B-4347-9876-3EA607AF8DCE}.Template|x64.ActiveCfg = Release|arm
 		{55CB1042-647B-4347-9876-3EA607AF8DCE}.Template|x86.ActiveCfg = Release|arm
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|arm.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|Win32.Build.0 = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|x64.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|x86.ActiveCfg = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Debug|x86.Build.0 = Debug|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|Any CPU.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|arm.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|Win32.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|Win32.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|x64.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|x86.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Release|x86.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Any CPU.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Any CPU.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|arm.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|arm.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Mixed Platforms.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Mixed Platforms.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Win32.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|Win32.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|x64.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|x64.Build.0 = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|x86.ActiveCfg = Release|Win32
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02}.Template|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -663,6 +695,7 @@ Global
 		{89A33C9C-92F8-4C9B-9AEC-1980C716A304} = {58F2E4A1-3396-4BC6-8A5F-54329DABD5BF}
 		{31FCC013-485E-487D-89D8-6C19EDCDD9A3} = {03455E2B-EE55-4F32-999E-1EFCEA95CF31}
 		{55CB1042-647B-4347-9876-3EA607AF8DCE} = {03455E2B-EE55-4F32-999E-1EFCEA95CF31}
+		{EB0A7D51-2133-4EE7-B6CA-87DBEAC67E02} = {F81E4C80-8CAB-4666-ABA5-E4F0C828949E}
 	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = burn.vsmdi

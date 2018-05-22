@@ -28,13 +28,10 @@
 //#include "xmlutil.h"
 #include "regutil.h"
 
-//#include "IBootstrapperEngine.h"
-//#include "IBootstrapperApplication.h"
+#include "IBootstrapperEngine.h"
+#include "IBootstrapperApplication.h"
 
-#include "BalBaseBootstrapperApplication.h"
 //#include "balinfo.h"
 //#include "balcondition.h"
 #include "balutil.h"
-
-#include "IBootstrapperBAFunction.h"
 

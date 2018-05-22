@@ -43,6 +43,3 @@ HRESULT CreateBootstrapperApplication(
     __in const BOOTSTRAPPER_COMMAND* pCommand,
     __out IBootstrapperApplication** ppApplication
     );
-
-#include "IBootstrapperBAFunction.h"
-

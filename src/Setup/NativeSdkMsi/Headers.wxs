@@ -34,10 +34,6 @@
             </Component>
 
             <Component>
-                <File Source="libs\balutil\inc\IBootstrapperBAFunction.h" />
-            </Component>
-
-            <Component>
                 <File Source="IBootstrapperApplication.h" />
             </Component>
 
