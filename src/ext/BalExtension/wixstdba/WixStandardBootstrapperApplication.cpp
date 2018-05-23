@@ -653,7 +653,7 @@ public: // IBootstrapperApplication
 		}
 		
 		nResult = __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
-		return (nResult == IDNOACTION) ? nBafResult : nResult;
+		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
 	}
 
 
@@ -675,7 +675,7 @@ public: // IBootstrapperApplication
 		}
 
 		nResult = __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
-		return (nResult == IDNOACTION) ? nBafResult : nResult;
+		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
 	}
 
 
@@ -773,7 +773,7 @@ public: // IBootstrapperApplication
 		}
 
         ReleaseStr(sczError);
-		return (nResult == IDNOACTION) ? nBafResult : nResult;
+		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
 	}
 
 
@@ -787,6 +787,9 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
+		int nResult = nRecommendation;
+		int nBafResult = IDNOACTION;
+
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnExecuteMsiMessage() - package: %ls, message: %ls", wzPackageId, wzMessage);
 #endif
@@ -794,8 +797,7 @@ public: // IBootstrapperApplication
         {
             if (!m_fShowingInternalUiThisPackage)
             {
-                int nResult = ::MessageBoxW(m_hWnd, wzMessage, m_pTheme->sczCaption, uiFlags);
-                return nResult;
+                nResult = ::MessageBoxW(m_hWnd, wzMessage, m_pTheme->sczCaption, uiFlags);
             }
         }
 
@@ -806,11 +808,15 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
+			nBafResult = m_pBAFunction->OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
 		}
 
-        return __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
-    }
+		if (nResult == IDNOACTION)
+		{
+			nResult = __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
+		}
+		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnProgress(
@@ -818,7 +824,9 @@ public: // IBootstrapperApplication
         __in DWORD dwOverallProgressPercentage
         )
     {
-        WCHAR wzProgress[5] = { };
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
+		WCHAR wzProgress[5] = { };
 
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnProgress() - progress: %u%%, overall progress: %u%%", dwProgressPercentage, dwOverallProgressPercentage);
@@ -832,11 +840,12 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
+			nBafResult = m_pBAFunction->OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
 		}
 
-        return __super::OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
-    }
+		nResult = __super::OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnExecutePackageBegin(
@@ -844,7 +853,9 @@ public: // IBootstrapperApplication
         __in BOOL fExecute
         )
     {
-        LPWSTR sczFormattedString = NULL;
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
+		LPWSTR sczFormattedString = NULL;
 
         m_fStartedExecution = TRUE;
 
@@ -896,12 +907,14 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnExecutePackageBegin(wzPackageId, fExecute);
+			nBafResult = m_pBAFunction->OnExecutePackageBegin(wzPackageId, fExecute);
 		}
 
         ReleaseStr(sczFormattedString);
-        return __super::OnExecutePackageBegin(wzPackageId, fExecute);
-    }
+	
+		nResult = __super::OnExecutePackageBegin(wzPackageId, fExecute);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual int __stdcall OnExecuteProgress(
@@ -910,7 +923,9 @@ public: // IBootstrapperApplication
         __in DWORD dwOverallProgressPercentage
         )
     {
-        WCHAR wzProgress[5] = { };
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
+		WCHAR wzProgress[5] = { };
 
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnExecuteProgress() - package: %ls, progress: %u%%, overall progress: %u%%", wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
@@ -928,11 +943,12 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
+			nBafResult = m_pBAFunction->OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
 		}
 
-        return __super::OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
-    }
+		nResult = __super::OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(int) OnExecutePackageComplete(
@@ -942,9 +958,11 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
-        SetProgressState(hrExitCode);
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
+		SetProgressState(hrExitCode);
 
-        int nResult = __super::OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
+        nResult = __super::OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
 
         WIXSTDBA_PREREQ_PACKAGE* pPrereqPackage = NULL;
         BAL_INFO_PACKAGE* pPackage;
@@ -963,11 +981,11 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
+			nBafResult = m_pBAFunction->OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
 		}
 
-        return nResult;
-    }
+		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
+	}
 
 
     virtual STDMETHODIMP_(void) OnExecuteComplete(
@@ -996,7 +1014,8 @@ public: // IBootstrapperApplication
         __in_z_opt LPCWSTR wzDownloadSource
         )
     {
-        int nResult = IDERROR; // assume we won't resolve source and that is unexpected.
+		int nBafResult = IDNOACTION;
+		int nResult = IDERROR; // assume we won't resolve source and that is unexpected.
 
         if (BOOTSTRAPPER_DISPLAY_FULL == m_command.display)
         {
@@ -1041,10 +1060,11 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnResolveSource(wzPackageOrContainerId, wzPayloadId, wzLocalSource, wzDownloadSource);
+			nBafResult = m_pBAFunction->OnResolveSource(wzPackageOrContainerId, wzPayloadId, wzLocalSource, wzDownloadSource);
 		}
 
-        return CheckCanceled() ? IDCANCEL : nResult;
+		// Give BAF priority over local result.
+		return CheckCanceled() ? IDCANCEL : (nBafResult == IDNOACTION) ? nResult : nBafResult;
     }
 
 
@@ -1053,7 +1073,9 @@ public: // IBootstrapperApplication
         __in BOOTSTRAPPER_APPLY_RESTART restart
         )
     {
-        m_restartResult = restart; // remember the restart result so we return the correct error code no matter what the user chooses to do in the UI.
+		int nBafResult = IDNOACTION;
+		
+		m_restartResult = restart; // remember the restart result so we return the correct error code no matter what the user chooses to do in the UI.
 
         // If a restart was encountered and we are not suppressing restarts, then restart is required.
         m_fRestartRequired = (BOOTSTRAPPER_APPLY_RESTART_NONE != restart && BOOTSTRAPPER_RESTART_NEVER < m_command.restart);
@@ -1095,10 +1117,10 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnApplyComplete(hrStatus, restart);
+			nBafResult = m_pBAFunction->OnApplyComplete(hrStatus, restart);
 		}
 
-        return IDNOACTION;
+        return nBafResult;
     }
 
     virtual STDMETHODIMP_(void) OnLaunchApprovedExeComplete(
@@ -1128,7 +1150,10 @@ public: // IBootstrapperApplication
         __in_ecount_z(cFiles) LPCWSTR* rgwzFiles
         )
     {
-        if (m_fShowFilesInUse && !m_fShowingInternalUiThisPackage && !m_fPrereq && wzPackageId && *wzPackageId)
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		
+		if (m_fShowFilesInUse && !m_fShowingInternalUiThisPackage && !m_fPrereq && wzPackageId && *wzPackageId)
         {
             //If this is an MSI package, display the files in use page.
             BAL_INFO_PACKAGE* pPackage = NULL;
@@ -1142,10 +1167,11 @@ public: // IBootstrapperApplication
 
 		if (m_pBAFunction)
 		{
-			m_pBAFunction->OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+			nBafResult = m_pBAFunction->OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
 		}
 
-        return __super::OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+		nResult = __super::OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
 
