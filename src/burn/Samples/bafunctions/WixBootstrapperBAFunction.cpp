@@ -303,9 +303,11 @@ public:
 		){ return; }
 
     CWixBootstrapperBAFunction(
-        __in IBootstrapperEngine* pEngine
+		__in IBootstrapperApplication* pMainBA
+        , __in IBootstrapperEngine* pEngine
         )
     {
+		m_pMainBA = pMainBA;
         m_pEngine = pEngine;
     }
 
@@ -335,12 +337,14 @@ public:
 
 private:
 	IBootstrapperEngine* m_pEngine;
+	IBootstrapperApplication* m_pMainBA
 };
 
 
-extern "C" HRESULT WINAPI CreateBootstrapperApplication(
+extern "C" HRESULT WINAPI CreateBaFunctions(
 	__in IBootstrapperEngine* pEngine,
 	__in const BOOTSTRAPPER_COMMAND* pCommand,
+	__in IBootstrapperApplication* pMainBA,
 	__out IBootstrapperApplication** ppApplication
     )
 {
@@ -350,7 +354,7 @@ extern "C" HRESULT WINAPI CreateBootstrapperApplication(
     // This is required to enable logging functions
     BalInitialize(pEngine);
 
-    pBAFunction = new CWixBootstrapperBAFunction(pEngine);
+    pBAFunction = new CWixBootstrapperBAFunction(pMainBA, pEngine);
     ExitOnNull(pBAFunction, hr, E_OUTOFMEMORY, "Failed to create new bootstrapper BA function object.");
 
     *ppApplication = pBAFunction;

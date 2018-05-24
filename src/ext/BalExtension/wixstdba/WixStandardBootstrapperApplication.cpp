@@ -18,6 +18,14 @@ static const DWORD WIXSTDBA_ACQUIRE_PERCENTAGE = 30;
 static const LPCWSTR WIXSTDBA_VARIABLE_BUNDLE_FILE_VERSION = L"WixBundleFileVersion";
 static const LPCWSTR WIXSTDBA_VARIABLE_LANGUAGE_ID = L"WixStdBALanguageId";
 
+
+extern "C" typedef HRESULT(WINAPI *PFN_BAFUNCTIONS_CREATE)(
+	__in IBootstrapperEngine* pEngine,
+	__in const BOOTSTRAPPER_COMMAND* pCommand,
+	__in IBootstrapperApplication* pMainBA,
+	__out IBootstrapperApplication** ppApplication
+	);
+
 enum WIXSTDBA_STATE
 {
     WIXSTDBA_STATE_OPTIONS,
@@ -427,6 +435,22 @@ public: // IBootstrapperApplication
 		}
 	}
 
+
+	int STDMETHODCALLTYPE OnPlanBegin(
+		__in DWORD cPackages
+	) override
+	{
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
+
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnPlanBegin(cPackages);
+		}
+
+		nResult = __super::OnPlanBegin(cPackages);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnPlanRelatedBundle(
         __in_z LPCWSTR wzBundleId,
@@ -1128,6 +1152,11 @@ public: // IBootstrapperApplication
         __in DWORD processId
         )
     {
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnLaunchApprovedExeComplete(hrStatus, processId);
+		}
+
         if (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hrStatus)
         {
             //try with ShelExec next time
@@ -1137,11 +1166,6 @@ public: // IBootstrapperApplication
         {
             ::PostMessageW(m_hWnd, WM_CLOSE, 0, 0);
         }
-
-		if (m_pBAFunction)
-		{
-			m_pBAFunction->OnLaunchApprovedExeComplete(hrStatus, processId);
-		}
 	}
 
     virtual STDMETHODIMP_(int) OnExecuteFilesInUse(
@@ -3460,10 +3484,10 @@ private: // privates
         m_hBAFModule = ::LoadLibraryExW(sczBafPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
         if (m_hBAFModule)
         {
-			PFN_BOOTSTRAPPER_APPLICATION_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BOOTSTRAPPER_APPLICATION_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBootstrapperApplication"));
-            BalExitOnNullWithLastError1(pfnBAFunctionCreate, hr, "Failed to get CreateBootstrapperApplication entry-point from: %ls", sczBafPath);
+			PFN_BAFUNCTIONS_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BAFUNCTIONS_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBaFunctions"));
+            BalExitOnNullWithLastError1(pfnBAFunctionCreate, hr, "Failed to get CreateBaFunctions entry-point from: %ls", sczBafPath);
 
-            hr = pfnBAFunctionCreate(m_pEngine, &m_command, &m_pBAFunction);
+            hr = pfnBAFunctionCreate(m_pEngine, &m_command, this, &m_pBAFunction);
             BalExitOnFailure(hr, "Failed to create BA function.");
         }
 #ifdef DEBUG

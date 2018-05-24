@@ -2,5 +2,5 @@
 
 
 EXPORTS
-    CreateBootstrapperApplication
+    CreateBaFunctions
 
