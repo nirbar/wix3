@@ -716,6 +716,16 @@ public: // IBootstrapperApplication
 		}
 	}
 
+	STDMETHODIMP_(int) OnApplyBegin() override
+	{
+		int nBafResult = IDNOACTION;
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnApplyBegin();
+		}
+
+		return nBafResult;
+	}
 
     virtual STDMETHODIMP_(int) OnError(
         __in BOOTSTRAPPER_ERROR_TYPE errorType,
