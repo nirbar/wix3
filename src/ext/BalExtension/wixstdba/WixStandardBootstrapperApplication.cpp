@@ -863,7 +863,7 @@ public: // IBootstrapperApplication
 		{
 			nResult = __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
 		}
-		return ((nResult == IDNOACTION) || ((nResult == nRecommendation) && (nBafResult != IDNOACTION))) ? nBafResult : nResult;
+		return (((nResult == IDNOACTION) || (nResult == nRecommendation)) && (nBafResult != IDNOACTION)) ? nBafResult : nResult;
 	}
 
 
