@@ -552,6 +552,20 @@ public: // IBootstrapperApplication
         return CheckCanceled() ? IDCANCEL : nBafResult;
     }
 
+    STDMETHOD_(void, OnPlanPackageComplete)(
+        __in_z LPCWSTR wzPackageId,
+        __in HRESULT hrStatus,
+        __in BOOTSTRAPPER_PACKAGE_STATE state,
+        __in BOOTSTRAPPER_REQUEST_STATE requested,
+        __in BOOTSTRAPPER_ACTION_STATE execute,
+        __in BOOTSTRAPPER_ACTION_STATE rollback
+        ) override
+	{
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanPackageComplete(wzPackageId, hrStatus, state, requested, execute, rollback);
+		}
+	}
 
     virtual STDMETHODIMP_(void) OnPlanComplete(
         __in HRESULT hrStatus
