@@ -1,0 +1,5 @@
+version: 3.11.3.{build}
+configuration: Debug
+    
+build:
+  verbosity: normal
