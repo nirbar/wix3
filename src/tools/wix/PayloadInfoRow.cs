@@ -278,9 +278,16 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 X509Certificate2 certificate = null;
                 try
                 {
+                    string ext = Path.GetExtension(payloadInfo.SourceFile);
                     if (!payloadInfo.SuppressSignatureValidation)
                     {
-                        certificate = new X509Certificate2(fileInfo.FullName);
+                        if (ext.Equals(".exe", StringComparison.OrdinalIgnoreCase)
+                            || ext.Equals(".dll", StringComparison.OrdinalIgnoreCase)
+                            || ext.Equals(".ocx", StringComparison.OrdinalIgnoreCase)
+                            || ext.Equals(".cab", StringComparison.OrdinalIgnoreCase))
+                        {
+                            certificate = new X509Certificate2(fileInfo.FullName);
+                        }
                     }
                 }
                 catch (CryptographicException) // we don't care about non-signed files.
@@ -317,8 +324,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     payloadInfo.Version = version.ToString();
                 }
 
-                payloadInfo.ProductName = versionInfo.ProductName;
-                payloadInfo.Description = versionInfo.FileDescription;
+                if (!string.IsNullOrEmpty(versionInfo.ProductName))
+                {
+                    payloadInfo.ProductName = versionInfo.ProductName;
+                }
+                if (!string.IsNullOrEmpty(versionInfo.FileDescription))
+                {
+                    payloadInfo.Description = versionInfo.FileDescription;
+                }
             }
         }
     }

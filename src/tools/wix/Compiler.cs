@@ -20709,6 +20709,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     {
                         switch (child.LocalName)
                         {
+                            case "RemotePayload":
+                                break;
+
                             default:
                                 this.core.UnexpectedElement(node, child);
                                 break;
@@ -20791,7 +20794,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     SourceLineNumberCollection childSourceLineNumbers = Preprocessor.GetSourceLineNumbers(child);
 
-                    if (node.NamespaceURI == this.schema.TargetNamespace && node.LocalName != "ExePackage")
+                    if (node.NamespaceURI == this.schema.TargetNamespace && node.LocalName != "ExePackage" && node.LocalName != "Payload")
                     {
                         this.core.OnMessage(WixErrors.RemotePayloadUnsupported(childSourceLineNumbers));
                         continue;
@@ -20892,25 +20895,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
             }
 
-            if (String.IsNullOrEmpty(remotePayload.Description))
-            {
-                this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Description"));
-            }
             if (String.IsNullOrEmpty(remotePayload.Hash))
             {
                 this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Hash"));
             }
-            if (String.IsNullOrEmpty(remotePayload.ProductName))
-            {
-                this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "ProductName"));
-            }
             if (0 == remotePayload.FileSize)
             {
                 this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Size"));
-            }
-            if (String.IsNullOrEmpty(remotePayload.Version))
-            {
-                this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Version"));
             }
 
             return remotePayload;
