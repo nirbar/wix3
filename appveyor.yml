@@ -1,5 +1,19 @@
 version: 3.11.3.{build}
-configuration: Debug
-    
+configuration: Release
+clone_depth: 1
+
+environment:
+  my_salt:
+    secure: 0NN5oSJJ89QPp3YF4z63gJhbbM/USCm3zJaaIGLDN97NJo+d4ytRoAh9nKAP8/rwiuPPbo4vsHAtnk7O8wA4qg==
+  my_psw:
+    secure: 6u2k6uaCy0GJj3/eaSjsmA==
+  OFFICIAL_WIX_BUILD: '%APPVEYOR_BUILD_FOLDER%\psw-wix.snk'
+  SKIP_VS_CHECK: 'true'
+
+install:
+- ps: iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
+- cmd: appveyor-tools\secure-file -decrypt .\psw-wix.snk.enc -secret %my_psw% -salt %my_salt%
+
 build:
-  verbosity: normal
+  project: wix.proj
+  verbosity: minimal

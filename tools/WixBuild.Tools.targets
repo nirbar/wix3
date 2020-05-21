@@ -70,7 +70,7 @@
 
     <Error
       Code="WIXBUILD000"
-      Condition=" '$(OFFICIAL_WIX_BUILD)'!='' and !($(VS2010Available) and $(VS2012Available) and $(VS2013Available) and $(VS2015Available) and $(VS2017Available))"
+      Condition="('$(SKIP_VS_CHECK)' != 'true') and '$(OFFICIAL_WIX_BUILD)'!='' and !($(VS2010Available) and $(VS2012Available) and $(VS2013Available) and $(VS2015Available) and $(VS2017Available))"
       Text="All versions of VS are required on an official build. Install VS2010, VS2012, VS2013, VS2015, and VS2017." />
 
     <Error
