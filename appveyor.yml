@@ -8,12 +8,23 @@ environment:
   my_psw:
     secure: 6u2k6uaCy0GJj3/eaSjsmA==
   OFFICIAL_WIX_BUILD: '%APPVEYOR_BUILD_FOLDER%\psw-wix.snk'
-  SKIP_VS_CHECK: 'true'
+  SKIP_VS_CHECK: true
 
 install:
 - ps: iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
+
+before_build:
 - cmd: appveyor-tools\secure-file -decrypt .\psw-wix.snk.enc -secret %my_psw% -salt %my_salt%
 
 build:
   project: wix.proj
-  verbosity: minimal
+  verbosity: normal
+
+before_package:
+- cmd: nuget pack "%APPVEYOR_BUILD_FOLDER%\src\Setup\Nupkg\WiX.nuspec" -Version "3.11.3-b%APPVEYOR_BUILD_NUMBER%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
+
+test: off
+
+artifacts:
+- path: build\nuget-out\PanelSW.Custom.WiX.3.11.3-b%APPVEYOR_BUILD_NUMBER%.nupkg
+  name: PanelSW.Custom.WiX.3.11.3-b%build%.nupkg

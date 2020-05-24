@@ -1,0 +1,190 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
+  <metadata minClientVersion="2.7">
+    <id>PanelSW.Custom.WiX</id>
+    <version>3.11.3-b1</version>
+    <title>Custom Wix build</title>
+    <authors>WiX, Nir Bar</authors>
+    <owners>WiX, Nir Bar</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/nirbar/wix3</projectUrl>
+    <repository type="git" url="https://github.com/nirbar/wix3.git" branch="develop-psw" />
+    <description>WiX custom build based on v3.11.2 with fixes and additions</description>
+    <tags>WiX MSI Installer WixToolset XML</tags>
+  </metadata>
+
+  <files>
+    <file src="src\Setup\Nupkg\WiX.props" target="build\PanelSW.Custom.WiX.props" />
+    <file src="build\ship\x86\candle.exe" target="tools\bin\candle.exe" />
+    <file src="build\ship\x86\candle.exe.config" target="tools\bin\candle.exe.config" />
+    <file src="build\ship\x86\darice.cub" target="tools\bin\darice.cub" />
+    <file src="build\ship\x86\dark.exe" target="tools\bin\dark.exe" />
+    <file src="build\ship\x86\dark.exe.config" target="tools\bin\dark.exe.config" />
+    <file src="build\ship\x64\difxapp_x64.wixlib" target="tools\bin\difxapp_x64.wixlib" />
+    <file src="build\ship\x86\difxapp_x86.wixlib" target="tools\bin\difxapp_x86.wixlib" />
+    <file src="build\ship\x86\heat.exe" target="tools\bin\heat.exe" />
+    <file src="build\ship\x86\heat.exe.config" target="tools\bin\heat.exe.config" />
+    <file src="build\ship\x86\insignia.exe" target="tools\bin\insignia.exe" />
+    <file src="build\ship\x86\insignia.exe.config" target="tools\bin\insignia.exe.config" />
+    <file src="LICENSE.TXT" target="tools\bin\LICENSE.TXT" />
+    <file src="build\ship\x86\light.exe" target="tools\bin\light.exe" />
+    <file src="build\ship\x86\light.exe.config" target="tools\bin\light.exe.config" />
+    <file src="build\ship\x86\lit.exe" target="tools\bin\lit.exe" />
+    <file src="build\ship\x86\lit.exe.config" target="tools\bin\lit.exe.config" />
+    <file src="build\ship\x86\lux.exe" target="tools\bin\lux.exe" />
+    <file src="build\ship\x86\lux.exe.config" target="tools\bin\lux.exe.config" />
+    <file src="build\ship\x86\lux.targets" target="tools\bin\lux.targets" />
+    <file src="build\ship\x86\LuxTasks.dll" target="tools\bin\LuxTasks.dll" />
+    <file src="build\ship\x86\melt.exe" target="tools\bin\melt.exe" />
+    <file src="build\ship\x86\melt.exe.config" target="tools\bin\melt.exe.config" />
+    <file src="build\ship\x86\mergemod.cub" target="tools\bin\mergemod.cub" />
+    <file src="build\ship\x86\mergemod.dll" target="tools\bin\mergemod.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.Cab.dll" target="tools\bin\Microsoft.Deployment.Compression.Cab.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.dll" target="tools\bin\Microsoft.Deployment.Compression.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Resources.dll" target="tools\bin\Microsoft.Deployment.Resources.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.dll" target="tools\bin\Microsoft.Deployment.WindowsInstaller.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.Package.dll" target="tools\bin\Microsoft.Deployment.WindowsInstaller.Package.dll" />
+    <file src="build\ship\x86\mspatchc.dll" target="tools\bin\mspatchc.dll" />
+    <file src="build\ship\x86\nit.exe" target="tools\bin\nit.exe" />
+    <file src="build\ship\x86\pyro.exe" target="tools\bin\pyro.exe" />
+    <file src="build\ship\x86\pyro.exe.config" target="tools\bin\pyro.exe.config" />
+    <file src="build\ship\x86\retina.exe" target="tools\bin\retina.exe" />
+    <file src="build\ship\x86\retina.exe.config" target="tools\bin\retina.exe.config" />
+    <file src="build\ship\x86\shine.exe" target="tools\bin\shine.exe" />
+    <file src="build\ship\x86\shine.exe.config" target="tools\bin\shine.exe.config" />
+    <file src="build\ship\x86\smoke.exe" target="tools\bin\smoke.exe" />
+    <file src="build\ship\x86\smoke.exe.config" target="tools\bin\smoke.exe.config" />
+    <file src="build\ship\x86\ThmViewer.exe" target="tools\bin\ThmViewer.exe" />
+    <file src="build\ship\x86\torch.exe" target="tools\bin\torch.exe" />
+    <file src="build\ship\x86\torch.exe.config" target="tools\bin\torch.exe.config" />
+    <file src="build\ship\x86\wconsole.dll" target="tools\bin\wconsole.dll" />
+    <file src="build\ship\x86\winterop.dll" target="tools\bin\winterop.dll" />
+    <file src="build\ship\x86\wix.dll" target="tools\bin\wix.dll" />
+    <file src="build\ship\x86\wix.targets" target="tools\bin\wix.targets" />
+    <file src="build\ship\x86\WixBalExtension.dll" target="tools\bin\WixBalExtension.dll" />
+    <file src="build\ship\x86\WixComPlusExtension.dll" target="tools\bin\WixComPlusExtension.dll" />
+    <file src="build\ship\x86\WixCop.exe" target="tools\bin\WixCop.exe" />
+    <file src="build\ship\x86\WixDependencyExtension.dll" target="tools\bin\WixDependencyExtension.dll" />
+    <file src="build\ship\x86\WixDifxAppExtension.dll" target="tools\bin\WixDifxAppExtension.dll" />
+    <file src="build\ship\x86\WixDirectXExtension.dll" target="tools\bin\WixDirectXExtension.dll" />
+    <file src="build\ship\x86\WixFirewallExtension.dll" target="tools\bin\WixFirewallExtension.dll" />
+    <file src="build\ship\x86\WixGamingExtension.dll" target="tools\bin\WixGamingExtension.dll" />
+    <file src="build\ship\x86\WixHttpExtension.dll" target="tools\bin\WixHttpExtension.dll" />
+    <file src="build\ship\x86\WixIIsExtension.dll" target="tools\bin\WixIIsExtension.dll" />
+    <file src="build\ship\x86\WixLuxExtension.dll" target="tools\bin\WixLuxExtension.dll" />
+    <file src="build\ship\x86\WixMsmqExtension.dll" target="tools\bin\WixMsmqExtension.dll" />
+    <file src="build\ship\x86\WixNetFxExtension.dll" target="tools\bin\WixNetFxExtension.dll" />
+    <file src="build\ship\x86\WixPSExtension.dll" target="tools\bin\WixPSExtension.dll" />
+    <file src="build\ship\x86\WixSqlExtension.dll" target="tools\bin\WixSqlExtension.dll" />
+    <file src="build\ship\x86\WixTagExtension.dll" target="tools\bin\WixTagExtension.dll" />
+    <file src="build\ship\x86\WixTasks.dll" target="tools\bin\WixTasks.dll" />
+    <file src="build\ship\x86\WixUIExtension.dll" target="tools\bin\WixUIExtension.dll" />
+    <file src="build\ship\x86\WixUtilExtension.dll" target="tools\bin\WixUtilExtension.dll" />
+    <file src="build\ship\x86\WixVSExtension.dll" target="tools\bin\WixVSExtension.dll" />
+    <file src="build\ship\x86\x86\burn.exe" target="tools\bin\x86\burn.exe" />
+
+    <file src="build\ship\x86\BootstrapperCore.config" target="tools\sdk\BootstrapperCore.config" />
+    <file src="build\ship\x86\BootstrapperCore.dll" target="tools\sdk\BootstrapperCore.dll" />
+    <file src="build\ship\x86\BootstrapperCore.xml" target="tools\sdk\BootstrapperCore.xml" />
+    <file src="build\ship\x86\DocCompiler.exe" target="tools\sdk\DocCompiler.exe" />
+    <file src="build\ship\x86\MakeSfxCA.exe" target="tools\sdk\MakeSfxCA.exe" />
+    <file src="build\ship\x86\MakeSfxCA.exe.config" target="tools\sdk\MakeSfxCA.exe.config" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.Cab.dll" target="tools\sdk\Microsoft.Deployment.Compression.Cab.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.Cab.xml" target="tools\sdk\Microsoft.Deployment.Compression.Cab.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.dll" target="tools\sdk\Microsoft.Deployment.Compression.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.xml" target="tools\sdk\Microsoft.Deployment.Compression.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.Zip.dll" target="tools\sdk\Microsoft.Deployment.Compression.Zip.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Compression.Zip.xml" target="tools\sdk\Microsoft.Deployment.Compression.Zip.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.Resources.dll" target="tools\sdk\Microsoft.Deployment.Resources.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.Resources.xml" target="tools\sdk\Microsoft.Deployment.Resources.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.dll" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.Linq.dll" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.Linq.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.Linq.xml" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.Linq.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.Package.dll" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.Package.dll" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.Package.xml" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.Package.xml" />
+    <file src="build\ship\x86\Microsoft.Deployment.WindowsInstaller.xml" target="tools\sdk\Microsoft.Deployment.WindowsInstaller.xml" />
+    <file src="build\ship\x86\MsgGen.exe" target="tools\sdk\MsgGen.exe" />
+    <file src="build\ship\x86\wix.ca.targets" target="tools\sdk\wix.ca.targets" />
+    <file src="build\ship\x86\wix.nativeca.targets" target="tools\sdk\wix.nativeca.targets" />
+    <file src="build\ship\x86\XsdGen.exe" target="tools\sdk\XsdGen.exe" />
+    <file src="build\ship\x86\XsdStitch.exe" target="tools\sdk\XsdStitch.exe" />
+    <file src="src\libs\dutil\inc\aclutil.h" target="tools\sdk\inc\aclutil.h" />
+    <file src="src\libs\dutil\inc\apputil.h" target="tools\sdk\inc\apputil.h" />
+    <file src="src\libs\dutil\inc\apuputil.h" target="tools\sdk\inc\apuputil.h" />
+    <file src="src\libs\dutil\inc\atomutil.h" target="tools\sdk\inc\atomutil.h" />
+    <file src="src\libs\balutil\inc\BalBaseBootstrapperApplication.h" target="tools\sdk\inc\BalBaseBootstrapperApplication.h" />
+    <file src="src\libs\balutil\inc\balcondition.h" target="tools\sdk\inc\balcondition.h" />
+    <file src="src\libs\balutil\inc\balinfo.h" target="tools\sdk\inc\balinfo.h" />
+    <file src="src\libs\balutil\inc\balretry.h" target="tools\sdk\inc\balretry.h" />
+    <file src="src\libs\balutil\inc\balutil.h" target="tools\sdk\inc\balutil.h" />
+    <file src="src\libs\dutil\inc\buffutil.h" target="tools\sdk\inc\buffutil.h" />
+    <file src="src\libs\dutil\inc\butil.h" target="tools\sdk\inc\butil.h" />
+    <file src="src\libs\dutil\inc\cabcutil.h" target="tools\sdk\inc\cabcutil.h" />
+    <file src="src\libs\dutil\inc\cabutil.h" target="tools\sdk\inc\cabutil.h" />
+    <file src="src\libs\dutil\inc\certutil.h" target="tools\sdk\inc\certutil.h" />
+    <file src="src\libs\dutil\inc\conutil.h" target="tools\sdk\inc\conutil.h" />
+    <file src="src\libs\dutil\inc\cryputil.h" target="tools\sdk\inc\cryputil.h" />
+    <file src="src\libs\wcautil\custommsierrors.h" target="tools\sdk\inc\custommsierrors.h" />
+    <file src="src\libs\deputil\inc\deputil.h" target="tools\sdk\inc\deputil.h" />
+    <file src="src\libs\dutil\inc\dictutil.h" target="tools\sdk\inc\dictutil.h" />
+    <file src="src\libs\dutil\inc\dirutil.h" target="tools\sdk\inc\dirutil.h" />
+    <file src="src\libs\dutil\inc\dlutil.h" target="tools\sdk\inc\dlutil.h" />
+    <file src="src\libs\dutil\inc\dutil.h" target="tools\sdk\inc\dutil.h" />
+    <file src="src\libs\dutil\inc\eseutil.h" target="tools\sdk\inc\eseutil.h" />
+    <file src="src\libs\dutil\inc\fileutil.h" target="tools\sdk\inc\fileutil.h" />
+    <file src="src\libs\dutil\inc\gdiputil.h" target="tools\sdk\inc\gdiputil.h" />
+    <file src="src\burn\inc\IBootstrapperApplication.h" target="tools\sdk\inc\IBootstrapperApplication.h" />
+    <file src="src\libs\balutil\inc\IBootstrapperBAFunction.h" target="tools\sdk\inc\IBootstrapperBAFunction.h" />
+    <file src="src\burn\inc\IBootstrapperEngine.h" target="tools\sdk\inc\IBootstrapperEngine.h" />
+    <file src="src\libs\dutil\inc\iis7util.h" target="tools\sdk\inc\iis7util.h" />
+    <file src="src\libs\dutil\inc\inetutil.h" target="tools\sdk\inc\inetutil.h" />
+    <file src="src\libs\dutil\inc\iniutil.h" target="tools\sdk\inc\iniutil.h" />
+    <file src="src\libs\dutil\inc\jsonutil.h" target="tools\sdk\inc\jsonutil.h" />
+    <file src="src\libs\dutil\inc\locutil.h" target="tools\sdk\inc\locutil.h" />
+    <file src="src\libs\dutil\inc\logutil.h" target="tools\sdk\inc\logutil.h" />
+    <file src="src\libs\dutil\inc\memutil.h" target="tools\sdk\inc\memutil.h" />
+    <file src="src\libs\dutil\inc\metautil.h" target="tools\sdk\inc\metautil.h" />
+    <file src="src\libs\dutil\inc\osutil.h" target="tools\sdk\inc\osutil.h" />
+    <file src="src\libs\dutil\inc\pathutil.h" target="tools\sdk\inc\pathutil.h" />
+    <file src="src\libs\dutil\inc\perfutil.h" target="tools\sdk\inc\perfutil.h" />
+    <file src="src\libs\dutil\inc\polcutil.h" target="tools\sdk\inc\polcutil.h" />
+    <file src="src\libs\dutil\inc\procutil.h" target="tools\sdk\inc\procutil.h" />
+    <file src="src\libs\dutil\inc\regutil.h" target="tools\sdk\inc\regutil.h" />
+    <file src="src\libs\dutil\inc\resrutil.h" target="tools\sdk\inc\resrutil.h" />
+    <file src="src\libs\dutil\inc\reswutil.h" target="tools\sdk\inc\reswutil.h" />
+    <file src="src\libs\dutil\inc\rexutil.h" target="tools\sdk\inc\rexutil.h" />
+    <file src="src\libs\dutil\inc\rmutil.h" target="tools\sdk\inc\rmutil.h" />
+    <file src="src\libs\dutil\inc\rssutil.h" target="tools\sdk\inc\rssutil.h" />
+    <file src="src\libs\dutil\inc\sceutil.h" target="tools\sdk\inc\sceutil.h" />
+    <file src="src\libs\dutil\inc\shelutil.h" target="tools\sdk\inc\shelutil.h" />
+    <file src="src\libs\dutil\inc\sqlutil.h" target="tools\sdk\inc\sqlutil.h" />
+    <file src="src\libs\dutil\inc\srputil.h" target="tools\sdk\inc\srputil.h" />
+    <file src="src\libs\dutil\inc\strutil.h" target="tools\sdk\inc\strutil.h" />
+    <file src="src\libs\dutil\inc\svcutil.h" target="tools\sdk\inc\svcutil.h" />
+    <file src="src\libs\dutil\inc\thmutil.h" target="tools\sdk\inc\thmutil.h" />
+    <file src="src\libs\dutil\inc\timeutil.h" target="tools\sdk\inc\timeutil.h" />
+    <file src="src\libs\dutil\inc\uriutil.h" target="tools\sdk\inc\uriutil.h" />
+    <file src="src\libs\dutil\inc\userutil.h" target="tools\sdk\inc\userutil.h" />
+    <file src="src\libs\wcautil\wcalog.h" target="tools\sdk\inc\wcalog.h" />
+    <file src="src\libs\wcautil\wcautil.h" target="tools\sdk\inc\wcautil.h" />
+    <file src="src\libs\wcautil\wcawow64.h" target="tools\sdk\inc\wcawow64.h" />
+    <file src="src\libs\wcautil\wcawrapquery.h" target="tools\sdk\inc\wcawrapquery.h" />
+    <file src="src\libs\dutil\inc\wiutil.h" target="tools\sdk\inc\wiutil.h" />
+    <file src="src\libs\dutil\inc\wuautil.h" target="tools\sdk\inc\wuautil.h" />
+    <file src="src\libs\dutil\inc\xmlutil.h" target="tools\sdk\inc\xmlutil.h" />
+
+    <file src="build\ship\x64\2017\deputil.lib" target="tools\sdk\vs2017\lib\x64\deputil.lib" />
+    <file src="build\ship\x64\2017\dutil.lib" target="tools\sdk\vs2017\lib\x64\dutil.lib" />
+    <file src="build\ship\x64\2017\wcautil.lib" target="tools\sdk\vs2017\lib\x64\wcautil.lib" />
+    <file src="build\ship\x86\2017\balutil.lib" target="tools\sdk\vs2017\lib\x86\balutil.lib" />
+    <file src="build\ship\x86\2017\deputil.lib" target="tools\sdk\vs2017\lib\x86\deputil.lib" />
+    <file src="build\ship\x86\2017\dutil.lib" target="tools\sdk\vs2017\lib\x86\dutil.lib" />
+    <file src="build\ship\x86\2017\wcautil.lib" target="tools\sdk\vs2017\lib\x86\wcautil.lib" />
+    <file src="build\ship\x64\sfxca.dll" target="tools\sdk\x64\sfxca.dll" />
+    <file src="build\ship\x86\sfxca.dll" target="tools\sdk\x86\sfxca.dll" />
+	
+	<!--TODO Duplicate for VS 2010, 2012, 2013, 2015 -->
+  </files>
+
+</package>

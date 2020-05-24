@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<WixToolPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\bin\'))</WixToolPath>
+		<WixSdkPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\sdk\'))</WixSdkPath>
+		<WixTargetsPath>$(WixToolPath)Wix.targets</WixTargetsPath>
+		<WixCATargetsPath>$(WixSdkPath)Wix.CA.targets</WixCATargetsPath>
+		<WixNativeCATargetsPath>$(WixSdkPath)Wix.NativeCA.targets</WixNativeCATargetsPath>
+		<WixTasksPath>$(WixToolPath)wixtasks.dll</WixTasksPath>
+	</PropertyGroup> 
+</Project>
