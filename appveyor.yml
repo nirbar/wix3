@@ -4,7 +4,7 @@ clone_depth: 1
 
 environment:
   my_salt:
-    secure: 0NN5oSJJ89QPp3YF4z63gJhbbM/USCm3zJaaIGLDN97NJo+d4ytRoAh9nKAP8/rwiuPPbo4vsHAtnk7O8wA4qg==
+    secure: sjYu7KIWTpqq5s6CSyVapacjdBXPd3SlKA2JDuUlCKG9P8q5sg4HbXucl8tuyrEuk4V90BHtHTaR5AI8jlbb+g==
   my_psw:
     secure: 6u2k6uaCy0GJj3/eaSjsmA==
   OFFICIAL_WIX_BUILD: '%APPVEYOR_BUILD_FOLDER%\psw-wix.snk'
