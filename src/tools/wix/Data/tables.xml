@@ -1725,6 +1725,7 @@
         <columnDefinition name="ForcePerMachine" type="number" length="2" nullable="yes" minValue="0" maxValue="1" />
         <columnDefinition name="DisplayInternalUI" type="number" length="2" nullable="yes" minValue="0" maxValue="1" />
         <columnDefinition name="Transaction" type="number" length="2" nullable="yes" minValue="0" maxValue="1"/>
+        <columnDefinition name="X64" type="number" length="2" nullable="yes" minValue="0" maxValue="1"/>
     </tableDefinition>
     <tableDefinition name="ChainPackageInfo" createSymbols="yes" unreal="yes">
         <columnDefinition name="Id" type="string" length="0" category="identifier" primaryKey="yes"/>

@@ -21427,7 +21427,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
                 if (YesNoType.NotSet != transaction)
                 {
-                    row[23] = (YesNoType.Yes == vital) ? 1 : 0;
+                    row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);

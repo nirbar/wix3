@@ -3104,6 +3104,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             variableCache.Add(String.Concat("packageVersion.", id), package.Version);
         }
 
+        private enum TransactionType
+        {
+            None,
+            X86,
+            X64,
+            Unknown
+        }
+
         /// <summary>
         /// Binds a bundle.
         /// </summary>
@@ -3572,6 +3580,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // We handle uninstall (aka: backwards) rollback boundaries after
             // we get these install/repair (aka: forward) rollback boundaries
             // defined.
+
+            //TODO: 
+            // - Ensure transactions have only x64 or only x86 packages
+            //   Transactions with mixed x86/x64 packages must start with x64 before x86, which would work in either forward (install) or backward (uninstall) order, but can't work for both cases
+            // - Ensure transactions contain only MSI/MSP packages
+
+            TransactionType transactionType = TransactionType.None;
             ChainInfo chain = new ChainInfo(chainTable.Rows[0]); // WixChain table always has one and only row in it.
             RollbackBoundaryInfo previousRollbackBoundary = new RollbackBoundaryInfo("WixDefaultBoundary"); // ensure there is always a rollback boundary at the beginning of the chain.
             foreach (Row row in wixGroupTable.Rows)
@@ -3594,13 +3609,31 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             previousRollbackBoundary = null;
                         }
 
-                        chain.Packages.Add(packageInfo);
+                        if ((transactionType != TransactionType.None) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msp))
+                        {
+                            core.OnMessage(WixErrors.MsiTransactionAllowedPackages(packageInfo.SourceLineNumbers));
+                        }
+
+                        // X64 check can only be made on MSI packages
+                        if (packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi))
+                        {
+                            if (transactionType == TransactionType.Unknown)
+                            {
+                                transactionType = packageInfo.X64 ? TransactionType.X64 : TransactionType.X86;
+                            }
+                            else if ((transactionType == TransactionType.X64) != packageInfo.X64)
+                            {
+                                core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                            }
+                        }
                     }
                     else // must be a rollback boundary.
                     {
                         // Discard the next rollback boundary if we have a previously defined boundary. Of course,
                         // a boundary specifically defined will override the default boundary.
                         RollbackBoundaryInfo nextRollbackBoundary = allBoundaries[rowChildName];
+                        transactionType = (nextRollbackBoundary.Transaction == YesNoType.Yes) ? TransactionType.Unknown : TransactionType.None;
+
                         if (null != previousRollbackBoundary && !previousRollbackBoundary.Default)
                         {
                             this.core.OnMessage(WixWarnings.DiscardedRollbackBoundary(nextRollbackBoundary.SourceLineNumbers, nextRollbackBoundary.Id));

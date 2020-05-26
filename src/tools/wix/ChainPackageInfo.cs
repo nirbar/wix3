@@ -384,12 +384,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             private set { this.Fields[10].Data = value ? 1 : 0; }
         }
 
-        public bool Transaction
-        {
-            get { return (null != this.Fields[32].Data) && (1 == (int)this.Fields[32].Data); }
-            private set { this.Fields[32].Data = value ? 1 : 0; }
-        }
-
         public YesNoDefaultType PerMachine
         {
             get
@@ -560,6 +554,18 @@ namespace Microsoft.Tools.WindowsInstallerXml
             private set { this.Fields[31].Data = value; }
         }
 
+        public bool Transaction
+        {
+            get { return (null != this.Fields[32].Data) && (1 == (int)this.Fields[32].Data); }
+            private set { this.Fields[32].Data = value ? 1 : 0; }
+        }
+
+        public bool X64
+        {
+            get { return (null != this.Fields[33].Data) && (1 == (int)this.Fields[33].Data); }
+            private set { this.Fields[33].Data = value ? 1 : 0; }
+        }
+
         public long Size { get; private set; }
         public List<PayloadInfoRow> Payloads { get; private set; }
         public List<RelatedPackage> RelatedPackages { get; private set; }
@@ -599,6 +605,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     // "Elevated privileges are not required to install this package."
                     // in MSI 4.5 and below, if this bit is 0, elevation is required.
                     this.PerMachine = (0 == (sumInfo.WordCount & 8)) ? YesNoDefaultType.Yes : YesNoDefaultType.No;
+
+                    this.X64 = sumInfo.Template.StartsWith("x64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("intel64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("amd64", StringComparison.OrdinalIgnoreCase);
                 }
 
                 using (Microsoft.Deployment.WindowsInstaller.Database db = new Microsoft.Deployment.WindowsInstaller.Database(sourcePath))
@@ -1046,6 +1054,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 using (Microsoft.Deployment.WindowsInstaller.SummaryInfo sumInfo = new Microsoft.Deployment.WindowsInstaller.SummaryInfo(sourcePath, false))
                 {
                     this.PatchCode = sumInfo.RevisionNumber.Substring(0, 38);
+                    this.X64 = sumInfo.Template.StartsWith("x64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("intel64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("amd64", StringComparison.OrdinalIgnoreCase);
                 }
 
                 using (Microsoft.Deployment.WindowsInstaller.Database db = new Microsoft.Deployment.WindowsInstaller.Database(sourcePath))

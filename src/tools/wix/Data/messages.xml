@@ -1921,7 +1921,7 @@
                 <Parameter Type="System.Boolean" Name="registryKeyPath" />
             </Instance>
         </Message>
-      <Message Id="IllegalPathForGeneratedComponentGuid" Number="231">
+        <Message Id="IllegalPathForGeneratedComponentGuid" Number="231">
             <Instance>
                 The component '{0}' has a key file with path '{1}'.  Since this path is not rooted in one of the standard directories (like ProgramFilesFolder), this component does not fit the criteria for having an automatically generated guid.  (This error may also occur if a path contains a likely standard directory such as nesting a directory with name "Common Files" under ProgramFilesFolder.)
                 <Parameter Type="System.String" Name="componentName" />
@@ -2596,19 +2596,19 @@
             </Instance>
         </Message>
         <Message Id="SmokeUnknownFileExtension" Number="335" SourceLineNumbers="no">
-          <Instance>
-            Unknown input file format - expected a .msi or .msm file.
-          </Instance>
+            <Instance>
+                Unknown input file format - expected a .msi or .msm file.
+            </Instance>
         </Message>
         <Message Id="SmokeUnsupportedFileExtension" Number="336" SourceLineNumbers="no">
-          <Instance>
-            Files with an extension of .msp are not currently supported.
-          </Instance>
+            <Instance>
+                Files with an extension of .msp are not currently supported.
+            </Instance>
         </Message>
         <Message Id="SmokeMalformedPath" Number="337" SourceLineNumbers="no">
-          <Instance>
-            Path contains one or more invalid characters.
-          </Instance>
+            <Instance>
+                Path contains one or more invalid characters.
+            </Instance>
         </Message>
         <Message Id="InvalidStubExe" Number="338" SourceLineNumbers="no">
             <Instance>
@@ -2722,242 +2722,252 @@
             </Instance>
         </Message>
         <Message Id="InvalidBundle" Number="354" SourceLineNumbers="no">
-          <Instance>
-            Unable to read bundle executable '{0}'. This is not a valid WiX bundle.
-            <Parameter Type="System.String" Name="bundleExecutable" />
-          </Instance>
+            <Instance>
+                Unable to read bundle executable '{0}'. This is not a valid WiX bundle.
+                <Parameter Type="System.String" Name="bundleExecutable" />
+            </Instance>
         </Message>
-      <Message Id="BundleTooNew" Number="355" SourceLineNumbers="no">
-        <Instance>
-          Unable to read bundle executable '{0}', because this bundle was created with a newer version of WiX (bundle version '{1}'). You must use a newer version of Windows Installer XML in order to read this bundle.
-          <Parameter Type="System.String" Name="bundleExecutable" />
+        <Message Id="BundleTooNew" Number="355" SourceLineNumbers="no">
+            <Instance>
+                Unable to read bundle executable '{0}', because this bundle was created with a newer version of WiX (bundle version '{1}'). You must use a newer version of Windows Installer XML in order to read this bundle.
+                <Parameter Type="System.String" Name="bundleExecutable" />
           <!-- we use a 64-bit field here because the field is really a 32-bit UInt, 
               but UInt gives a non-CLS-compliant warning.
               So 64-bit makes sure we don't drop the last bit -->
-          <Parameter Type="System.Int64" Name="bundleVersion" />
-        </Instance>
-      </Message>
-      <Message Id="WrongFileExtensionForNumberOfInputs" Number="356" SourceLineNumbers="no">
-        <Instance>
-          The extension '{0}' on the input specified '{1}' does not match the number of inputs required to handle an input with this extension. Check if you are missing an input or have too many.
-          <Parameter Type="System.String" Name="inputExtension" />
-          <Parameter Type="System.String" Name="input" />
-        </Instance>
-      </Message>
-      <Message Id="MediaTableCollision" Number="357">
-        <Instance>
-          Only one of Media and MediaTemplate tables should be authored.
-        </Instance>
-      </Message>
-      <Message Id="InvalidCabinetTemplate" Number="358">
-        <Instance>
-          CabinetTemplate attribute's value '{0}' must contain '{{0}}' and should contain no more than 8 characters followed by an optional extension of no more than 3 characters.  Any character except for the follow may be used: \ ? | &gt; &lt; : / * " + , ; = [ ] (space).  The Windows Installer team has recommended following the 8.3 format for external cabinet files and any other naming scheme is officially unsupported (which means it is not guaranteed to work on all platforms).
-          <Parameter Type="System.String" Name="cabinetTemplate" />
-        </Instance>
-      </Message>
-      <Message Id="MaximumUncompressedMediaSizeTooLarge" Number="359">
-         <Instance>
-          '{0}' is too large. Reduce the size of maximum uncompressed media size.
-             <Parameter Type="System.Int32" Name="maximumUncompressedMediaSize" />
-          </Instance>
-      </Message>
-      <Message Id="CatalogVerificationFailed" Number="360" SourceLineNumbers="no">
-         <Instance>
-          File '{0}' could not be verified with a catalog file.
-             <Parameter Type="System.String" Name="fileName" />
-         </Instance>
-      </Message>
-      <Message Id="CatalogFileHashFailed" Number="361" SourceLineNumbers="no">
-         <Instance>
-          Could not get hash of file '{0}'.  Error: {2}.
-             <Parameter Type="System.String" Name="fileName" />
-             <Parameter Type="System.Int32" Name="errorCode" />
-         </Instance>
-      </Message>
-      <Message Id="ReservedNamespaceViolation" Number="362">
-        <Instance>
-          The {0}/@{1} attribute's value begins with the reserved prefix '{2}'. Some prefixes are reserved by the Windows Installer and WiX toolset for well-known values. Change your attribute's value to not begin with the same prefix.
-          <Parameter Type="System.String" Name="element" />
-          <Parameter Type="System.String" Name="attribute" />
-          <Parameter Type="System.String" Name="prefix" />
-        </Instance>
-      </Message>
-      <Message Id="PerUserButAllUsersEquals1" Number="363">
-        <Instance>
-          The MSI '{0}' is explicitly marked to not elevate so it must be a per-user package but the ALLUSERS Property is set to '1' creating a per-machine package. Remove the Property with Id='ALLUSERS' and use Package/@InstallScope attribute to be explicit instead.
-          <Parameter Type="System.String" Name="path" />
-        </Instance>
-      </Message>
-      <Message Id="UnsupportedAllUsersValue" Number="364">
-        <Instance>
-          The MSI '{0}' set the ALLUSERS Property to '{0}' which is not supported. Remove the Property with Id='ALLUSERS' and use Package/@InstallScope attribute instead.
-          <Parameter Type="System.String" Name="path" />
-          <Parameter Type="System.String" Name="value" />
-        </Instance>
-      </Message>
-      <Message Id="MissingOrInvalidModuleInstallerVersion" Number="366">
-        <Instance>
-          The merge module '{0}' from file '{1}' is either missing or has an invalid installer version. The value read from the installer version in module's summary information was '{2}'. This should be a numeric value representing a valid installer version such as 200 or 301.
-          <Parameter Type="System.String" Name="moduleId" />
-          <Parameter Type="System.String" Name="mergeModuleFile" />
-          <Parameter Type="System.String" Name="productInstallerVersion" />
-        </Instance>
-      </Message>
-      <Message Id="IllegalGeneratedGuidComponentUnversionedKeypath" Number="367">
-        <Instance>
-          The Component/@Guid attribute's value '*' is not valid for this component because it does not meet the criteria for having an automatically generated guid. Components with more than one file cannot use an automatically generated guid unless a versioned file is the keypath and the other files are unversioned. This component's keypath is not versioned. Create multiple components to use automatically generated guids.
-        </Instance>
-      </Message>
-      <Message Id="IllegalGeneratedGuidComponentVersionedNonkeypath" Number="368">
-        <Instance>
-          The Component/@Guid attribute's value '*' is not valid for this component because it does not meet the criteria for having an automatically generated guid. Components with more than one file cannot use an automatically generated guid unless a versioned file is the keypath and the other files are unversioned. This component has a non-keypath file that is versioned. Create multiple components to use automatically generated guids.
-        </Instance>
-      </Message>
-      <Message Id="DuplicateComponentGuids" Number="369">
-        <Instance>
-          Component/@Id='{0}' has a @Guid value '{1}' that duplicates another component in this package. It is recommended to give each component its own unique GUID.
-          <Parameter Type="System.String" Name="componentId" />
-          <Parameter Type="System.String" Name="guid" />
-        </Instance>
-      </Message>
-      <Message Id="DuplicateProviderDependencyKey" Number="370" SourceLineNumbers="no">
-        <Instance>
-          The provider dependency key '{0}' was already imported from the package with Id '{1}'. Please remove the Provides element with the key '{0}' from the package authoring.
-          <Parameter Type="System.String" Name="providerKey" />
-          <Parameter Type="System.String" Name="packageId" />
-        </Instance>
-      </Message>
-      <Message Id="MissingDependencyVersion" Number="371" SourceLineNumbers="no">
-        <Instance>
-          The provider dependency version was not authored for the package with Id '{0}'. Please author the Provides/@Version attribute for this package.
-          <Parameter Type="System.String" Name="packageId" />
-        </Instance>
-      </Message>
+                <Parameter Type="System.Int64" Name="bundleVersion" />
+            </Instance>
+        </Message>
+        <Message Id="WrongFileExtensionForNumberOfInputs" Number="356" SourceLineNumbers="no">
+            <Instance>
+                The extension '{0}' on the input specified '{1}' does not match the number of inputs required to handle an input with this extension. Check if you are missing an input or have too many.
+                <Parameter Type="System.String" Name="inputExtension" />
+                <Parameter Type="System.String" Name="input" />
+            </Instance>
+        </Message>
+        <Message Id="MediaTableCollision" Number="357">
+            <Instance>
+                Only one of Media and MediaTemplate tables should be authored.
+            </Instance>
+        </Message>
+        <Message Id="InvalidCabinetTemplate" Number="358">
+            <Instance>
+                CabinetTemplate attribute's value '{0}' must contain '{{0}}' and should contain no more than 8 characters followed by an optional extension of no more than 3 characters.  Any character except for the follow may be used: \ ? | &gt; &lt; : / * " + , ; = [ ] (space).  The Windows Installer team has recommended following the 8.3 format for external cabinet files and any other naming scheme is officially unsupported (which means it is not guaranteed to work on all platforms).
+                <Parameter Type="System.String" Name="cabinetTemplate" />
+            </Instance>
+        </Message>
+        <Message Id="MaximumUncompressedMediaSizeTooLarge" Number="359">
+            <Instance>
+                '{0}' is too large. Reduce the size of maximum uncompressed media size.
+                <Parameter Type="System.Int32" Name="maximumUncompressedMediaSize" />
+            </Instance>
+        </Message>
+        <Message Id="CatalogVerificationFailed" Number="360" SourceLineNumbers="no">
+            <Instance>
+                File '{0}' could not be verified with a catalog file.
+                <Parameter Type="System.String" Name="fileName" />
+            </Instance>
+        </Message>
+        <Message Id="CatalogFileHashFailed" Number="361" SourceLineNumbers="no">
+            <Instance>
+                Could not get hash of file '{0}'.  Error: {2}.
+                <Parameter Type="System.String" Name="fileName" />
+                <Parameter Type="System.Int32" Name="errorCode" />
+            </Instance>
+        </Message>
+        <Message Id="ReservedNamespaceViolation" Number="362">
+            <Instance>
+                The {0}/@{1} attribute's value begins with the reserved prefix '{2}'. Some prefixes are reserved by the Windows Installer and WiX toolset for well-known values. Change your attribute's value to not begin with the same prefix.
+                <Parameter Type="System.String" Name="element" />
+                <Parameter Type="System.String" Name="attribute" />
+                <Parameter Type="System.String" Name="prefix" />
+            </Instance>
+        </Message>
+        <Message Id="PerUserButAllUsersEquals1" Number="363">
+            <Instance>
+                The MSI '{0}' is explicitly marked to not elevate so it must be a per-user package but the ALLUSERS Property is set to '1' creating a per-machine package. Remove the Property with Id='ALLUSERS' and use Package/@InstallScope attribute to be explicit instead.
+                <Parameter Type="System.String" Name="path" />
+            </Instance>
+        </Message>
+        <Message Id="UnsupportedAllUsersValue" Number="364">
+            <Instance>
+                The MSI '{0}' set the ALLUSERS Property to '{0}' which is not supported. Remove the Property with Id='ALLUSERS' and use Package/@InstallScope attribute instead.
+                <Parameter Type="System.String" Name="path" />
+                <Parameter Type="System.String" Name="value" />
+            </Instance>
+        </Message>
+        <Message Id="MissingOrInvalidModuleInstallerVersion" Number="366">
+            <Instance>
+                The merge module '{0}' from file '{1}' is either missing or has an invalid installer version. The value read from the installer version in module's summary information was '{2}'. This should be a numeric value representing a valid installer version such as 200 or 301.
+                <Parameter Type="System.String" Name="moduleId" />
+                <Parameter Type="System.String" Name="mergeModuleFile" />
+                <Parameter Type="System.String" Name="productInstallerVersion" />
+            </Instance>
+        </Message>
+        <Message Id="IllegalGeneratedGuidComponentUnversionedKeypath" Number="367">
+            <Instance>
+                The Component/@Guid attribute's value '*' is not valid for this component because it does not meet the criteria for having an automatically generated guid. Components with more than one file cannot use an automatically generated guid unless a versioned file is the keypath and the other files are unversioned. This component's keypath is not versioned. Create multiple components to use automatically generated guids.
+            </Instance>
+        </Message>
+        <Message Id="IllegalGeneratedGuidComponentVersionedNonkeypath" Number="368">
+            <Instance>
+                The Component/@Guid attribute's value '*' is not valid for this component because it does not meet the criteria for having an automatically generated guid. Components with more than one file cannot use an automatically generated guid unless a versioned file is the keypath and the other files are unversioned. This component has a non-keypath file that is versioned. Create multiple components to use automatically generated guids.
+            </Instance>
+        </Message>
+        <Message Id="DuplicateComponentGuids" Number="369">
+            <Instance>
+                Component/@Id='{0}' has a @Guid value '{1}' that duplicates another component in this package. It is recommended to give each component its own unique GUID.
+                <Parameter Type="System.String" Name="componentId" />
+                <Parameter Type="System.String" Name="guid" />
+            </Instance>
+        </Message>
+        <Message Id="DuplicateProviderDependencyKey" Number="370" SourceLineNumbers="no">
+            <Instance>
+                The provider dependency key '{0}' was already imported from the package with Id '{1}'. Please remove the Provides element with the key '{0}' from the package authoring.
+                <Parameter Type="System.String" Name="providerKey" />
+                <Parameter Type="System.String" Name="packageId" />
+            </Instance>
+        </Message>
+        <Message Id="MissingDependencyVersion" Number="371" SourceLineNumbers="no">
+            <Instance>
+                The provider dependency version was not authored for the package with Id '{0}'. Please author the Provides/@Version attribute for this package.
+                <Parameter Type="System.String" Name="packageId" />
+            </Instance>
+        </Message>
 
-      <Message Id="UnexpectedElementWithAttribute" Number="372">
-        <Instance>
-          The {0} element cannot have a child element '{1}' when attribute '{2}' is set.
-          <Parameter Type="System.String" Name="elementName" />
-          <Parameter Type="System.String" Name="childElementName" />
-          <Parameter Type="System.String" Name="attribute" />
-        </Instance>
-      </Message>
-      <Message Id="ExpectedAttributeWithElement" Number="373">
-        <Instance>
-          The {0} element must have attribute '{1}' when child element '{2}' is present.
-          <Parameter Type="System.String" Name="elementName" />
-          <Parameter Type="System.String" Name="attribute" />
-          <Parameter Type="System.String" Name="childElementName" />
-        </Instance>
-      </Message>
-      <Message Id="DuplicatedUiLocalization" Number="374">
-        <Instance>
-          The localization for control {0} in dialog {1} is duplicated. Only one localization per control is allowed.
-          <Parameter Type="System.String" Name="controlName" />
-          <Parameter Type="System.String" Name="dialogName" />
-        </Instance>
-        <Instance>
-          The localization for dialog {0} is duplicated. Only one localization per dialog is allowed.
-          <Parameter Type="System.String" Name="dialogName" />
-        </Instance>
-      </Message>
-      <Message Id="MaximumCabinetSizeForLargeFileSplittingTooLarge" Number="375">
-        <Instance>
-            '{0}' is too large. Reduce the size of maximum cabinet size for large file splitting. The maximum permitted value is '{1}' MB.
-            <Parameter Type="System.Int32" Name="maximumCabinetSizeForLargeFileSplitting" />
-            <Parameter Type="System.Int32" Name="maxValueOfMaxCabSizeForLargeFileSplitting" />
-        </Instance>
-      </Message>
-      <Message Id="SplitCabinetCopyRegistrationFailed" Number="376" SourceLineNumbers="no">
-        <Instance>
-          Failed to register the copy command for cabinet '{0}' formed by splitting cabinet '{1}'.
-          <Parameter Type="System.String" Name="newCabName" />
-          <Parameter Type="System.String" Name="firstCabName" />
-        </Instance>
-      </Message>
-      <Message Id="SplitCabinetNameCollision" Number="377" SourceLineNumbers="no">
-        <Instance>
-          The cabinet name '{0}' collides with the new cabinet formed by splitting cabinet '{1}', consider renaming cabinet '{0}'.
-          <Parameter Type="System.String" Name="newCabName" />
-          <Parameter Type="System.String" Name="firstCabName" />
-        </Instance>
-      </Message>
-      <Message Id="SplitCabinetInsertionFailed" Number="378" SourceLineNumbers="no">
-        <Instance>
-            Could not find the last split cabinet '{2}' in the Media Table. So failed to add new cabinet '{0}' formed by splitting cabinet '{1}' to the installer package.
-            <Parameter Type="System.String" Name="newCabName" />
-          <Parameter Type="System.String" Name="firstCabName" />
-          <Parameter Type="System.String" Name="lastCabinetOfThisSequence" />
-        </Instance>
-      </Message>
-      <Message Id="InvalidPreprocessorFunctionAutoVersion" Number="379">
-        <Instance>
-          Invalid AutoVersion template specified.
-        </Instance>
-      </Message>
-      <Message Id="InvalidModuleOrBundleVersion" Number="380">
-        <Instance>
-          Invalid {0}/@Version '{1}'. {0} version has a max value of "65535.65535.65535.65535" and must be all numeric.
-          <Parameter Type="System.String" Name="moduleOrBundle" />
-          <Parameter Type="System.String" Name="version" />
-        </Instance>
-      </Message>
-      <Message Id="UnsupportedPlatformForElement" Number="381">
-        <Instance>
-          The element {1} does not support platform '{0}'. Consider removing the element or using the preprocessor to conditionally include the element based on the platform.
-          <Parameter Type="System.String" Name="platform" />
-          <Parameter Type="System.String" Name="elementName" />
-        </Instance>
-      </Message>
-      <Message Id="MissingMedia" Number="382">
-        <Instance>
-          There is no media defined for disk id '{0}'. You must author either &lt;Media Id='{0}' ...&gt; or &lt;MediaTemplate ...&gt;.
-          <Parameter Type="System.Int32" Name="diskId" />
-        </Instance>
-      </Message>
-      <Message Id="RemotePayloadUnsupported" Number="383">
-        <Instance>
-          The RemotePayload element can only be used for ExePackage and MsuPackage payloads.
-        </Instance>
-      </Message>
-      <Message Id="IllegalYesNoAlwaysValue" Number="384">
-          <Instance>
-              The {0}/@{1} attribute's value, '{2}', is not a legal yes/no/always value.  The only legal values are 'always', 'no' or 'yes'.
-              <Parameter Type="System.String" Name="elementName" />
-              <Parameter Type="System.String" Name="attributeName" />
-              <Parameter Type="System.String" Name="value" />
-          </Instance>
-      </Message>
-      <Message Id="TooDeeplyIncluded" Number="385">
-        <Instance>
-          Include files cannot be nested more deeply than {0} times. Make sure included files don't accidentally include themselves.
-          <Parameter Type="System.Int32" Name="depth" />
-        </Instance>
-      </Message>
-      <Message Id="TooManyColumnsInRealTable" Number="386" SourceLineNumbers="no">
-        <Instance>
-          The table '{0}' contains {1} columns which is not supported by Windows Installer.  Windows Installer supports a maximum of {2} columns.
-          <Parameter Type="System.String" Name="tableName" />
-          <Parameter Type="System.Int32" Name="columnCount" />
-          <Parameter Type="System.Int32" Name="supportedColumnCount" />
-        </Instance>
-      </Message>
-      <Message Id="IncompatiblePackageElevationAttributes" Number="387">
-          <Instance>
-              The {0}/@{1} attribute's value, '{2}', is not compatible with attribute @{3}'s value, '{4}'. It is recommended that only the InstallScope attribute be used.
-              <Parameter Type="System.String" Name="elementName" />
-              <Parameter Type="System.String" Name="attribute1Name" />
-              <Parameter Type="System.String" Name="attribute1Value" />
-              <Parameter Type="System.String" Name="attribute2Name" />
-              <Parameter Type="System.String" Name="attribute2Value" />
-          </Instance>
-      </Message>
-      <Message Id="InsecureBundleFilename" Number="388" SourceLineNumbers="no">
-        <Instance>
-          The file name '{0}' creates an insecure bundle. Windows will load unnecessary compatibility shims into a bundle with that file name. These compatibility shims can be DLL hijacked allowing attackers to compromise your customers' computer. Choose a different bundle file name.
-          <Parameter Type="System.String" Name="filename" />
-        </Instance>
-      </Message>
+        <Message Id="UnexpectedElementWithAttribute" Number="372">
+            <Instance>
+                The {0} element cannot have a child element '{1}' when attribute '{2}' is set.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="childElementName" />
+                <Parameter Type="System.String" Name="attribute" />
+            </Instance>
+        </Message>
+        <Message Id="ExpectedAttributeWithElement" Number="373">
+            <Instance>
+                The {0} element must have attribute '{1}' when child element '{2}' is present.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="attribute" />
+                <Parameter Type="System.String" Name="childElementName" />
+            </Instance>
+        </Message>
+        <Message Id="DuplicatedUiLocalization" Number="374">
+            <Instance>
+                The localization for control {0} in dialog {1} is duplicated. Only one localization per control is allowed.
+                <Parameter Type="System.String" Name="controlName" />
+                <Parameter Type="System.String" Name="dialogName" />
+            </Instance>
+            <Instance>
+                The localization for dialog {0} is duplicated. Only one localization per dialog is allowed.
+                <Parameter Type="System.String" Name="dialogName" />
+            </Instance>
+        </Message>
+        <Message Id="MaximumCabinetSizeForLargeFileSplittingTooLarge" Number="375">
+            <Instance>
+                '{0}' is too large. Reduce the size of maximum cabinet size for large file splitting. The maximum permitted value is '{1}' MB.
+                <Parameter Type="System.Int32" Name="maximumCabinetSizeForLargeFileSplitting" />
+                <Parameter Type="System.Int32" Name="maxValueOfMaxCabSizeForLargeFileSplitting" />
+            </Instance>
+        </Message>
+        <Message Id="SplitCabinetCopyRegistrationFailed" Number="376" SourceLineNumbers="no">
+            <Instance>
+                Failed to register the copy command for cabinet '{0}' formed by splitting cabinet '{1}'.
+                <Parameter Type="System.String" Name="newCabName" />
+                <Parameter Type="System.String" Name="firstCabName" />
+            </Instance>
+        </Message>
+        <Message Id="SplitCabinetNameCollision" Number="377" SourceLineNumbers="no">
+            <Instance>
+                The cabinet name '{0}' collides with the new cabinet formed by splitting cabinet '{1}', consider renaming cabinet '{0}'.
+                <Parameter Type="System.String" Name="newCabName" />
+                <Parameter Type="System.String" Name="firstCabName" />
+            </Instance>
+        </Message>
+        <Message Id="SplitCabinetInsertionFailed" Number="378" SourceLineNumbers="no">
+            <Instance>
+                Could not find the last split cabinet '{2}' in the Media Table. So failed to add new cabinet '{0}' formed by splitting cabinet '{1}' to the installer package.
+                <Parameter Type="System.String" Name="newCabName" />
+                <Parameter Type="System.String" Name="firstCabName" />
+                <Parameter Type="System.String" Name="lastCabinetOfThisSequence" />
+            </Instance>
+        </Message>
+        <Message Id="InvalidPreprocessorFunctionAutoVersion" Number="379">
+            <Instance>
+                Invalid AutoVersion template specified.
+            </Instance>
+        </Message>
+        <Message Id="InvalidModuleOrBundleVersion" Number="380">
+            <Instance>
+                Invalid {0}/@Version '{1}'. {0} version has a max value of "65535.65535.65535.65535" and must be all numeric.
+                <Parameter Type="System.String" Name="moduleOrBundle" />
+                <Parameter Type="System.String" Name="version" />
+            </Instance>
+        </Message>
+        <Message Id="UnsupportedPlatformForElement" Number="381">
+            <Instance>
+                The element {1} does not support platform '{0}'. Consider removing the element or using the preprocessor to conditionally include the element based on the platform.
+                <Parameter Type="System.String" Name="platform" />
+                <Parameter Type="System.String" Name="elementName" />
+            </Instance>
+        </Message>
+        <Message Id="MissingMedia" Number="382">
+            <Instance>
+                There is no media defined for disk id '{0}'. You must author either &lt;Media Id='{0}' ...&gt; or &lt;MediaTemplate ...&gt;.
+                <Parameter Type="System.Int32" Name="diskId" />
+            </Instance>
+        </Message>
+        <Message Id="RemotePayloadUnsupported" Number="383">
+            <Instance>
+                The RemotePayload element can only be used for ExePackage and MsuPackage payloads.
+            </Instance>
+        </Message>
+        <Message Id="IllegalYesNoAlwaysValue" Number="384">
+            <Instance>
+                The {0}/@{1} attribute's value, '{2}', is not a legal yes/no/always value.  The only legal values are 'always', 'no' or 'yes'.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="attributeName" />
+                <Parameter Type="System.String" Name="value" />
+            </Instance>
+        </Message>
+        <Message Id="TooDeeplyIncluded" Number="385">
+            <Instance>
+                Include files cannot be nested more deeply than {0} times. Make sure included files don't accidentally include themselves.
+                <Parameter Type="System.Int32" Name="depth" />
+            </Instance>
+        </Message>
+        <Message Id="TooManyColumnsInRealTable" Number="386" SourceLineNumbers="no">
+            <Instance>
+                The table '{0}' contains {1} columns which is not supported by Windows Installer.  Windows Installer supports a maximum of {2} columns.
+                <Parameter Type="System.String" Name="tableName" />
+                <Parameter Type="System.Int32" Name="columnCount" />
+                <Parameter Type="System.Int32" Name="supportedColumnCount" />
+            </Instance>
+        </Message>
+        <Message Id="IncompatiblePackageElevationAttributes" Number="387">
+            <Instance>
+                The {0}/@{1} attribute's value, '{2}', is not compatible with attribute @{3}'s value, '{4}'. It is recommended that only the InstallScope attribute be used.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="attribute1Name" />
+                <Parameter Type="System.String" Name="attribute1Value" />
+                <Parameter Type="System.String" Name="attribute2Name" />
+                <Parameter Type="System.String" Name="attribute2Value" />
+            </Instance>
+        </Message>
+        <Message Id="InsecureBundleFilename" Number="388" SourceLineNumbers="no">
+            <Instance>
+                The file name '{0}' creates an insecure bundle. Windows will load unnecessary compatibility shims into a bundle with that file name. These compatibility shims can be DLL hijacked allowing attackers to compromise your customers' computer. Choose a different bundle file name.
+                <Parameter Type="System.String" Name="filename" />
+            </Instance>
+        </Message>
+        <Message Id="MsiTransactionX86AndX64" Number="389">
+            <Instance>
+                MSI transactions must install either x64 or x86 packages.
+            </Instance>
+        </Message>
+        <Message Id="MsiTransactionAllowedPackages" Number="390">
+            <Instance>
+                MSI transactions must install only MSI or MSP packages.
+            </Instance>
+        </Message>
     </Class>
 
     <Class Name="WixWarnings" ContainerName="WixWarningEventArgs" BaseContainerName="MessageEventArgs" Level="Warning">
