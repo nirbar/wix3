@@ -7,12 +7,13 @@
 - Fix WiX issue [6144](https://github.com/wixtoolset/issues/issues/6144): Support multiple attached containers in bundles. Allow bootstrappers larger than 2GB
 - Fix WiX issue [6174](https://github.com/wixtoolset/issues/issues/6174): Fix discovery of payloads with no container that need to be assigned to the default container
 - Changes by WiX up to build 3.14.0.4118
+- Build for .NET Framework 4.0
 
 # WiX Toolset on GitHub
 The WiX Toolset builds Windows installation packages from XML source code. The toolset supports a command-line environment that developers may integrate into their build processes to build Windows Installer (MSI) packages and executable bundles. The WiX GitHub project hosts the WiX source code Git repositories. The following links will take you to more details:
 
-## [Home page](http://wixtoolset.org/ "WiX Toolset home page")
-## [Releases](http://wixtoolset.org/releases/ "WiX Toolset stable and weekly releases")
-## [Bugs and feature requests](http://wixtoolset.org/bugs/ "Files bugs and feature requests for WiX Toolset")
-## [Manual](http://wixtoolset.org/documentation/manual/ "WiX Toolset manuals and documentation links")
-## [Hacking on WiX](http://wixtoolset.org/development/ "About development on the WiX Toolset")
+## [WiX Toolset home page](http://wixtoolset.org/)
+## [WiX Toolset stable and weekly releases](http://wixtoolset.org/releases/)
+## [Files bugs and feature requests for WiX Toolset](http://wixtoolset.org/bugs/)
+## [WiX Toolset manuals and documentation links](http://wixtoolset.org/documentation/manual/)
+## [About development on the WiX Toolset](http://wixtoolset.org/development/)
