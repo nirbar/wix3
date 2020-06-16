@@ -9,6 +9,7 @@
     </ProjectReference>
 
     <ProjectReference Include="stub\Stub.vcxproj" />
+    <ProjectReference Include="stub\Stub-admin.vcxproj" />
 
     <ProjectReference Include="Samples\ManagedBundleRunner\ManagedBundleRunner.csproj" />
     <ProjectReference Include="Samples\runbundle\runbundle.csproj" />

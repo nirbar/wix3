@@ -83,6 +83,7 @@
     <file src="build\ship\x86\WixUtilExtension.dll" target="tools\bin\WixUtilExtension.dll" />
     <file src="build\ship\x86\WixVSExtension.dll" target="tools\bin\WixVSExtension.dll" />
     <file src="build\ship\x86\x86\burn.exe" target="tools\bin\x86\burn.exe" />
+    <file src="build\ship\x86\x86\burn-admin.exe" target="tools\bin\x86\burn-admin.exe" />
 
     <file src="build\ship\x86\BootstrapperCore.config" target="tools\sdk\BootstrapperCore.config" />
     <file src="build\ship\x86\BootstrapperCore.dll" target="tools\sdk\BootstrapperCore.dll" />

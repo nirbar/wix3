@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information. -->
+
+
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <TargetName>burn-admin</TargetName>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildProjectDirectory)\Stub.vcxproj" />
+  
+  <ItemGroup>
+    <Manifest Remove="*.*"/>
+    <Manifest Include="stub-admin.manifest"/>
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+  </ItemDefinitionGroup>  
+</Project>

@@ -195,6 +195,11 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="RunAsAdmin" type="YesNoType">
+        <xs:annotation>
+          <xs:documentation>Whether the bootstrapper shoule be launched with admin rights. Defaults to 'no'. It is strongly encouraged to launch the bootstrapper with least required privileges, and let WiX elevate as late as possible. However when absolutely required to, set this attribute to 'yes' to launch elevated</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
       <xs:attribute name="SplashScreenSourceFile" type="xs:string">
         <xs:annotation>
           <xs:documentation>Path to a bitmap that will be shown as the bootstrapper application is being loaded. If this attribute is not specified, no splash screen will be displayed.</xs:documentation>

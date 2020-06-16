@@ -19929,6 +19929,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             string logVariablePrefixAndExtension = null;
             string iconSourceFile = null;
             string splashScreenSourceFile = null;
+            YesNoType runAsAdmin = YesNoType.No;
 
             // Process only standard attributes until the active section is initialized.
             foreach (XmlAttribute attrib in node.Attributes)
@@ -19993,6 +19994,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             break;
                         case "SplashScreenSourceFile":
                             splashScreenSourceFile = this.core.GetAttributeValue(sourceLineNumbers, attrib);
+                            break;
+                        case "RunAsAdmin":
+                            runAsAdmin = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
                         case "Tag":
                             tag = this.core.GetAttributeValue(sourceLineNumbers, attrib);
@@ -20194,6 +20198,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 row[17] = this.currentPlatform.ToString();
                 row[18] = parentName;
                 row[19] = upgradeCode;
+                row[23] = (runAsAdmin == YesNoType.Yes) ? 1 : 0;
             }
         }
 

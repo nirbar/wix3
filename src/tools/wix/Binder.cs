@@ -3813,7 +3813,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 stubPlatform = bundleInfo.Platform.ToString();
             }
             string wixExeDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), stubPlatform);
-            string stubFile = Path.Combine(wixExeDirectory, "burn.exe");
+            string stubFile = Path.Combine(wixExeDirectory, bundleInfo.RunAsAdmin ? "burn-admin.exe" : "burn.exe");
             string bundleTempPath = Path.Combine(this.TempFilesLocation, Path.GetFileName(bundleFile));
 
             this.core.OnMessage(WixVerboses.GeneratingBundle(bundleTempPath, stubFile));

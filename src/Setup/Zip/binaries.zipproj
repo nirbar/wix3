@@ -52,6 +52,9 @@
     <Stage Include="$(OutputPath)x86\burn.exe">
       <StageSubDirectory>x86</StageSubDirectory>
     </Stage>
+    <Stage Include="$(OutputPath)x86\burn-admin.exe">
+      <StageSubDirectory>x86</StageSubDirectory>
+    </Stage>
     <Stage Include="$(OutputPath_arm)arm\burn.exe" Condition=" Exists('$(OutputPath_arm)arm\burn.exe') ">
       <StageSubDirectory>arm</StageSubDirectory>
     </Stage>

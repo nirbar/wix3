@@ -224,5 +224,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
             get { return (null != this.Fields[22].Data && 0 != (int)this.Fields[22].Data); }
             set { this.Fields[22].Data = value ? 1 : 0; }
         }
+
+        public bool RunAsAdmin
+        {
+            get { return (null != this.Fields[23].Data && 0 != (int)this.Fields[23].Data); }
+            set { this.Fields[23].Data = value ? 1 : 0; }
+        }
     }
 }
