@@ -2,13 +2,11 @@
 
 namespace Microsoft.Tools.WindowsInstallerXml
 {
+    using Microsoft.Tools.WindowsInstallerXml.Cab;
     using System;
+    using System.Collections;
     using System.IO;
     using System.Threading;
-    using System.Diagnostics;
-    using System.Collections;
-    using System.Globalization;
-    using Microsoft.Tools.WindowsInstallerXml.Cab;
 
     /// <summary>
     /// This implements a thread pool that generates cabinets with multiple threads.
@@ -31,7 +29,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// </summary>
         /// <param name="threadCount">number of threads to use</param>
         /// <param name="newCabNamesCallBackAddress">Address of Binder's callback function for Cabinet Splitting</param>
-        public CabinetBuilder(int threadCount, IntPtr newCabNamesCallBackAddress)
+        public CabinetBuilder(int threadCount, IntPtr newCabNamesCallBackAddress, EventWaitHandle cancelEvent)
         {
             if (0 >= threadCount)
             {
@@ -45,6 +43,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             // Set Address of Binder's callback function for Cabinet Splitting
             this.newCabNamesCallBackAddress = newCabNamesCallBackAddress;
+            cancelEvent_ = cancelEvent;
         }
 
         /// <summary>
@@ -87,6 +86,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 // wait for all threads to finish
                 foreach (Thread thread in threads)
                 {
+                    ThrowIfCanceled();
                     thread.Join();
                 }
             }
@@ -142,7 +142,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             int maxCabinetSize = 0; // The value of 0 corresponds to default of 2GB which means no cabinet splitting
             ulong maxPreCompressedSizeInBytes = 0;
 
-            if (MaximumCabinetSizeForLargeFileSplitting != 0) 
+            if (MaximumCabinetSizeForLargeFileSplitting != 0)
             {
                 // User Specified Max Cab Size for File Splitting, So Check if this cabinet has a single file larger than MaximumUncompressedFileSize
                 // If a file is larger than MaximumUncompressedFileSize, then the cabinet containing it will have only this file
@@ -171,6 +171,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             {
                 foreach (FileRow fileRow in cabinetWorkItem.FileRows)
                 {
+                    ThrowIfCanceled();
                     bool retainRangeWarning;
                     cabinetWorkItem.BinderFileManager.ResolvePatch(fileRow, out retainRangeWarning);
                     if (retainRangeWarning)
@@ -179,7 +180,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         this.OnMessage(WixWarnings.RetainRangeMismatch(fileRow.SourceLineNumbers, fileRow.File));
                     }
                     cab.AddFile(fileRow);
-               }
+                }
+                ThrowIfCanceled();
                 cab.Complete(newCabNamesCallBackAddress);
             }
         }
@@ -212,6 +214,15 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 throw new WixException(errorEventArgs);
             }
         }
+
+        private EventWaitHandle cancelEvent_ = null;
+        private void ThrowIfCanceled()
+        {
+            if (cancelEvent_?.WaitOne(0) == false)
+            {
+                throw new OperationCanceledException();
+            }
+        }
+
     }
 }
-

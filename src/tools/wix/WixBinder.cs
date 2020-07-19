@@ -9,6 +9,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
     using System.Collections.Specialized;
     using System.IO;
     using System.Text;
+    using System.Threading;
 
     /// <summary>
     /// Common binder core of the Windows Installer Xml toolset.
@@ -57,6 +58,25 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     value.TempFilesLocation = this.TempFilesLocation;
                 }
             }
+        }
+
+        private EventWaitHandle cancelEvent_ = null;
+        protected void ThrowIfCanceled()
+        {
+            if (cancelEvent_?.WaitOne(0) == false)
+            {
+                throw new OperationCanceledException();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the binder file manager class.
+        /// </summary>
+        /// <value>The binder file manager class.</value>
+        public EventWaitHandle CancelEvent
+        {
+            get { return this.cancelEvent_; }
+            set { this.cancelEvent_ = value; }
         }
 
         /// <summary>

@@ -112,10 +112,10 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="CommandLineArguments" xml:space="preserve">
     <value>   -ai        allow identical rows, identical rows will be treated as a warning (deprecated)
@@ -132,6 +132,7 @@
    -cultures:&lt;cultures&gt;  semicolon or comma delimited list of localized
              string cultures to load from .wxl files and libraries.
              Precedence of cultures is from left to right.
+   -ce &lt;event name&gt;       name of an event to signal link cancel. The event should be signalled at start and reset to cancel the build
    -d&lt;name&gt;[=&lt;value&gt;]  define a wix variable, with or without a value.
    -dut       drop unreal tables from the output image (deprecated)
    -ext &lt;extension&gt;  extension assembly or "class, assembly"

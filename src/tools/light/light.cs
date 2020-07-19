@@ -14,6 +14,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
     using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Text;
+    using System.Threading;
     using System.Xml;
     using System.Xml.XPath;
 
@@ -54,6 +55,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
         private StringCollection localizationFiles;
         private StringCollection sourcePaths;
         private WixVariableResolver wixVariableResolver;
+        private string cancelEvent = null;
 
         /// <summary>
         /// Instantiate a new Light class.
@@ -100,11 +102,17 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
             Localizer localizer = null;
             SectionCollection sections = new SectionCollection();
             ArrayList transforms = new ArrayList();
+            EventWaitHandle cancel = null;
 
             try
             {
                 // parse the command line
                 this.ParseCommandLine(args);
+
+                if (!string.IsNullOrEmpty(cancelEvent))
+                {
+                    cancel = EventWaitHandle.OpenExisting(cancelEvent);
+                }
 
                 // load any extensions
                 List<WixExtension> loadedExtensionList = new List<WixExtension>();
@@ -220,6 +228,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
 
                 this.binder.TempFilesLocation = Environment.GetEnvironmentVariable("WIX_TEMP");
                 this.binder.WixVariableResolver = this.wixVariableResolver;
+                binder.CancelEvent = cancel;
 
                 if (null != this.bindPaths)
                 {
@@ -328,6 +337,11 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                 // loop through all the believed object files
                 foreach (string inputFile in this.inputFiles)
                 {
+                    if (cancel?.WaitOne(0) == false)
+                    {
+                        throw new OperationCanceledException();
+                    }
+
                     string dirName = Path.GetDirectoryName(inputFile);
                     string inputFileFullPath = Path.GetFullPath(inputFile);
 
@@ -406,6 +420,10 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                     {
                         expectedOutputType = Output.GetOutputType(Path.GetExtension(this.outputFile));
                     }
+                    if (cancel?.WaitOne(0) == false)
+                    {
+                        throw new OperationCanceledException();
+                    }
 
                     output = linker.Link(sections, transforms, expectedOutputType);
 
@@ -480,6 +498,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                 {
                     this.binder.Cleanup(this.tidy);
                 }
+                cancel?.Dispose();
             }
 
             return this.messageHandler.LastErrorNumber;
@@ -547,6 +566,15 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                         this.messageHandler.Display(this, WixWarnings.DeprecatedCommandLineSwitch("bf"));
 
                         this.bindFiles = true;
+                    }
+                    else if (parameter.Equals("ce", StringComparison.Ordinal))
+                    {
+                        if (++i >= args.Length)
+                        {
+                            this.messageHandler.Display(this, WixErrors.ExpectedArgument("ce"));
+                            continue;
+                        }
+                        cancelEvent = args[i];
                     }
                     else if (parameter.StartsWith("cultures:", StringComparison.Ordinal))
                     {

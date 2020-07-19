@@ -1920,6 +1920,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // Extended binder extensions can be called now that fields are resolved.
             foreach (BinderExtension extension in this.extensions)
             {
+                ThrowIfCanceled();
                 BinderExtensionEx extensionEx = extension as BinderExtensionEx;
                 if (null != extensionEx)
                 {
@@ -1933,6 +1934,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             {
                 foreach (Row updatedFile in updatedFiles.Rows)
                 {
+                    ThrowIfCanceled();
                     FileRow updatedFileRow = (FileRow)indexedFileRows[updatedFile[0]];
                     this.UpdateFileRow(output, null, modularizationGuid, indexedFileRows, updatedFileRow, true);
                 }
@@ -1992,6 +1994,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             foreach (BinderExtension extension in this.extensions)
             {
+                ThrowIfCanceled();
                 extension.DatabaseFinalize(output);
             }
 
@@ -2038,6 +2041,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             InspectorCore inspectorCore = new InspectorCore(this.MessageHandler);
             foreach (InspectorExtension inspectorExtension in this.inspectorExtensions)
             {
+                ThrowIfCanceled();
                 inspectorExtension.Core = inspectorCore;
                 inspectorExtension.InspectDatabase(tempDatabaseFile, output);
 
@@ -3156,6 +3160,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             foreach (BinderExtension extension in this.extensions)
             {
+                ThrowIfCanceled();
                 extension.BundleInitialize(bundle);
             }
 
@@ -3792,6 +3797,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             foreach (BinderExtension extension in this.extensions)
             {
+                ThrowIfCanceled();
                 extension.BundleFinalize(bundle);
             }
 
@@ -3840,6 +3846,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // Create all the containers except the UX container first so the manifest in the UX container can contain all size and hash information.
             foreach (ContainerInfo container in containers.Values)
             {
+                ThrowIfCanceled();
                 if (Compiler.BurnUXContainerId != container.Id && 0 < container.Payloads.Count)
                 {
                     this.CreateContainer(container, null);
@@ -3864,6 +3871,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 // Now append all other attached containers
                 foreach (ContainerInfo container in containers.Values)
                 {
+                    ThrowIfCanceled();
                     if (container.Type == "attached")
                     {
                         // The container was only created if it had payloads.
@@ -3874,6 +3882,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     }
                 }
             }
+            ThrowIfCanceled();
 
             // Output the bundle to a file
             if (null != this.pdbFile)
@@ -3886,6 +3895,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // Add detached containers to the list of file transfers.
             foreach (ContainerInfo container in containers.Values)
             {
+                ThrowIfCanceled();
                 if ("detached" == container.Type)
                 {
                     FileTransfer transfer;
@@ -4218,11 +4228,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                 foreach (PayloadInfoRow payload in container.Payloads)
                 {
+                    ThrowIfCanceled();
                     Debug.Assert(PackagingType.Embedded == payload.Packaging);
                     this.core.OnMessage(WixVerboses.LoadingPayload(payload.FullFileName));
                     cab.AddFile(payload.FullFileName, payload.EmbeddedId);
                 }
 
+                ThrowIfCanceled();
                 cab.Complete();
             }
         }
@@ -5389,6 +5401,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             foreach (BinderExtension extension in this.extensions)
             {
+                ThrowIfCanceled();
                 extension.TransformFinalize(transform);
             }
 
@@ -7044,7 +7057,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.SetCabbingThreadCount();
 
             // Send Binder object to Facilitate NewCabNamesCallBack Callback
-            CabinetBuilder cabinetBuilder = new CabinetBuilder(this.cabbingThreadCount, Marshal.GetFunctionPointerForDelegate(this.newCabNamesCallBack));
+            CabinetBuilder cabinetBuilder = new CabinetBuilder(this.cabbingThreadCount, Marshal.GetFunctionPointerForDelegate(this.newCabNamesCallBack), CancelEvent);
 
             // Supply Compile MediaTemplate Attributes to Cabinet Builder
             int MaximumCabinetSizeForLargeFileSplitting;
@@ -7781,7 +7794,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// Delegate for Cabinet Split Callback
         /// </summary>
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate void FileSplitCabNamesCallback([MarshalAs(UnmanagedType.LPWStr)]string firstCabName, [MarshalAs(UnmanagedType.LPWStr)]string newCabName, [MarshalAs(UnmanagedType.LPWStr)]string fileToken);
+        internal delegate void FileSplitCabNamesCallback([MarshalAs(UnmanagedType.LPWStr)] string firstCabName, [MarshalAs(UnmanagedType.LPWStr)] string newCabName, [MarshalAs(UnmanagedType.LPWStr)] string fileToken);
 
         /// <summary>
         /// Call back to Add File Transfer for new Cab and add new Cab to Media table
@@ -7791,7 +7804,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// <param name="firstCabName">The name of splitting cabinet without extention e.g. "cab1".</param>
         /// <param name="newCabName">The name of the new cabinet that would be formed by splitting e.g. "cab1b.cab"</param>
         /// <param name="fileToken">The file token of the first file present in the splitting cabinet</param>
-        internal void NewCabNamesCallBack([MarshalAs(UnmanagedType.LPWStr)]string firstCabName, [MarshalAs(UnmanagedType.LPWStr)]string newCabName, [MarshalAs(UnmanagedType.LPWStr)]string fileToken)
+        internal void NewCabNamesCallBack([MarshalAs(UnmanagedType.LPWStr)] string firstCabName, [MarshalAs(UnmanagedType.LPWStr)] string newCabName, [MarshalAs(UnmanagedType.LPWStr)] string fileToken)
         {
             // Locking Mutex here as this callback can come from Multiple Cabinet Builder Threads
             Mutex mutex = new Mutex(false, "WixCabinetSplitBinderCallback");

@@ -9,14 +9,14 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
     using System.Globalization;
     using System.IO;
     using System.Text;
-
+    using System.Threading;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
 
     /// <summary>
     /// An MSBuild task to run the WiX linker.
     /// </summary>
-    public sealed class Light : WixToolTask
+    public sealed class Light : WixToolTask, IDisposable
     {
         private const string LightToolName = "Light.exe";
 
@@ -82,6 +82,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
         /// </remarks>
         public Light()
         {
+        }
+
+        ~Light()
+        {
+            cancelEvent_?.Dispose();
+            cancelEvent_ = null;
         }
 
         public string AdditionalCub
@@ -506,8 +512,18 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             commandLineBuilder.AppendSwitchIfNotNull("-wixprojectfile ", this.WixProjectFile);
             commandLineBuilder.AppendTextIfNotNull(this.AdditionalOptions);
 
+            string cancleEventName = $"Local\\{Guid.NewGuid().ToString("N")}";
+            cancelEvent_ = new EventWaitHandle(true, EventResetMode.ManualReset, cancleEventName);
+            commandLineBuilder.AppendSwitchIfNotNull("-ce ", cancleEventName);
+
             List<string> objectFilePaths = AdjustFilePaths(this.objectFiles, this.ReferencePaths);
             commandLineBuilder.AppendFileNamesIfNotNull(objectFilePaths.ToArray(), " ");
+        }
+
+        private EventWaitHandle cancelEvent_;
+        public override void Cancel()
+        {
+            cancelEvent_?.Reset();
         }
     }
 }
