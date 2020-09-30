@@ -70,6 +70,13 @@ extern "C" HRESULT ManifestLoadXmlFromBuffer(
         {
             ExitOnFailure(hr, "Failed to get Chain/@ParallelCache");
         }
+
+        // parse transaction
+        hr = XmlGetYesNoAttribute(pixnChain, L"Transaction", &pEngineState->fTransaction);
+        if (E_NOTFOUND != hr)
+        {
+            ExitOnFailure(hr, "Failed to get Chain/@Transaction");
+        }
     }
 
     // parse built-in condition 

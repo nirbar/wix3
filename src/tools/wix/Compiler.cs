@@ -21213,6 +21213,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 attributes |= BundleChainAttributes.ParallelCache;
                             }
                             break;
+                        case "Transaction":
+                            if (YesNoType.Yes == this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib))
+                            {
+                                attributes |= BundleChainAttributes.Transaction;
+                            }
+                            break;
                         default:
                             this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
                             break;
@@ -21355,6 +21361,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
             string id = null;
             YesNoType vital = YesNoType.Yes;
+            YesNoType transaction = YesNoType.No;
 
             // This crazy list lets us evaluate extension attributes *after* all core attributes
             // have been parsed and dealt with, regardless of authoring order.
@@ -21373,6 +21380,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             break;
                         case "Vital":
                             vital = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
+                            break;
+                        case "Transaction":
+                            transaction = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
                         default:
                             allowed = false;
@@ -21441,6 +21451,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     row[10] = (YesNoType.Yes == vital) ? 1 : 0;
                 }
+                if (YesNoType.NotSet != transaction)
+                {
+                    row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
+                }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);
             }
@@ -21481,6 +21495,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             YesNoType permanent = YesNoType.NotSet;
             YesNoType visible = YesNoType.NotSet;
             YesNoType vital = YesNoType.Yes;
+            YesNoType transaction = YesNoType.No;
             string installCommand = null;
             string repairCommand = null;
             YesNoType repairable = YesNoType.NotSet;
@@ -21938,6 +21953,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (YesNoType.NotSet != displayInternalUI)
                 {
                     row[22] = (YesNoType.Yes == displayInternalUI) ? 1 : 0;
+                }
+
+                if (YesNoType.NotSet != transaction)
+                {
+                    row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, after);

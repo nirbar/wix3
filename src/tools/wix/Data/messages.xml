@@ -2958,6 +2958,16 @@
           <Parameter Type="System.String" Name="filename" />
         </Instance>
       </Message>
+        <Message Id="MsiTransactionX86AndX64" Number="389">
+            <Instance>
+                MSI transactions can install either x64 or x86 packages, not both.
+            </Instance>
+        </Message>
+        <Message Id="MsiTransactionAllowedPackages" Number="390">
+            <Instance>
+                MSI transactions can install only MSI or MSP packages.
+            </Instance>
+        </Message>
     </Class>
 
     <Class Name="WixWarnings" ContainerName="WixWarningEventArgs" BaseContainerName="MessageEventArgs" Level="Warning">

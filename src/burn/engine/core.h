@@ -110,6 +110,7 @@ typedef struct _BURN_ENGINE_STATE
     BOOL fDisableRollback;
     BOOL fDisableSystemRestore;
     BOOL fParallelCacheAndExecute;
+	BOOL fTransaction;
 
     BURN_LOGGING log;
 
