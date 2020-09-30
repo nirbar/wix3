@@ -7,5 +7,8 @@
 		<WixCATargetsPath>$(WixSdkPath)Wix.CA.targets</WixCATargetsPath>
 		<WixNativeCATargetsPath>$(WixSdkPath)Wix.NativeCA.targets</WixNativeCATargetsPath>
 		<WixTasksPath>$(WixToolPath)wixtasks.dll</WixTasksPath>
+		<WixInstallPath>$(WixToolPath)</WixInstallPath>
+		<WixExtDir>$(WixToolPath)</WixExtDir>
+		<LuxTargetsPath>$(WixToolPath)lux.targets</LuxTargetsPath>
 	</PropertyGroup> 
 </Project>
