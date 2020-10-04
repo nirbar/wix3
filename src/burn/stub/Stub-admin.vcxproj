@@ -10,7 +10,6 @@
   <Import Project="$(MSBuildProjectDirectory)\Stub.vcxproj" />
   
   <ItemGroup>
-    <Manifest Remove="*.*"/>
     <Manifest Include="stub-admin.manifest"/>
   </ItemGroup>
   <ItemDefinitionGroup>

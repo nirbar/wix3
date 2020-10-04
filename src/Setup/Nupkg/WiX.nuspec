@@ -186,17 +186,15 @@
     <file src="build\ship\x86\sfxca.dll" target="tools\sdk\x86\sfxca.dll" />
 	
 	<!-- XSD -->
-    <file src="src\tools\wix\Xsd\wix.xsd" target="tools\xsd\wix.xsd" />
-    <file src="src\ext\UtilExtension\wixext\Xsd\util.xsd" target="tools\xsd\WixUtilExtension.xsd" />
-    <file src="src\ext\BalExtension\wixext\Xsd\bal.xsd" target="tools\xsd\WixBalExtension.xsd" />
-    <file src="src\libs\dutil\xsd\thmutil.xsd" target="tools\xsd\WixThmutil.xsd" />
-    <file src="src\ext\SqlExtension\wixext\Xsd\sql.xsd" target="tools\xsd\WixSqlExtension.xsd" />
-    <file src="src\ext\MsmqExtension\wixext\xsd\msmq.xsd" target="tools\xsd\WixMsmqExtension.xsd" />
-    <file src="src\ext\IIsExtension\wixext\xsd\iis.xsd" target="tools\xsd\WixIIsExtension.xsd" />
-    <file src="src\ext\FirewallExtension\wixext\Xsd\firewall.xsd" target="tools\xsd\WixFirewallExtension.xsd" />
-    <file src="src\ext\DifxAppExtension\wixext\Xsd\difxapp.xsd" target="tools\xsd\WixDifxAppExtension.xsd" />
-	
-	<!--TODO Duplicate for VS 2010, 2012, 2013, 2015 -->
+    <file src="src\tools\wix\Xsd\wix.xsd" target="content\WiX-XSD\wix.xsd" />
+    <file src="src\ext\UtilExtension\wixext\Xsd\util.xsd" target="content\WiX-XSD\WixUtilExtension.xsd" />
+    <file src="src\ext\BalExtension\wixext\Xsd\bal.xsd" target="content\WiX-XSD\WixBalExtension.xsd" />
+    <file src="src\libs\dutil\xsd\thmutil.xsd" target="content\WiX-XSD\WixThmutil.xsd" />
+    <file src="src\ext\SqlExtension\wixext\Xsd\sql.xsd" target="content\WiX-XSD\WixSqlExtension.xsd" />
+    <file src="src\ext\MsmqExtension\wixext\xsd\msmq.xsd" target="content\WiX-XSD\WixMsmqExtension.xsd" />
+    <file src="src\ext\IIsExtension\wixext\xsd\iis.xsd" target="content\WiX-XSD\WixIIsExtension.xsd" />
+    <file src="src\ext\FirewallExtension\wixext\Xsd\firewall.xsd" target="content\WiX-XSD\WixFirewallExtension.xsd" />
+    <file src="src\ext\DifxAppExtension\wixext\Xsd\difxapp.xsd" target="content\WiX-XSD\WixDifxAppExtension.xsd" />
   </files>
 
 </package>

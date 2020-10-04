@@ -10,9 +10,17 @@ environment:
     secure: 6u2k6uaCy0GJj3/eaSjsmA==
   OFFICIAL_WIX_BUILD: '%APPVEYOR_BUILD_FOLDER%\psw-wix.snk'
   SKIP_VS_CHECK: true
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
+      NUSPEC_VS_VERSION: 2013
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      NUSPEC_VS_VERSION: 2017
 
 install:
 - ps: iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
+- cmd: curl.exe -fsS -o msxsl.exe http://download.microsoft.com/download/f/2/6/f263ac46-1fe9-4ae9-8fd3-21102100ebf5/msxsl.exe
+- cmd: curl.exe -fsS -o nuget.exe https://dist.nuget.org/win-x86-commandline/v5.7.0/nuget.exe
+- cmd: choco install visualstudio2013-sdk & exit 0
 
 before_build:
 - cmd: appveyor-tools\secure-file -decrypt .\psw-wix.snk.enc -secret %my_psw% -salt %my_salt%
@@ -22,10 +30,11 @@ build:
   verbosity: normal
 
 before_package:
-- cmd: nuget pack "%APPVEYOR_BUILD_FOLDER%\src\Setup\Nupkg\WiX.nuspec" -Version "3.12.0-b%APPVEYOR_BUILD_NUMBER%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
+- cmd: msxsl.exe src\Setup\Nupkg\WiX.nuspec src\Setup\Nupkg\WiX.nuspec.xslt -o "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" NUSPEC_VS_VERSION=%NUSPEC_VS_VERSION%
+- cmd: .\nuget.exe pack "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" -Version "3.12.0-b%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
 
 test: off
 
 artifacts:
-- path: build\nuget-out\PanelSW.Custom.WiX.3.12.0-b%APPVEYOR_BUILD_NUMBER%.nupkg
-  name: PanelSW.Custom.WiX.3.12.0-b%build%.nupkg
+- path: build\nuget-out\PanelSW.Custom.WiX.3.12.0-b%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%.nupkg
+  name: PanelSW.Custom.WiX.3.12.0-b%build%-vs%NUSPEC_VS_VERSION%.nupkg

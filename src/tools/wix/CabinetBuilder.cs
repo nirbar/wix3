@@ -218,7 +218,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         private EventWaitHandle cancelEvent_ = null;
         private void ThrowIfCanceled()
         {
-            if (cancelEvent_?.WaitOne(0) == false)
+            if ((cancelEvent_ != null) && !cancelEvent_.WaitOne(0))
             {
                 throw new OperationCanceledException();
             }

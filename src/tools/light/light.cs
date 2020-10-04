@@ -337,7 +337,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                 // loop through all the believed object files
                 foreach (string inputFile in this.inputFiles)
                 {
-                    if (cancel?.WaitOne(0) == false)
+                    if ((cancel != null) && !cancel.WaitOne(0))
                     {
                         throw new OperationCanceledException();
                     }
@@ -420,7 +420,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                     {
                         expectedOutputType = Output.GetOutputType(Path.GetExtension(this.outputFile));
                     }
-                    if (cancel?.WaitOne(0) == false)
+                    if ((cancel != null) && !cancel.WaitOne(0))
                     {
                         throw new OperationCanceledException();
                     }
@@ -498,7 +498,10 @@ namespace Microsoft.Tools.WindowsInstallerXml.Tools
                 {
                     this.binder.Cleanup(this.tidy);
                 }
-                cancel?.Dispose();
+                if (cancel != null)
+                {
+                    cancel.Dispose();
+                }
             }
 
             return this.messageHandler.LastErrorNumber;

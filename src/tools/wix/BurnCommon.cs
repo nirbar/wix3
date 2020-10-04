@@ -108,6 +108,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         {
             this.fileExe = fileExe;
             this.messageHandler = messageHandler;
+            this.AttachedContainers = new List<ContainerSlot>();
         }
 
         public UInt32 Checksum { get; protected set; }
@@ -122,7 +123,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public UInt32 ContainerCount { get; protected set; }
         public UInt32 UXAddress { get; protected set; }
         public UInt32 UXSize { get; protected set; }
-        public List<ContainerSlot> AttachedContainers { get; protected set; } = new List<ContainerSlot>();
+        public List<ContainerSlot> AttachedContainers { get; protected set; }
 
         public void Dispose()
         {
@@ -406,7 +407,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
     internal struct ContainerSlot
     {
-        public ContainerSlot(uint address, uint size)
+        public ContainerSlot(uint address, uint size) : this()
         {
             Address = address;
             Size = size;

@@ -86,8 +86,11 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
 
         ~Light()
         {
-            cancelEvent_?.Dispose();
-            cancelEvent_ = null;
+            if (cancelEvent_ != null)
+            {
+                cancelEvent_.Dispose();
+                cancelEvent_ = null;
+            }
         }
 
         public string AdditionalCub
@@ -512,7 +515,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             commandLineBuilder.AppendSwitchIfNotNull("-wixprojectfile ", this.WixProjectFile);
             commandLineBuilder.AppendTextIfNotNull(this.AdditionalOptions);
 
-            string cancleEventName = $"Local\\{Guid.NewGuid().ToString("N")}";
+            string cancleEventName = "Local\\" + Guid.NewGuid().ToString("N");
             cancelEvent_ = new EventWaitHandle(true, EventResetMode.ManualReset, cancleEventName);
             commandLineBuilder.AppendSwitchIfNotNull("-ce ", cancleEventName);
 
@@ -523,7 +526,10 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
         private EventWaitHandle cancelEvent_;
         public override void Cancel()
         {
-            cancelEvent_?.Reset();
+            if (cancelEvent_ != null)
+            {
+                cancelEvent_.Reset();
+            }
         }
     }
 }

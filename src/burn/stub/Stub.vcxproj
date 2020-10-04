@@ -56,7 +56,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="stub.manifest" Condition=" '$(Platform)'!='arm' "/>
+    <Manifest Include="stub.manifest" Condition=" '$(Platform)'!='arm' And '$(TargetName)'=='burn' "/>
     <Manifest Include="stub_arm.manifest" Condition=" '$(Platform)'=='arm' "/>
   </ItemGroup>
   <ItemGroup>
