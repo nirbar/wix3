@@ -2,6 +2,7 @@
 
 [Panel::Software](http://www.panel-sw.com) provides a customized edition of WiX built on top of WiX 3.11.2 with the following changes
 
+- Fix WiX issue [6252](https://github.com/wixtoolset/issues/issues/6252): Fix reboot on upgrade when "-norestart" is specified on command line
 - [Bundle/@RunAsAdmin](https://github.com/wixtoolset/issues/issues/5309) attribute creates a bootstrapper that requires elevation when launched
 - Support canceling the build when using MSBuild
 - [RemotePayload](https://wixtoolset.org/documentation/manual/v3/xsd/wix/remotepayload.html) can be specified on any package payload rather than the main setup file
