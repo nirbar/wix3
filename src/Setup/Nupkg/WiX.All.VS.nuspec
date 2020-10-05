@@ -179,15 +179,15 @@
     <file src="tools\sdk\inc\xmlutil.h" target="tools\sdk\inc\xmlutil.h" />
 	
 	<!-- XSD -->
-    <file src="content\WiX-XSD\wix.xsd" target="content\WiX-XSD\wix.xsd" />
-    <file src="content\WiX-XSD\WixUtilExtension.xsd" target="content\WiX-XSD\WixUtilExtension.xsd" />
-    <file src="content\WiX-XSD\WixBalExtension.xsd" target="content\WiX-XSD\WixBalExtension.xsd" />
-    <file src="content\WiX-XSD\WixThmutil.xsd" target="content\WiX-XSD\WixThmutil.xsd" />
-    <file src="content\WiX-XSD\WixSqlExtension.xsd" target="content\WiX-XSD\WixSqlExtension.xsd" />
-    <file src="content\WiX-XSD\WixMsmqExtension.xsd" target="content\WiX-XSD\WixMsmqExtension.xsd" />
-    <file src="content\WiX-XSD\WixIIsExtension.xsd" target="content\WiX-XSD\WixIIsExtension.xsd" />
-    <file src="content\WiX-XSD\WixFirewallExtension.xsd" target="content\WiX-XSD\WixFirewallExtension.xsd" />
-    <file src="content\WiX-XSD\WixDifxAppExtension.xsd" target="content\WiX-XSD\WixDifxAppExtension.xsd" />
+    <file src="tools\XSD\wix.xsd" target="tools\XSD\wix.xsd" />
+    <file src="tools\XSD\WixUtilExtension.xsd" target="tools\XSD\WixUtilExtension.xsd" />
+    <file src="tools\XSD\WixBalExtension.xsd" target="tools\XSD\WixBalExtension.xsd" />
+    <file src="tools\XSD\WixThmutil.xsd" target="tools\XSD\WixThmutil.xsd" />
+    <file src="tools\XSD\WixSqlExtension.xsd" target="tools\XSD\WixSqlExtension.xsd" />
+    <file src="tools\XSD\WixMsmqExtension.xsd" target="tools\XSD\WixMsmqExtension.xsd" />
+    <file src="tools\XSD\WixIIsExtension.xsd" target="tools\XSD\WixIIsExtension.xsd" />
+    <file src="tools\XSD\WixFirewallExtension.xsd" target="tools\XSD\WixFirewallExtension.xsd" />
+    <file src="tools\XSD\WixDifxAppExtension.xsd" target="tools\XSD\WixDifxAppExtension.xsd" />
 
 	<!-- VS 2015-2019 -->
     <file src="tools\sdk\vs2017\lib\x64\deputil.lib" target="tools\sdk\vs2017\lib\x64\deputil.lib" />
@@ -210,7 +210,7 @@
 <!-- This nuspec is used to repack VS-specific nuget packages into a single package.
 	 TODO Duplicate for VS 2010, 2012
 	
-SET NUPKG_VERSION=3.12.0-b80
+SET NUPKG_VERSION=3.12.0-b81
 MD D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%
 CD /d D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%
 "C:\Program Files\7-Zip\7z.exe" x "D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%-vs2013.nupkg" -y

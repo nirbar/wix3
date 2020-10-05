@@ -186,15 +186,15 @@
     <file src="build\ship\x86\sfxca.dll" target="tools\sdk\x86\sfxca.dll" />
 	
 	<!-- XSD -->
-    <file src="src\tools\wix\Xsd\wix.xsd" target="content\WiX-XSD\wix.xsd" />
-    <file src="src\ext\UtilExtension\wixext\Xsd\util.xsd" target="content\WiX-XSD\WixUtilExtension.xsd" />
-    <file src="src\ext\BalExtension\wixext\Xsd\bal.xsd" target="content\WiX-XSD\WixBalExtension.xsd" />
-    <file src="src\libs\dutil\xsd\thmutil.xsd" target="content\WiX-XSD\WixThmutil.xsd" />
-    <file src="src\ext\SqlExtension\wixext\Xsd\sql.xsd" target="content\WiX-XSD\WixSqlExtension.xsd" />
-    <file src="src\ext\MsmqExtension\wixext\xsd\msmq.xsd" target="content\WiX-XSD\WixMsmqExtension.xsd" />
-    <file src="src\ext\IIsExtension\wixext\xsd\iis.xsd" target="content\WiX-XSD\WixIIsExtension.xsd" />
-    <file src="src\ext\FirewallExtension\wixext\Xsd\firewall.xsd" target="content\WiX-XSD\WixFirewallExtension.xsd" />
-    <file src="src\ext\DifxAppExtension\wixext\Xsd\difxapp.xsd" target="content\WiX-XSD\WixDifxAppExtension.xsd" />
+    <file src="src\tools\wix\Xsd\wix.xsd" target="tools\XSD\wix.xsd" />
+    <file src="src\ext\UtilExtension\wixext\Xsd\util.xsd" target="tools\XSD\WixUtilExtension.xsd" />
+    <file src="src\ext\BalExtension\wixext\Xsd\bal.xsd" target="tools\XSD\WixBalExtension.xsd" />
+    <file src="src\libs\dutil\xsd\thmutil.xsd" target="tools\XSD\WixThmutil.xsd" />
+    <file src="src\ext\SqlExtension\wixext\Xsd\sql.xsd" target="tools\XSD\WixSqlExtension.xsd" />
+    <file src="src\ext\MsmqExtension\wixext\xsd\msmq.xsd" target="tools\XSD\WixMsmqExtension.xsd" />
+    <file src="src\ext\IIsExtension\wixext\xsd\iis.xsd" target="tools\XSD\WixIIsExtension.xsd" />
+    <file src="src\ext\FirewallExtension\wixext\Xsd\firewall.xsd" target="tools\XSD\WixFirewallExtension.xsd" />
+    <file src="src\ext\DifxAppExtension\wixext\Xsd\difxapp.xsd" target="tools\XSD\WixDifxAppExtension.xsd" />
   </files>
 
 </package>
