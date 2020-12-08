@@ -10,14 +10,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
     /// </summary>
     public sealed class MediaRowCollection : ICollection
     {
-        private Hashtable collection;
+        private SortedList collection;
 
         /// <summary>
         /// Instantiate a new RowCollection class.
         /// </summary>
         public MediaRowCollection()
         {
-            this.collection = new Hashtable();
+            this.collection = new SortedList();
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         {
             if (0 == this.collection.Count)
             {
-                this.collection = new Hashtable(rowCollection.Count);
+                this.collection = new SortedList(rowCollection.Count);
             }
 
             foreach (MediaRow mediaRow in rowCollection)

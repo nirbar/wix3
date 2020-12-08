@@ -65,7 +65,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// <summary>
         /// Gets or sets the maximum uncompressed media size for this media template row.
         /// </summary>
-        /// <value>Disk id.</value>
         public int MaximumUncompressedMediaSize
         {
             get { return (int)this.Fields[4].Data; }
@@ -75,11 +74,21 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// <summary>
         /// Gets or sets the Maximum Cabinet Size For Large File Splitting for this media template row.
         /// </summary>
-        /// <value>Disk id.</value>
         public int MaximumCabinetSizeForLargeFileSplitting
         {
             get { return (int)this.Fields[5].Data; }
             set { this.Fields[5].Data = value; }
+        }
+
+        /// <summary>
+        /// Whether or not to reuse equal files' cab entry. 
+        /// Versioned files are considered equal if they have equal name, size, version, and language.
+        /// Unversioned files are considered equal if they have equal size and MD5 hash value.
+        /// </summary>
+        public bool AggressiveSmartCabbing
+        {
+            get { return (((int)this.Fields[6].Data) != 0); }
+            set { this.Fields[6].Data = value ? 1 : 0; }
         }
     }
 }

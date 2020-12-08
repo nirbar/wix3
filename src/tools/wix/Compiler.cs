@@ -8221,6 +8221,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             int maximumUncompressedMediaSize = CompilerCore.IntegerNotSet;
             int maximumCabinetSizeForLargeFileSplitting = CompilerCore.IntegerNotSet;
             Wix.CompressionLevelType compressionLevelType = Wix.CompressionLevelType.NotSet;
+            YesNoType aggressiveSmartCabbing = YesNoType.NotSet;
 
             YesNoType embedCab = patch ? YesNoType.Yes : YesNoType.NotSet;
 
@@ -8281,6 +8282,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         case "MaximumCabinetSizeForLargeFileSplitting":
                             maximumCabinetSizeForLargeFileSplitting = this.core.GetAttributeIntegerValue(sourceLineNumbers, attrib, CompilerCore.MinValueOfMaxCabSizeForLargeFileSplitting, CompilerCore.MaxValueOfMaxCabSizeForLargeFileSplitting);
                             break;
+                        case "AggressiveSmartCabbing":
+                            aggressiveSmartCabbing = core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
+                            continue;
                         default:
                             this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
                             break;
@@ -8309,6 +8313,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 mediaTemplateRow.VolumeLabel = volumeLabel;
                 mediaTemplateRow.DiskPrompt = diskPrompt;
                 mediaTemplateRow.VolumeLabel = volumeLabel;
+                mediaTemplateRow.AggressiveSmartCabbing = (aggressiveSmartCabbing == YesNoType.Yes);
 
                 if (maximumUncompressedMediaSize != CompilerCore.IntegerNotSet)
                 {

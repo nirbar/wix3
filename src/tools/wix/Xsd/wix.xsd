@@ -8804,6 +8804,15 @@
           <xs:documentation>Instructs the binder to embed the cabinets in the product if 'yes'.</xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="AggressiveSmartCabbing" type="YesNoTypeUnion">
+        <xs:annotation>
+          <xs:documentation>
+                        Whether or not to reuse equivalent files' cab entry.
+                        Versioned files are considered equivalent if they have equal name, size, version, and language.
+                        Unversioned files are considered equivalent if they have equal size and MD5 hash value.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
       <xs:attribute name="VolumeLabel" type="xs:string">
         <xs:annotation>
           <xs:documentation>

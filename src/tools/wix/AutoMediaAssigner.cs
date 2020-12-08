@@ -10,6 +10,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using Microsoft.Tools.WindowsInstallerXml.Cab;
+    using System.Diagnostics;
+    using System.Security.Cryptography;
+    using System.Linq;
 
     /// <summary>
     /// AutoMediaAssigner assigns files to cabs depending on Media or MediaTemplate.
@@ -123,7 +126,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
             ulong maxPreCabSizeInBytes;
             int maxPreCabSizeInMB = 0;
             int currentCabIndex = 0;
-
+            Dictionary<FileVersionInfo, FileRow> versionedFiles = new Dictionary<FileVersionInfo, FileRow>();
+            Dictionary<string, FileRow> unversionedFiles = new Dictionary<string, FileRow>();
+            Dictionary<FileRow, FileRowCollection> fileMedia = new Dictionary<FileRow, FileRowCollection>();
             MediaRow currentMediaRow = null;
 
             Table mediaTemplateTable = this.output.Tables["WixMediaTemplate"];
@@ -175,7 +180,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
 
                 FileInfo fileInfo = null;
-
+                FileVersionInfo versionInfo = null;
+                string md5 = null;
                 // Get the file size
                 try
                 {
@@ -202,6 +208,95 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     }
 
                     fileRow.FileSize = Convert.ToInt32(fileInfo.Length, CultureInfo.InvariantCulture);
+
+                    // Aggressive smart cabbing- only if file is neither from a merge module nor patch-added.
+                    if (mediaTemplateRow.AggressiveSmartCabbing && !fileRow.FromModule && 0 >= fileRow.PatchGroup)
+                    {
+                        try
+                        {
+                            versionInfo = FileVersionInfo.GetVersionInfo(fileRow.Source);
+                            if (null == versionInfo || string.IsNullOrEmpty(versionInfo.FileVersion))
+                            {
+                                using (Stream inputStream = File.OpenRead(fileRow.Source))
+                                {
+                                    using (MD5 md = MD5.Create())
+                                    {
+                                        md.ComputeHash(inputStream);
+                                        md5 = Convert.ToBase64String(md.Hash);
+                                    }
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+
+                if (null != versionInfo && !string.IsNullOrEmpty(versionInfo.FileVersion))
+                {
+                    try
+                    {
+                        KeyValuePair<FileVersionInfo, FileRow> equalFile = versionedFiles.First(
+                            (kv) => kv.Value.LongFileName.Equals(fileRow.LongFileName, StringComparison.OrdinalIgnoreCase) // Same file name
+                            && kv.Value.FileSize.Equals(fileRow.FileSize)  // Same size
+                            && kv.Key.FileVersion.Equals(versionInfo.FileVersion) // Same version
+                            && ((string.IsNullOrEmpty(kv.Key.Language) && string.IsNullOrEmpty(versionInfo.Language)) // Both with no language or both with same langugage
+                            || (!string.IsNullOrEmpty(kv.Key.Language) && kv.Key.Language.Equals(versionInfo.Language))));
+
+                        core.OnMessage(WixVerboses.ReusingCabEntry(fileRow.SourceLineNumbers, equalFile.Value.File, fileRow.File));
+
+                        fileRow.DiskId = equalFile.Value.DiskId;
+                        fileMedia[equalFile.Value].Add(fileRow);
+
+                        // Warn the user on aggressive smart cabbing- files seems the same, but warn to be on the safe side
+                        string fullPath = Path.GetFullPath(fileRow.Source);
+                        string fullPath2 = Path.GetFullPath(equalFile.Value.Source);
+                        if (!fullPath.Equals(fullPath2, StringComparison.OrdinalIgnoreCase))
+                        {
+                            core.OnMessage(WixWarnings.ReusedFilesWithDifferentSource(fileRow.SourceLineNumbers, fullPath, fullPath2));
+                            if (null != equalFile.Value.SourceLineNumbers)
+                            {
+                                core.OnMessage(WixWarnings.IdenticalRowWarning3(equalFile.Value.SourceLineNumbers));
+                            }
+                            fileRow.Source = equalFile.Value.Source;
+                        }
+                        continue;
+                    }
+                    catch
+                    {
+                        versionedFiles[versionInfo] = fileRow;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(md5))
+                {
+                    try
+                    {
+                        KeyValuePair<string, FileRow> equalFile = unversionedFiles.First((kv) => kv.Key.Equals(md5) && kv.Value.FileSize.Equals(fileRow.FileSize));
+
+                        core.OnMessage(WixVerboses.ReusingCabEntry(fileRow.SourceLineNumbers, equalFile.Value.File, fileRow.File));
+
+                        fileRow.DiskId = equalFile.Value.DiskId;
+                        fileMedia[equalFile.Value].Add(fileRow);
+
+                        // Warn the user on aggressive smart cabbing- files seems the same, but warn to be on the safe side
+                        string fullPath = Path.GetFullPath(fileRow.Source);
+                        string fullPath2 = Path.GetFullPath(equalFile.Value.Source);
+                        if (!fullPath.Equals(fullPath2, StringComparison.OrdinalIgnoreCase))
+                        {
+                            core.OnMessage(WixWarnings.ReusedFilesWithDifferentSource(fileRow.SourceLineNumbers, fullPath, fullPath2));
+                            if (null != equalFile.Value.SourceLineNumbers)
+                            {
+                                core.OnMessage(WixWarnings.IdenticalRowWarning3(equalFile.Value.SourceLineNumbers));
+                            }
+                            fileRow.Source = equalFile.Value.Source;
+                        }
+                        continue;
+                    }
+                    catch
+                    {
+                        unversionedFiles[md5] = fileRow;
+                    }
                 }
 
                 if (currentCabIndex == MaxCabIndex)
@@ -210,6 +305,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     FileRowCollection cabinetFileRow = (FileRowCollection)this.cabinets[currentMediaRow];
                     fileRow.DiskId = currentCabIndex;
                     cabinetFileRow.Add(fileRow);
+                    fileMedia[fileRow] = cabinetFileRow;
                     continue;
                 }
 
@@ -224,7 +320,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     FileRowCollection cabinetFileRow = (FileRowCollection)this.cabinets[currentMediaRow];
                     fileRow.DiskId = currentCabIndex;
                     cabinetFileRow.Add(fileRow);
-                    // Now files larger than MaxUncompressedMediaSize will be the only file in its cabinet so as to respect MaxUncompressedMediaSize
+                    fileMedia[fileRow] = cabinetFileRow;
                     currentPreCabSize = (ulong)fileRow.FileSize;
                 }
                 else
@@ -240,6 +336,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     FileRowCollection cabinetFileRow = (FileRowCollection)this.cabinets[currentMediaRow];
                     fileRow.DiskId = currentCabIndex;
                     cabinetFileRow.Add(fileRow);
+                    fileMedia[fileRow] = cabinetFileRow;
                 }
             }
 

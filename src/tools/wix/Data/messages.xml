@@ -3814,6 +3814,16 @@
           <Parameter Type="System.String" Name="attributeValue" />
         </Instance>
       </Message>
+      <Message Id="ReusedFilesWithDifferentSource" Number="1152">
+        <Instance>
+          Files '{0}' and '{1}' seem to be equal although they have different source paths.
+          <Parameter Type="System.String" Name="path1" />
+          <Parameter Type="System.String" Name="path2" />
+        </Instance>
+      </Message>
+      <Message Id="IdenticalRowWarning3" Number="1153">
+        <Instance>Location of row related to previous warning.</Instance>
+      </Message>
     </Class>
 
     <Class Name="WixVerboses" ContainerName="WixVerboseEventArgs" BaseContainerName="MessageEventArgs" Level="Information">
@@ -4010,6 +4020,13 @@
             <Instance>
                 Validation complete: {0:N0}ms elapsed.
                 <Parameter Type="System.Int64" Name="size" />
+            </Instance>
+        </Message>
+        <Message Id="ReusingCabEntry" Number="9035">
+            <Instance>
+                Reusing cab entry of file '{0}' for file '{1}'.
+                <Parameter Type="System.String" Name="srcFile" />
+                <Parameter Type="System.String" Name="otherFile" />
             </Instance>
         </Message>
     </Class>

@@ -1894,7 +1894,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             // update file version, hash, assembly, etc.. information
             this.core.OnMessage(WixVerboses.UpdatingFileInformation());
-            Hashtable indexedFileRows = this.UpdateFileInformation(output, fileRows, autoMediaAssigner.MediaRows, variableCache, modularizationGuid);
+            Hashtable indexedFileRows = this.UpdateFileInformation(output, fileRows, autoMediaAssigner, variableCache, modularizationGuid);
 
             // set generated component guids
             this.SetComponentGuids(output);
@@ -6137,10 +6137,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// </remarks>
         /// <param name="output">Internal representation of the msi database to operate upon.</param>
         /// <param name="fileRows">The indexed file rows.</param>
-        /// <param name="mediaRows">The indexed media rows.</param>
+        /// <param name="mediaAssigner">Media assigner.</param>
         /// <param name="infoCache">A hashtable to populate with the file information (optional).</param>
         /// <param name="modularizationGuid">The modularization guid (used in case of a merge module).</param>
-        private Hashtable UpdateFileInformation(Output output, FileRowCollection fileRows, MediaRowCollection mediaRows, IDictionary<string, string> infoCache, string modularizationGuid)
+        private Hashtable UpdateFileInformation(Output output, FileRowCollection fileRows, AutoMediaAssigner mediaAssigner, IDictionary<string, string> infoCache, string modularizationGuid)
         {
             // Index for all the fileId's
             // NOTE: When dealing with patches, there is a file table for each transform. In most cases, the data in these rows will be the same, however users of this index need to be aware of this.
@@ -6159,29 +6159,30 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
             else if (null != mediaTable)
             {
-                int lastSequence = 0;
-                MediaRow mediaRow = null;
+                int lastSequence = 1;
+                Dictionary<MediaRow, int> mediaSequence = new Dictionary<MediaRow, int>();
                 SortedList patchGroups = new SortedList();
+                MediaRow lastMediaRow = null;
+                foreach (MediaRow mediaRow in mediaAssigner.MediaRows)
+                {
+                    mediaSequence[mediaRow] = lastSequence;
+                    mediaRow.LastSequence = lastSequence;
+                    lastMediaRow = mediaRow;
+                    if (mediaAssigner.Cabinets.ContainsKey(mediaRow))
+                    {
+                        FileRowCollection cabinet = mediaAssigner.Cabinets[mediaRow] as FileRowCollection;
+                        if (null != cabinet && 1 < cabinet.Count)
+                        {
+                            mediaRow.LastSequence += cabinet.Count - 1;
+                        }
+                    }
+                    lastSequence = mediaRow.LastSequence + 1;
+                }
 
-                // sequence the non-patch-added files
                 foreach (FileRow fileRow in fileRows)
                 {
                     fileRowIndex[fileRow.File] = fileRow;
-                    if (null == mediaRow)
-                    {
-                        mediaRow = mediaRows[fileRow.DiskId];
-                        if (OutputType.Patch == output.Type)
-                        {
-                            // patch Media cannot start at zero
-                            lastSequence = mediaRow.LastSequence;
-                        }
-                    }
-                    else if (mediaRow.DiskId != fileRow.DiskId)
-                    {
-                        mediaRow.LastSequence = lastSequence;
-                        mediaRow = mediaRows[fileRow.DiskId];
-                    }
-
+                    MediaRow mediaRow = mediaAssigner.MediaRows[fileRow.DiskId];
                     if (0 < fileRow.PatchGroup)
                     {
                         ArrayList patchGroup = (ArrayList)patchGroups[fileRow.PatchGroup];
@@ -6196,38 +6197,30 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     }
                     else
                     {
-                        fileRow.Sequence = ++lastSequence;
+                        // Last media row used for uncompressed files
+                        if (null != mediaAssigner.UncompressedFileRows[fileRow.File])
+                        {
+                            fileRow.Sequence = lastSequence++;
+                        }
+                        else
+                        {
+                            fileRow.Sequence = mediaSequence[mediaRow]++;
+                        }
                     }
                 }
-
-                if (null != mediaRow)
-                {
-                    mediaRow.LastSequence = lastSequence;
-                    mediaRow = null;
-                }
-
-                // sequence the patch-added files
                 foreach (ArrayList patchGroup in patchGroups.Values)
                 {
                     foreach (FileRow fileRow in patchGroup)
                     {
-                        if (null == mediaRow)
-                        {
-                            mediaRow = mediaRows[fileRow.DiskId];
-                        }
-                        else if (mediaRow.DiskId != fileRow.DiskId)
-                        {
-                            mediaRow.LastSequence = lastSequence;
-                            mediaRow = mediaRows[fileRow.DiskId];
-                        }
-
-                        fileRow.Sequence = ++lastSequence;
+                        fileRow.Sequence = lastSequence++;
                     }
                 }
 
-                if (null != mediaRow)
+                // Update last media row with uncompressed and patch-added files.
+                if (null != lastMediaRow)
                 {
-                    mediaRow.LastSequence = lastSequence;
+                    lastMediaRow.LastSequence = lastSequence;
+                    mediaSequence[lastMediaRow] = lastSequence;
                 }
             }
             else
