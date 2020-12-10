@@ -1682,13 +1682,13 @@ static HRESULT OnMsiBeginTransaction(
 	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext
 	)
 {
-	UINT uResult = ERROR_SUCCESS;
 	HRESULT hr = S_OK;
 
 	pContext->hMsiTrns = NULL;
 	pContext->hMsiTrnsEvent = NULL;
-	uResult = ::MsiBeginTransaction(L"WiX", 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent);
-	ExitOnWin32Error(uResult, hr, "Failed beginning an MSI transaction");
+
+    hr = WiuBeginTransaction(L"WiX", 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent);
+	ExitOnFailure(hr, "Failed beginning an MSI transaction");
 
 LExit:
 	return hr;
@@ -1697,11 +1697,10 @@ static HRESULT OnMsiCommitTransaction(
 	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext
 	)
 {
-	UINT uResult = ERROR_SUCCESS;
 	HRESULT hr = S_OK;
 
-	uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_COMMIT);
-	ExitOnWin32Error(uResult, hr, "Failed committing an MSI transaction");
+	hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT);
+	ExitOnFailure(hr, "Failed committing an MSI transaction");
 
 LExit:
 	pContext->hMsiTrns = NULL;
@@ -1711,11 +1710,10 @@ LExit:
 static HRESULT OnMsiRollbackTransaction(
 	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext
 	){
-	UINT uResult = ERROR_SUCCESS;
 	HRESULT hr = S_OK;
 
-	uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
-	ExitOnWin32Error(uResult, hr, "Failed rolling back an MSI transaction");
+	hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
+	ExitOnFailure(hr, "Failed rolling back an MSI transaction");
 
 LExit:
 	pContext->hMsiTrns = NULL;

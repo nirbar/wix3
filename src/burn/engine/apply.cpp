@@ -130,7 +130,6 @@ static HRESULT DoExecuteAction(
     __in BURN_EXECUTE_ACTION* pExecuteAction,
     __in_opt HANDLE hCacheThread,
     __in BURN_EXECUTE_CONTEXT* pContext,
-    __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary,
     __out DWORD* pdwCheckpoint,
     __out BOOL* pfKeepRegistration,
     __out BOOL* pfSuspend,
@@ -751,6 +750,8 @@ extern "C" HRESULT ApplyExecute(
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundary = NULL;
     BOOL fSeekNextRollbackBoundary = FALSE;
 	BOOL fInTransaction = FALSE;
+    DWORD64 qwMsiVersion = 0;
+    BOOL fSupportTransactions = FALSE;
 
     context.pUX = &pEngineState->userExperience;
     context.cExecutePackagesTotal = pEngineState->plan.cExecutePackagesTotal;
@@ -760,6 +761,13 @@ extern "C" HRESULT ApplyExecute(
     nResult = pEngineState->userExperience.pUserExperience->OnExecuteBegin(pEngineState->plan.cExecutePackagesTotal);
     hr = UserExperienceInterpretExecuteResult(&pEngineState->userExperience, FALSE, MB_OKCANCEL, nResult);
     ExitOnRootFailure(hr, "BA aborted execute begin.");
+
+    // Best effort to support MSI transactions
+    VariableGetVersion(&pEngineState->variables, L"VersionMsi", &qwMsiVersion);
+    if (MAKEQWORDVERSION(4, 5, 0, 0) <= qwMsiVersion)
+    {
+        fSupportTransactions = TRUE;
+    }
 
     // Do execute actions.
     for (DWORD i = 0; i < pEngineState->plan.cExecuteActions; ++i)
@@ -783,21 +791,23 @@ extern "C" HRESULT ApplyExecute(
 			}
 
 			// Start New transaction
-			if (!fInTransaction && pExecuteAction->rollbackBoundary.pRollbackBoundary && pExecuteAction->rollbackBoundary.pRollbackBoundary->fTransaction)
-			{
-				// Transactions don't go together with DisableRollback.
-				if (pEngineState->fDisableRollback)
-				{
-					LogString(REPORT_STANDARD, "Ignoring Transaction flag due to DisableRollback flag\n");
-				}
-				else
-				{
-					LogString(REPORT_STANDARD, "Starting a new MSI transaction\n");
-					hr = DoMsiBeginTransaction(&context, pEngineState);
-					ExitOnFailure(hr, "Failed starting an MSI transaction");
-					fInTransaction = TRUE;
-				}
-			}
+			if (pExecuteAction->rollbackBoundary.pRollbackBoundary && pExecuteAction->rollbackBoundary.pRollbackBoundary->fTransaction)
+            {
+                if (fSupportTransactions)
+                {
+                    LogString(REPORT_STANDARD, "Starting a new MSI transaction\n");
+                    hr = DoMsiBeginTransaction(&context, pEngineState);
+                    ExitOnFailure(hr, "Failed starting an MSI transaction");
+                    fInTransaction = TRUE;
+                }
+                else 
+                {
+                    LogString(REPORT_STANDARD, "Not starting an MSI transaction since Windows Installer version is insufficient.\n");
+                }
+            }
+
+            pRollbackBoundary = pExecuteAction->rollbackBoundary.pRollbackBoundary;
+            continue;
 		}
 
 		// If we are seeking the next rollback boundary, skip if this action wasn't it.
@@ -814,12 +824,12 @@ extern "C" HRESULT ApplyExecute(
         }
 
         // Execute the action.
-        hr = DoExecuteAction(pEngineState, pExecuteAction, hCacheThread, &context, &pRollbackBoundary, &dwCheckpoint, pfKeepRegistration, pfSuspend, pRestart);
+        hr = DoExecuteAction(pEngineState, pExecuteAction, hCacheThread, &context, &dwCheckpoint, pfKeepRegistration, pfSuspend, pRestart);
 
         if (*pfSuspend || BOOTSTRAPPER_APPLY_RESTART_INITIATED == *pRestart)
         {
 			if (fInTransaction)
-			{
+            {
 				hr = E_INVALIDSTATE;
 				LogString(REPORT_ERROR, "Ilegal state: Reboot requested within an MSI transaction. Transaction will rollback.");
 			}
@@ -1655,7 +1665,6 @@ static HRESULT ExecuteMsiBeginTransaction(
 	)
 {
 	HRESULT hr = S_OK;
-	UINT uResult = ERROR_SUCCESS;
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
@@ -1667,8 +1676,9 @@ static HRESULT ExecuteMsiBeginTransaction(
 	{
 		MSIHANDLE hMsiTrns = NULL;
 		HANDLE hMsiTrnsEvent = NULL;
-		uResult = ::MsiBeginTransaction(L"WiX", 0, &hMsiTrns, &hMsiTrnsEvent);
-		ExitOnWin32Error(uResult, hr, "Failed beginning an MSI transaction");
+		
+        hr = WiuBeginTransaction(L"WiX", 0, &hMsiTrns, &hMsiTrnsEvent);
+		ExitOnFailure(hr, "Failed beginning an MSI transaction");
 	}
 
 LExit:
@@ -1681,7 +1691,6 @@ static HRESULT ExecuteMsiCommitTransaction(
 	)
 {
 	HRESULT hr = S_OK;
-	UINT uResult = ERROR_SUCCESS;
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
@@ -1691,8 +1700,8 @@ static HRESULT ExecuteMsiCommitTransaction(
 	}
 	else
 	{
-		uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_COMMIT);
-		ExitOnWin32Error(uResult, hr, "Failed beginning an MSI transaction");
+		hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT);
+		ExitOnFailure(hr, "Failed beginning an MSI transaction");
 	}
 
 LExit:
@@ -1705,7 +1714,6 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	)
 {
 	HRESULT hr = S_OK;
-	UINT uResult = ERROR_SUCCESS;
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
@@ -1715,8 +1723,8 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	}
 	else
 	{
-		uResult = ::MsiEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
-		ExitOnWin32Error(uResult, hr, "Failed beginning an MSI transaction");
+		hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK);
+		ExitOnFailure(hr, "Failed beginning an MSI transaction");
 	}
 
 LExit:
@@ -1770,7 +1778,6 @@ static HRESULT DoExecuteAction(
     __in BURN_EXECUTE_ACTION* pExecuteAction,
     __in_opt HANDLE hCacheThread,
     __in BURN_EXECUTE_CONTEXT* pContext,
-    __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary,
     __out DWORD* pdwCheckpoint,
     __out BOOL* pfKeepRegistration,
     __out BOOL* pfSuspend,
@@ -1862,10 +1869,7 @@ static HRESULT DoExecuteAction(
             *pfKeepRegistration = pExecuteAction->registration.fKeep;
             break;
 
-        case BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY:
-            *ppRollbackBoundary = pExecuteAction->rollbackBoundary.pRollbackBoundary;
-            break;
-
+        case BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY: __fallthrough;
         case BURN_EXECUTE_ACTION_TYPE_SERVICE_STOP: __fallthrough;
         case BURN_EXECUTE_ACTION_TYPE_SERVICE_START: __fallthrough;
         default:
@@ -1972,11 +1976,6 @@ static HRESULT DoRollbackActions(
                 break;
 
             case BURN_EXECUTE_ACTION_TYPE_MSU_PACKAGE:
-				if (fInTransaction)
-				{
-					LogString(REPORT_STANDARD, "Skipping rolling back an MSU package- already done in transaction rollback\n");
-					break;
-				}
 				hr = ExecuteMsuPackage(pEngineState, pRollbackAction, pContext, TRUE, FALSE, &fRetryIgnored, &fSuspendIgnored, &restart);
                 TraceError(hr, "Failed to rollback MSU package.");
                 hr = S_OK;

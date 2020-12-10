@@ -226,6 +226,15 @@ typedef UINT (WINAPI *PFN_MSISOURCELISTADDSOURCEEXW)(
     __in LPCWSTR szSource,
     __in_opt DWORD dwIndex
     );
+typedef UINT (WINAPI* PFN_MSIBEGINTRANSACTIONW)(
+    __in LPCWSTR   szName,
+    __in DWORD     dwTransactionAttributes,
+    __out MSIHANDLE* phTransactionHandle,
+    __out HANDLE* phChangeOfOwnerEvent
+    );
+typedef UINT (WINAPI* PFN_MSIENDTRANSACTION)(
+    __in DWORD dwTransactionState
+    );
 
 
 HRESULT DAPI WiuInitialize(
@@ -366,6 +375,15 @@ HRESULT DAPI WiuSourceListAddSourceEx(
     __in DWORD dwCode,
     __in_z LPCWSTR wzSource,
     __in_opt DWORD dwIndex
+    );
+HRESULT DAPI WiuBeginTransaction(
+    __in_z LPCWSTR szName,
+    __in DWORD dwTransactionAttributes,
+    __out MSIHANDLE* phTransactionHandle,
+    __out HANDLE* phChangeOfOwnerEvent
+    );
+HRESULT DAPI WiuEndTransaction(
+    __in DWORD dwTransactionState
     );
 
 #ifdef __cplusplus

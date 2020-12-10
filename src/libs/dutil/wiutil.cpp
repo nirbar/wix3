@@ -42,6 +42,11 @@ static PFN_MSIGETPATCHINFOEXW vpfnMsiGetPatchInfoExWFromLibrary = NULL;
 static PFN_MSIGETPRODUCTINFOEXW vpfnMsiGetProductInfoExWFromLibrary = NULL;
 static PFN_MSISETEXTERNALUIRECORD vpfnMsiSetExternalUIRecordFromLibrary = NULL;
 static PFN_MSISOURCELISTADDSOURCEEXW vpfnMsiSourceListAddSourceExWFromLibrary = NULL;
+
+// MSI Transactions v4.5+
+static PFN_MSIBEGINTRANSACTIONW vpfnMsiBeginTransaction = NULL;
+static PFN_MSIENDTRANSACTION vpfnMsiEndTransaction = NULL;
+
 static BOOL vfWiuInitialized = FALSE;
 
 // globals
@@ -176,6 +181,17 @@ extern "C" HRESULT DAPI WiuInitialize(
         vpfnMsiSourceListAddSourceExW = vpfnMsiSourceListAddSourceExWFromLibrary;
     }
 
+    // MSI Transaction functions
+    if (NULL == vpfnMsiBeginTransaction)
+    {
+        vpfnMsiBeginTransaction = reinterpret_cast<PFN_MSIBEGINTRANSACTIONW>(::GetProcAddress(vhMsiDll, "MsiBeginTransactionW"));
+    }
+
+    if (NULL == vpfnMsiEndTransaction)
+    {
+        vpfnMsiEndTransaction = reinterpret_cast<PFN_MSIENDTRANSACTION>(::GetProcAddress(vhMsiDll, "MsiEndTransaction"));
+    }
+
     vfWiuInitialized = TRUE;
 
 LExit:
@@ -202,6 +218,8 @@ extern "C" void DAPI WiuUninitialize(
         vpfnMsiDetermineApplicablePatchesWFromLibrary = NULL;
         vpfnMsiDeterminePatchSequenceWFromLibrary = NULL;
         vpfnMsiSourceListAddSourceExWFromLibrary = NULL;
+        vpfnMsiBeginTransaction = NULL;
+        vpfnMsiEndTransaction = NULL;
     }
 
     vfWiuInitialized = FALSE;
@@ -865,6 +883,48 @@ LExit:
     return hr;
 }
 
+extern "C" HRESULT DAPI WiuBeginTransaction(
+    __in_z LPCWSTR szName,
+    __in DWORD dwTransactionAttributes,
+    __out MSIHANDLE * phTransactionHandle,
+    __out HANDLE * phChangeOfOwnerEvent
+    )
+{
+    HRESULT hr = S_OK;
+    DWORD er = ERROR_SUCCESS;
+
+    if (NULL == vpfnMsiBeginTransaction)
+    {
+        er = ERROR_NOT_SUPPORTED;
+        ExitOnWin32Error(er, hr, "MsiBeginTransaction is not supported");
+    }
+
+    er = vpfnMsiBeginTransaction(szName, dwTransactionAttributes, phTransactionHandle, phChangeOfOwnerEvent);
+    ExitOnWin32Error(er, hr, "Failed to begin transaction.");
+
+LExit:
+    return hr;
+}
+
+extern "C" HRESULT DAPI WiuEndTransaction(
+    __in DWORD dwTransactionState
+    )
+{
+    HRESULT hr = S_OK;
+    DWORD er = ERROR_SUCCESS;
+
+    if (NULL == vpfnMsiEndTransaction)
+    {
+        er = ERROR_NOT_SUPPORTED;
+        ExitOnWin32Error(er, hr, "MsiEndTransaction is not supported");
+    }
+
+    er = vpfnMsiEndTransaction(dwTransactionState);
+    ExitOnWin32Error(er, hr, "Failed to end transaction.");
+
+LExit:
+    return hr;
+}
 
 
 static DWORD CheckForRestartErrorCode(
