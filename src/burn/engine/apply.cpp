@@ -784,7 +784,7 @@ extern "C" HRESULT ApplyExecute(
 			// End previous transaction
 			if (fInTransaction)
 			{
-				LogString(REPORT_STANDARD, "Committing MSI transaction\n");
+                LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
 				hr = DoMsiCommitTransaction(&context, pEngineState);
 				ExitOnFailure(hr, "Failed committing an MSI transaction");
 				fInTransaction = FALSE;
@@ -795,14 +795,14 @@ extern "C" HRESULT ApplyExecute(
             {
                 if (fSupportTransactions)
                 {
-                    LogString(REPORT_STANDARD, "Starting a new MSI transaction\n");
+                    LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION);
                     hr = DoMsiBeginTransaction(&context, pEngineState);
                     ExitOnFailure(hr, "Failed starting an MSI transaction");
                     fInTransaction = TRUE;
                 }
                 else 
                 {
-                    LogString(REPORT_STANDARD, "Not starting an MSI transaction since Windows Installer version is insufficient.\n");
+                    LogId(REPORT_STANDARD, MSG_UNSUPPORTED_MSI_TRANSACTION);
                 }
             }
 
@@ -831,7 +831,7 @@ extern "C" HRESULT ApplyExecute(
 			if (fInTransaction)
             {
 				hr = E_INVALIDSTATE;
-				LogString(REPORT_ERROR, "Ilegal state: Reboot requested within an MSI transaction. Transaction will rollback.");
+                LogId(REPORT_STANDARD, MSG_ERROR_REBOOT_MSI_TRANSACTION);
 			}
 			else
 			{
@@ -868,8 +868,8 @@ extern "C" HRESULT ApplyExecute(
 
 	if (fInTransaction)
 	{
-		LogString(REPORT_STANDARD, "Committing an MSI transaction\n");
-		hr = DoMsiCommitTransaction(&context, pEngineState);
+        LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
+        hr = DoMsiCommitTransaction(&context, pEngineState);
 		ExitOnFailure(hr, "Failed committing an MSI transaction");
 		fInTransaction = FALSE;
 	}
@@ -1906,7 +1906,8 @@ static HRESULT DoRollbackActions(
 	// Rollback MSI transaction
 	if (fInTransaction)
 	{
-		hr = DoMsiRollbackTransaction(pContext, pEngineState);
+        LogId(REPORT_STANDARD, MSG_ROLLBACK_MSI_TRANSACTION);
+        hr = DoMsiRollbackTransaction(pContext, pEngineState);
 		ExitOnFailure(hr, "Failed rolling back transaction");
 	}
 
@@ -1956,7 +1957,7 @@ static HRESULT DoRollbackActions(
             case BURN_EXECUTE_ACTION_TYPE_MSI_PACKAGE:
 				if (fInTransaction)
 				{
-					LogString(REPORT_STANDARD, "Skipping rolling back an MSI package- already done in transaction rollback\n");
+					// Skipping rolling back an MSI package- already done in transaction rollback
 					break;
 				}
                 hr = ExecuteMsiPackage(pEngineState, pRollbackAction, pContext, TRUE, &fRetryIgnored, &fSuspendIgnored, &restart);
@@ -1967,8 +1968,8 @@ static HRESULT DoRollbackActions(
             case BURN_EXECUTE_ACTION_TYPE_MSP_TARGET:
 				if (fInTransaction)
 				{
-					LogString(REPORT_STANDARD, "Skipping rolling back an MSP package- already done in transaction rollback\n");
-					break;
+                    // Skipping rolling back an MSP package- already done in transaction rollback
+                    break;
 				}
 				hr = ExecuteMspPackage(pEngineState, pRollbackAction, pContext, TRUE, &fRetryIgnored, &fSuspendIgnored, &restart);
                 TraceError(hr, "Failed to rollback MSP package.");

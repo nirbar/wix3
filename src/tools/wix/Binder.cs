@@ -3593,15 +3593,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // We handle uninstall (aka: backwards) rollback boundaries after
             // we get these install/repair (aka: forward) rollback boundaries
             // defined.
-
-            //TODO: 
-            // - Ensure transactions have only x64 or only x86 packages
-            //   Transactions with mixed x86/x64 packages must start with x64 before x86, which would work in either forward (install) or backward (uninstall) order, but can't work for both cases
-            // - Ensure transactions contain only MSI/MSP packages
-
-            TransactionType transactionType = TransactionType.None;
             ChainInfo chain = new ChainInfo(chainTable.Rows[0]); // WixChain table always has one and only row in it.
-            RollbackBoundaryInfo previousRollbackBoundary = new RollbackBoundaryInfo("WixDefaultBoundary"); // ensure there is always a rollback boundary at the beginning of the chain.
+            TransactionType transactionType = chain.Transaction ? TransactionType.Unknown : TransactionType.None;
+            RollbackBoundaryInfo previousRollbackBoundary = new RollbackBoundaryInfo("WixDefaultBoundary", chain.Transaction ? YesNoType.Yes : YesNoType.No); // ensure there is always a rollback boundary at the beginning of the chain.
             foreach (Row row in wixGroupTable.Rows)
             {
                 string rowParentName = (string)row[0];
@@ -3622,7 +3616,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             previousRollbackBoundary = null;
                         }
 
-                        if ((transactionType != TransactionType.None) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msp))
+                        chain.Packages.Add(packageInfo);
+                        if (TransactionType.None != transactionType && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msp))
                         {
                             core.OnMessage(WixErrors.MsiTransactionAllowedPackages(packageInfo.SourceLineNumbers));
                         }
@@ -3630,13 +3625,29 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         // X64 check can only be made on MSI packages
                         if (packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi))
                         {
-                            if (transactionType == TransactionType.Unknown)
+                            switch (transactionType)
                             {
-                                transactionType = packageInfo.X64 ? TransactionType.X64 : TransactionType.X86;
-                            }
-                            else if ((transactionType == TransactionType.X64) != packageInfo.X64)
-                            {
-                                core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                                case TransactionType.None:
+                                default:
+                                    break;
+
+                                case TransactionType.Unknown:
+                                    transactionType = packageInfo.X64 ? TransactionType.X64 : TransactionType.X86;
+                                    break;
+
+                                case TransactionType.X64:
+                                    if (!packageInfo.X64)
+                                    {
+                                        core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                                    }
+                                    break;
+
+                                case TransactionType.X86:
+                                    if (packageInfo.X64)
+                                    {
+                                        core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -3645,7 +3656,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         // Discard the next rollback boundary if we have a previously defined boundary. Of course,
                         // a boundary specifically defined will override the default boundary.
                         RollbackBoundaryInfo nextRollbackBoundary = allBoundaries[rowChildName];
-                        transactionType = (nextRollbackBoundary.Transaction == YesNoType.Yes) ? TransactionType.Unknown : TransactionType.None;
+                        transactionType = YesNoType.Yes == nextRollbackBoundary.Transaction ? TransactionType.Unknown : TransactionType.None;
 
                         if (null != previousRollbackBoundary && !previousRollbackBoundary.Default)
                         {
@@ -4563,11 +4574,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (chain.ParallelCache)
                 {
                     writer.WriteAttributeString("ParallelCache", "yes");
-                }
-
-                if (chain.Transaction)
-                {
-                    writer.WriteAttributeString("Transaction", "yes");
                 }
 
                 // Build up the list of target codes from all the MSPs in the chain.

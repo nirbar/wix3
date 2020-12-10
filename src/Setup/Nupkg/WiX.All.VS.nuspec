@@ -210,7 +210,7 @@
 <!-- This nuspec is used to repack VS-specific nuget packages into a single package.
 	 TODO Duplicate for VS 2010, 2012
 	
-SET NUPKG_VERSION=3.12.0-b81
+SET NUPKG_VERSION=3.12.0-b84
 MD D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%
 CD /d D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%
 "C:\Program Files\7-Zip\7z.exe" x "D:\Projects\Nuget\PanelSW.Custom.WiX.%NUPKG_VERSION%-vs2013.nupkg" -y

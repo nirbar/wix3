@@ -2965,7 +2965,7 @@
         </Message>
         <Message Id="MsiTransactionAllowedPackages" Number="390">
             <Instance>
-                MSI transactions can install only MSI or MSP packages.
+                MSI transactions can install only MSI and MSP packages.
             </Instance>
         </Message>
     </Class>

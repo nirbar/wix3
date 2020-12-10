@@ -9,12 +9,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
     /// </summary>
     internal class RollbackBoundaryInfo
     {
-        public RollbackBoundaryInfo(string id)
+        public RollbackBoundaryInfo(string id, YesNoType transaction)
         {
             this.Default = true;
             this.Id = id;
             this.Vital = YesNoType.Yes;
-            this.Transaction = YesNoType.No;
+            this.Transaction = transaction;
         }
 
         public RollbackBoundaryInfo(Row row)

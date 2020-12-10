@@ -51,7 +51,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             object enableFeatureSelectionData = chainPackageRow[20];
             object forcePerMachineData = chainPackageRow[21];
             object displayInternalUIData = chainPackageRow[22];
-            object transactionData = chainPackageRow[23];
 
             BundlePackageAttributes attributes = (null == attributesData) ? 0 : (BundlePackageAttributes)attributesData;
 
@@ -73,7 +72,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
 
             YesNoType vital = (null == vitalData || 1 == (int)vitalData) ? YesNoType.Yes : YesNoType.No;
-            YesNoType transaction = (1 == transactionData as int?) ? YesNoType.Yes : YesNoType.No;
 
             YesNoDefaultType perMachine = YesNoDefaultType.NotSet;
             if (null != perMachineData)
@@ -146,7 +144,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.Visible = (BundlePackageAttributes.Visible == (attributes & BundlePackageAttributes.Visible));
             this.Slipstream = (BundlePackageAttributes.Slipstream == (attributes & BundlePackageAttributes.Slipstream));
             this.Vital = (YesNoType.Yes == vital); // true only when specifically requested.
-            this.Transaction = (YesNoType.Yes == transaction); // true only when specifically requested.
             this.DetectCondition = detectCondition;
             this.MsuKB = msuKB;
             this.Protocol = protocol;
@@ -500,64 +497,64 @@ namespace Microsoft.Tools.WindowsInstallerXml
             private set { this.Fields[22].Data = value ? 1 : 0; }
         }
 
-        public string ProductCode
+        public bool Transaction
         {
-            get { return (string)this.Fields[23].Data; }
-            private set { this.Fields[23].Data = value; }
+            get { return 1 == this.Fields[23].Data as int?; }
+            private set { this.Fields[23].Data = value ? 1 : 0; }
         }
 
-        public string UpgradeCode
+        public string ProductCode
         {
             get { return (string)this.Fields[24].Data; }
             private set { this.Fields[24].Data = value; }
         }
 
-        public string Version
+        public string UpgradeCode
         {
             get { return (string)this.Fields[25].Data; }
             private set { this.Fields[25].Data = value; }
         }
 
-        public string Language
+        public string Version
         {
             get { return (string)this.Fields[26].Data; }
             private set { this.Fields[26].Data = value; }
         }
 
-        public string DisplayName
+        public string Language
         {
             get { return (string)this.Fields[27].Data; }
             private set { this.Fields[27].Data = value; }
         }
 
-        public string Description
+        public string DisplayName
         {
             get { return (string)this.Fields[28].Data; }
             private set { this.Fields[28].Data = value; }
         }
 
-        public string PatchCode
+        public string Description
         {
             get { return (string)this.Fields[29].Data; }
             private set { this.Fields[29].Data = value; }
         }
 
-        public string PatchXml
+        public string PatchCode
         {
             get { return (string)this.Fields[30].Data; }
             private set { this.Fields[30].Data = value; }
         }
 
-        public string Manufacturer
+        public string PatchXml
         {
             get { return (string)this.Fields[31].Data; }
             private set { this.Fields[31].Data = value; }
         }
 
-        public bool Transaction
+        public string Manufacturer
         {
-            get { return (null != this.Fields[32].Data) && (1 == (int)this.Fields[32].Data); }
-            private set { this.Fields[32].Data = value ? 1 : 0; }
+            get { return (string)this.Fields[32].Data; }
+            private set { this.Fields[32].Data = value; }
         }
 
         public bool X64
@@ -1054,7 +1051,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 using (Microsoft.Deployment.WindowsInstaller.SummaryInfo sumInfo = new Microsoft.Deployment.WindowsInstaller.SummaryInfo(sourcePath, false))
                 {
                     this.PatchCode = sumInfo.RevisionNumber.Substring(0, 38);
-                    this.X64 = sumInfo.Template.StartsWith("x64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("intel64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("amd64", StringComparison.OrdinalIgnoreCase);
                 }
 
                 using (Microsoft.Deployment.WindowsInstaller.Database db = new Microsoft.Deployment.WindowsInstaller.Database(sourcePath))

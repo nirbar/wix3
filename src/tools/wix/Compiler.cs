@@ -21230,6 +21230,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
             }
 
+            if (((attributes & BundleChainAttributes.Transaction) == BundleChainAttributes.Transaction) && ((attributes & BundleChainAttributes.DisableRollback) == BundleChainAttributes.DisableRollback))
+            {
+                this.core.OnMessage(WixErrors.IllegalAttributeValueWithOtherAttribute(sourceLineNumbers, node.Name, "Transaction", "yes", "DisableRollback", "yes"));
+            }
+
             ComplexReferenceChildType previousType = ComplexReferenceChildType.Unknown;
             string previousId = null;
             foreach (XmlNode child in node.ChildNodes)
@@ -21495,7 +21500,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             YesNoType permanent = YesNoType.NotSet;
             YesNoType visible = YesNoType.NotSet;
             YesNoType vital = YesNoType.Yes;
-            YesNoType transaction = YesNoType.No;
             string installCommand = null;
             string repairCommand = null;
             YesNoType repairable = YesNoType.NotSet;
@@ -21953,11 +21957,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (YesNoType.NotSet != displayInternalUI)
                 {
                     row[22] = (YesNoType.Yes == displayInternalUI) ? 1 : 0;
-                }
-
-                if (YesNoType.NotSet != transaction)
-                {
-                    row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, after);
