@@ -269,6 +269,14 @@ public: // IBootstrapperApplication
     {
     }
 
+    virtual STDMETHODIMP_(int) OnPlanRollbackBoundary(
+        __in_z LPCWSTR /*wzRollbackId*/,
+        __inout BOOL* /*pfTransaction*/
+        )
+    {
+        return CheckCanceled() ? IDCANCEL : IDNOACTION;
+    }
+
     virtual STDMETHODIMP_(void) OnPlanComplete(
         __in HRESULT /*hrStatus*/
         )

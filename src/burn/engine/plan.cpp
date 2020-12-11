@@ -40,6 +40,8 @@ static HRESULT ProcessPackage(
     );
 static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
+    __in BURN_VARIABLES* pVariables,
+    __in BURN_USER_EXPERIENCE* pUX,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     );
@@ -858,7 +860,7 @@ static HRESULT ProcessPackage(
     ExitOnRootFailure(hr, "UX aborted plan package begin.");
 
     pEffectiveRollbackBoundary = (BOOTSTRAPPER_ACTION_UNINSTALL == pPlan->action) ? pPackage->pRollbackBoundaryBackward : pPackage->pRollbackBoundaryForward;
-    hr = ProcessPackageRollbackBoundary(pPlan, pEffectiveRollbackBoundary, ppRollbackBoundary);
+    hr = ProcessPackageRollbackBoundary(pPlan, pVariables, pUX, pEffectiveRollbackBoundary, ppRollbackBoundary);
     ExitOnFailure(hr, "Failed to process package rollback boundary.");
 
     // If the package is in a requested state, plan it.
@@ -924,6 +926,8 @@ LExit:
 
 static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
+    __in BURN_VARIABLES* pVariables,
+    __in BURN_USER_EXPERIENCE* pUX,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     )
@@ -941,7 +945,7 @@ static HRESULT ProcessPackageRollbackBoundary(
         }
 
         // Start new rollback boundary.
-        hr = PlanRollbackBoundaryBegin(pPlan, pEffectiveRollbackBoundary);
+        hr = PlanRollbackBoundaryBegin(pPlan, pVariables, pUX, pEffectiveRollbackBoundary);
         ExitOnFailure(hr, "Failed to plan rollback boundary begin.");
 
         *ppRollbackBoundary = pEffectiveRollbackBoundary;
@@ -1735,11 +1739,40 @@ LExit:
 
 extern "C" HRESULT PlanRollbackBoundaryBegin(
     __in BURN_PLAN* pPlan,
+    __in BURN_VARIABLES * pVariables,
+    __in BURN_USER_EXPERIENCE * pUX,
     __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary
     )
 {
     HRESULT hr = S_OK;
     BURN_EXECUTE_ACTION* pExecuteAction = NULL;
+    int nResult = IDNOACTION;
+    BOOL fTransaction = FALSE;
+    BOOL fTransactionAllowed = FALSE;
+
+    // Best effort to support MSI transactions
+    if (pRollbackBoundary->fTransaction)
+    {
+        DWORD64 qwMsiVersion = 0;
+
+        VariableGetVersion(pVariables, L"VersionMsi", &qwMsiVersion);
+        if (MAKEQWORDVERSION(4, 5, 0, 0) <= qwMsiVersion)
+        {
+            fTransaction = TRUE;
+            fTransactionAllowed = TRUE;
+        }
+        else
+        {
+            LogId(REPORT_WARNING, MSG_UNSUPPORTED_MSI_TRANSACTION);
+        }
+    }
+
+    nResult = pUX->pUserExperience->OnPlanRollbackBoundary(pRollbackBoundary->sczId, &fTransaction);
+
+    hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
+    ExitOnRootFailure(hr, "UX aborted plan rollback boundary.");
+
+    pRollbackBoundary->fTransaction = fTransaction && fTransactionAllowed;
 
     // Add begin rollback boundary to execute plan.
     hr = PlanAppendExecuteAction(pPlan, &pExecuteAction);

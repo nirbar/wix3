@@ -750,8 +750,6 @@ extern "C" HRESULT ApplyExecute(
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundary = NULL;
     BOOL fSeekNextRollbackBoundary = FALSE;
 	BOOL fInTransaction = FALSE;
-    DWORD64 qwMsiVersion = 0;
-    BOOL fSupportTransactions = FALSE;
 
     context.pUX = &pEngineState->userExperience;
     context.cExecutePackagesTotal = pEngineState->plan.cExecutePackagesTotal;
@@ -761,13 +759,6 @@ extern "C" HRESULT ApplyExecute(
     nResult = pEngineState->userExperience.pUserExperience->OnExecuteBegin(pEngineState->plan.cExecutePackagesTotal);
     hr = UserExperienceInterpretExecuteResult(&pEngineState->userExperience, FALSE, MB_OKCANCEL, nResult);
     ExitOnRootFailure(hr, "BA aborted execute begin.");
-
-    // Best effort to support MSI transactions
-    VariableGetVersion(&pEngineState->variables, L"VersionMsi", &qwMsiVersion);
-    if (MAKEQWORDVERSION(4, 5, 0, 0) <= qwMsiVersion)
-    {
-        fSupportTransactions = TRUE;
-    }
 
     // Do execute actions.
     for (DWORD i = 0; i < pEngineState->plan.cExecuteActions; ++i)
@@ -791,19 +782,12 @@ extern "C" HRESULT ApplyExecute(
 			}
 
 			// Start New transaction
-			if (pExecuteAction->rollbackBoundary.pRollbackBoundary && pExecuteAction->rollbackBoundary.pRollbackBoundary->fTransaction)
+            if (pExecuteAction->rollbackBoundary.pRollbackBoundary && pExecuteAction->rollbackBoundary.pRollbackBoundary->fTransaction)
             {
-                if (fSupportTransactions)
-                {
-                    LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION);
-                    hr = DoMsiBeginTransaction(&context, pEngineState);
-                    ExitOnFailure(hr, "Failed starting an MSI transaction");
-                    fInTransaction = TRUE;
-                }
-                else 
-                {
-                    LogId(REPORT_STANDARD, MSG_UNSUPPORTED_MSI_TRANSACTION);
-                }
+                LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION);
+                hr = DoMsiBeginTransaction(&context, pEngineState);
+                ExitOnFailure(hr, "Failed starting an MSI transaction");
+                fInTransaction = TRUE;
             }
 
             pRollbackBoundary = pExecuteAction->rollbackBoundary.pRollbackBoundary;

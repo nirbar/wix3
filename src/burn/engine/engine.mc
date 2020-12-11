@@ -907,7 +907,7 @@ Rolling back an MSI transaction
 .
 
 MessageId=703
-Severity=Success
+Severity=Warning
 SymbolicName=MSG_UNSUPPORTED_MSI_TRANSACTION
 Language=English
 Not starting an MSI transaction since Windows Installer version on this machine does not support it
