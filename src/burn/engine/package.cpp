@@ -70,7 +70,7 @@ extern "C" HRESULT PackagesParseFromXml(
             ExitOnFailure(hr, "Failed to get @Vital.");
 
 			// @Transaction
-			hr = XmlGetYesNoAttribute(pixnNode, L"Transaction", &pRollbackBoundary->fTransaction);
+			hr = XmlGetYesNoAttribute(pixnNode, L"Transaction", &pRollbackBoundary->fTransactionInManifest);
 			ExitOnFailure(hr, "Failed to get @Transaction.");
 
             // prepare next iteration

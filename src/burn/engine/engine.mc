@@ -919,3 +919,10 @@ SymbolicName=MSG_ERROR_REBOOT_MSI_TRANSACTION
 Language=English
 Package required reboot inside an MSI transaction. Transaction will now rollback as this is not supported by Windows Installer
 .
+
+MessageId=705
+Severity=Success
+SymbolicName=MSG_UX_DECLINED_MSI_TRANSACTION
+Language=English
+UX voted against MSI transaction on rollback boundary '%1!ls!'
+.

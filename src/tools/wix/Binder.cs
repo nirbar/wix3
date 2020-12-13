@@ -3617,7 +3617,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         }
 
                         chain.Packages.Add(packageInfo);
-                        if (TransactionType.None != transactionType && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi) && !packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msp))
+                        if (TransactionType.None != transactionType && Compiler.ChainPackageType.Msi != packageInfo.ChainPackageType && Compiler.ChainPackageType.Msp != packageInfo.ChainPackageType)
                         {
                             core.OnMessage(WixErrors.MsiTransactionAllowedPackages(packageInfo.SourceLineNumbers));
                         }

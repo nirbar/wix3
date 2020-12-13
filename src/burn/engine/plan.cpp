@@ -1751,7 +1751,7 @@ extern "C" HRESULT PlanRollbackBoundaryBegin(
     BOOL fTransactionAllowed = FALSE;
 
     // Best effort to support MSI transactions
-    if (pRollbackBoundary->fTransaction)
+    if (pRollbackBoundary->fTransactionInManifest)
     {
         DWORD64 qwMsiVersion = 0;
 
@@ -1773,6 +1773,10 @@ extern "C" HRESULT PlanRollbackBoundaryBegin(
     ExitOnRootFailure(hr, "UX aborted plan rollback boundary.");
 
     pRollbackBoundary->fTransaction = fTransaction && fTransactionAllowed;
+    if (fTransactionAllowed && !fTransaction)
+    {
+        LogId(REPORT_STANDARD, MSG_UX_DECLINED_MSI_TRANSACTION, pRollbackBoundary->sczId);
+    }
 
     // Add begin rollback boundary to execute plan.
     hr = PlanAppendExecuteAction(pPlan, &pExecuteAction);
