@@ -10,10 +10,11 @@
 - Add [heat.exe](https://wixtoolset.org/documentation/manual/v3/overview/heat.html) harvest type "payload_dir" to harvest a PayloadGroup. Specify _-url link_ to set base DownloadUrl for remote payloads
 - Fix WiX issue [6144](https://github.com/wixtoolset/issues/issues/6144): Support multiple attached containers in bundles. Enables bootstrappers larger than 2GB
 - Fix WiX issue [6174](https://github.com/wixtoolset/issues/issues/6174): Fix bloated bootstrapper when authoring detached containers
+- Fix WiX issue [6298](https://github.com/wixtoolset/issues/issues/6298): Fix extracting bootstrappers with detached containers
 - Add attribute MediaTemplate/@AggressiveSmartCabbing:
   Whether or not to reuse equivalent files' cab entry. Versioned files are considered equivalent if they have equal name, size, version, and language. Unversioned files are considered equivalent if they have equal size and MD5 hash value.
   When a file is found to have an equivalent, it is placed in the same cab file and it's source is changed to the same source, so WiX built-in Smart Cabbing reuses the same cab entry for both files. 
-  AggressiveSmartCabbing only works on compressed, non-aptch-added, and not merged-moduled files.
+  AggressiveSmartCabbing only works on compressed, non-patch-added, and not merged-moduled files.
 - Changes by WiX up to build 3.14.0.4118
 - Build for .NET Framework 4.0
 

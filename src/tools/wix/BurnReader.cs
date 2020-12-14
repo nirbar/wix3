@@ -27,6 +27,16 @@ namespace Microsoft.Tools.WindowsInstallerXml
         private bool invalidBundle;
         private BinaryReader binaryReader;
         private List<DictionaryEntry> attachedContainerPayloadNames;
+        private Dictionary<string, DetachedContainer> detachedContainers_;
+
+        private struct DetachedContainer
+        {
+            public string Id;
+            public UInt32 FileSize;
+            public string Hash;
+            public string FilePath;
+            public Dictionary<string, string> Files;
+        }
 
         /// <summary>
         /// Creates a BurnReader for reading a PE file.
@@ -37,6 +47,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             : base(fileExe, messageHandler)
         {
             this.attachedContainerPayloadNames = new List<DictionaryEntry>();
+            detachedContainers_ = new Dictionary<string, DetachedContainer>();
         }
 
         /// <summary>
@@ -127,6 +138,28 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 File.Move(sourcePath, destinationPath);
             }
 
+            XmlNodeList containers = document.SelectNodes("/burn:BurnManifest/burn:Container", namespaceManager);
+            foreach (XmlNode cntnr in containers)
+            {
+                XmlAttribute idNode = cntnr.Attributes["Id"];
+                XmlAttribute fileSizeNode = cntnr.Attributes["FileSize"];
+                XmlAttribute hashNode = cntnr.Attributes["Hash"];
+                XmlAttribute filePathNode = cntnr.Attributes["FilePath"];
+                XmlAttribute attachedNode = cntnr.Attributes["Attached"];
+
+                bool attached = (null != attachedNode && attachedNode.Value.Equals("yes"));
+                if (!attached)
+                {
+                    DetachedContainer detachedContainer = new DetachedContainer();
+                    detachedContainer.Files = new Dictionary<string, string>();
+                    detachedContainer.Id = idNode.Value;
+                    detachedContainer.FilePath = filePathNode.Value;
+                    detachedContainer.FileSize = UInt32.Parse(fileSizeNode.Value);
+                    detachedContainer.Hash = hashNode.Value;
+                    detachedContainers_[detachedContainer.Id] = detachedContainer;
+                }
+            }
+
             foreach (XmlNode payload in payloads)
             {
                 XmlNode sourcePathNode = payload.Attributes.GetNamedItem("SourcePath");
@@ -139,7 +172,17 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                 if (packaging.Equals("embedded", StringComparison.OrdinalIgnoreCase))
                 {
-                    this.attachedContainerPayloadNames.Add(new DictionaryEntry(sourcePath, destinationPath));
+                    XmlNode containerNode = payload.Attributes.GetNamedItem("Container");
+                    string container = containerNode.Value;
+
+                    if (detachedContainers_.ContainsKey(container))
+                    {
+                        detachedContainers_[container].Files[sourcePath] = destinationPath;
+                    }
+                    else
+                    {
+                        this.attachedContainerPayloadNames.Add(new DictionaryEntry(sourcePath, destinationPath));
+                    }
                 }
             }
 
@@ -189,6 +232,26 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
                 File.Delete(destinationPath);
                 File.Move(sourcePath, destinationPath);
+            }
+
+            string bundlePath = Path.GetDirectoryName(this.fileExe);
+            foreach (DetachedContainer detachedContainer in detachedContainers_.Values)
+            {
+                string cabPath = Path.Combine(bundlePath, detachedContainer.FilePath);
+                using (WixExtractCab extract = new WixExtractCab())
+                {
+                    extract.Extract(cabPath, outputDirectory);
+                }
+
+                foreach (KeyValuePair<string, string> entry in detachedContainer.Files)
+                {
+                    string sourcePath = Path.Combine(outputDirectory, (string)entry.Key);
+                    string destinationPath = Path.Combine(outputDirectory, (string)entry.Value);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+                    File.Delete(destinationPath);
+                    File.Move(sourcePath, destinationPath);
+                }
             }
 
             return true;
