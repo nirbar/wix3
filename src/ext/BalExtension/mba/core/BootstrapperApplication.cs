@@ -159,6 +159,11 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<PlanPackageCompleteEventArgs> PlanPackageComplete;
 
         /// <summary>
+        /// Fired when the engine plans a rollback boundary.
+        /// </summary>
+        public event EventHandler<PlanRollbackBoundaryEventArgs> PlanRollbackBoundary;
+
+        /// <summary>
         /// Fired when the engine has completed planning the installation.
         /// </summary>
         public event EventHandler<PlanCompleteEventArgs> PlanComplete;
@@ -689,6 +694,26 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         protected virtual void OnPlanPackageComplete(PlanPackageCompleteEventArgs args)
         {
             EventHandler<PlanPackageCompleteEventArgs> handler = this.PlanPackageComplete;
+            if (null != handler)
+            {
+                handler(this, args);
+            }
+        }
+
+        /// <summary>
+        /// Called when the engine plans a rollback boundary.
+        /// <para>
+        /// Transaction is TRUE on entry if MSI transactions are requested and supported by Windows Installer version on the target machine.
+        /// When Transaction is FALSE on entry then MSI transaction is not possible on this boundary or machine.
+        /// </para>
+        /// <para>
+        /// Result may be one of None, OK, Cancel
+        /// </para>
+        /// </summary>
+        /// <param name="args">Additional arguments for this event.</param>
+        protected virtual void OnPlanRollbackBoundary(PlanRollbackBoundaryEventArgs args)
+        {
+            EventHandler<PlanRollbackBoundaryEventArgs> handler = this.PlanRollbackBoundary;
             if (null != handler)
             {
                 handler(this, args);
@@ -1287,6 +1312,15 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         void IBootstrapperApplication.OnPlanPackageComplete(string wzPackageId, int hrStatus, PackageState state, RequestState requested, ActionState execute, ActionState rollback)
         {
             this.OnPlanPackageComplete(new PlanPackageCompleteEventArgs(wzPackageId, hrStatus, state, requested, execute, rollback));
+        }
+
+        Result IBootstrapperApplication.OnPlanRollbackBoundary(string wzRollbackId, ref bool pfTransaction)
+        {
+            PlanRollbackBoundaryEventArgs args = new PlanRollbackBoundaryEventArgs(wzRollbackId, pfTransaction, 0);
+            this.OnPlanRollbackBoundary(args);
+
+            pfTransaction = args.Transaction;
+            return args.Result;
         }
 
         void IBootstrapperApplication.OnPlanComplete(int hrStatus)

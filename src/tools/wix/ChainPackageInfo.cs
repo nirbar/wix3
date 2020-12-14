@@ -497,58 +497,70 @@ namespace Microsoft.Tools.WindowsInstallerXml
             private set { this.Fields[22].Data = value ? 1 : 0; }
         }
 
-        public string ProductCode
+        public bool Transaction
         {
-            get { return (string)this.Fields[23].Data; }
-            private set { this.Fields[23].Data = value; }
+            get { return 1 == this.Fields[23].Data as int?; }
+            private set { this.Fields[23].Data = value ? 1 : 0; }
         }
 
-        public string UpgradeCode
+        public string ProductCode
         {
             get { return (string)this.Fields[24].Data; }
             private set { this.Fields[24].Data = value; }
         }
 
-        public string Version
+        public string UpgradeCode
         {
             get { return (string)this.Fields[25].Data; }
             private set { this.Fields[25].Data = value; }
         }
 
-        public string Language
+        public string Version
         {
             get { return (string)this.Fields[26].Data; }
             private set { this.Fields[26].Data = value; }
         }
 
-        public string DisplayName
+        public string Language
         {
             get { return (string)this.Fields[27].Data; }
             private set { this.Fields[27].Data = value; }
         }
 
-        public string Description
+        public string DisplayName
         {
             get { return (string)this.Fields[28].Data; }
             private set { this.Fields[28].Data = value; }
         }
 
-        public string PatchCode
+        public string Description
         {
             get { return (string)this.Fields[29].Data; }
             private set { this.Fields[29].Data = value; }
         }
 
-        public string PatchXml
+        public string PatchCode
         {
             get { return (string)this.Fields[30].Data; }
             private set { this.Fields[30].Data = value; }
         }
 
-        public string Manufacturer
+        public string PatchXml
         {
             get { return (string)this.Fields[31].Data; }
             private set { this.Fields[31].Data = value; }
+        }
+
+        public string Manufacturer
+        {
+            get { return (string)this.Fields[32].Data; }
+            private set { this.Fields[32].Data = value; }
+        }
+
+        public bool X64
+        {
+            get { return (null != this.Fields[33].Data) && (1 == (int)this.Fields[33].Data); }
+            private set { this.Fields[33].Data = value ? 1 : 0; }
         }
 
         public long Size { get; private set; }
@@ -590,6 +602,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     // "Elevated privileges are not required to install this package."
                     // in MSI 4.5 and below, if this bit is 0, elevation is required.
                     this.PerMachine = (0 == (sumInfo.WordCount & 8)) ? YesNoDefaultType.Yes : YesNoDefaultType.No;
+
+                    this.X64 = sumInfo.Template.StartsWith("x64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("intel64", StringComparison.OrdinalIgnoreCase) || sumInfo.Template.StartsWith("amd64", StringComparison.OrdinalIgnoreCase);
                 }
 
                 using (Microsoft.Deployment.WindowsInstaller.Database db = new Microsoft.Deployment.WindowsInstaller.Database(sourcePath))

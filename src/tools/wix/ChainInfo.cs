@@ -17,6 +17,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.DisableRollback = (BundleChainAttributes.DisableRollback == (attributes & BundleChainAttributes.DisableRollback));
             this.DisableSystemRestore = (BundleChainAttributes.DisableSystemRestore == (attributes & BundleChainAttributes.DisableSystemRestore));
             this.ParallelCache = (BundleChainAttributes.ParallelCache == (attributes & BundleChainAttributes.ParallelCache));
+            this.Transaction = (BundleChainAttributes.Transaction == (attributes & BundleChainAttributes.Transaction));
             this.Packages = new List<ChainPackageInfo>();
             this.RollbackBoundaries = new List<RollbackBoundaryInfo>();
             this.SourceLineNumbers = row.SourceLineNumbers;
@@ -25,6 +26,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public bool DisableRollback { get; private set; }
         public bool DisableSystemRestore { get; private set; }
         public bool ParallelCache { get; private set; }
+        public bool Transaction { get; private set; }
         public List<ChainPackageInfo> Packages { get; private set; }
         public List<RollbackBoundaryInfo> RollbackBoundaries { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }

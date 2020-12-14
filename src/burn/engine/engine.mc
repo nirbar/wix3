@@ -884,3 +884,45 @@ SymbolicName=MSG_LAUNCH_APPROVED_EXE_COMPLETE
 Language=English
 LaunchApprovedExe complete, result: 0x%1!x!, processId: %2!lu!
 .
+
+MessageId=700
+Severity=Success
+SymbolicName=MSG_BEGIN_MSI_TRANSACTION
+Language=English
+Starting an MSI transaction
+.
+
+MessageId=701
+Severity=Success
+SymbolicName=MSG_COMMIT_MSI_TRANSACTION
+Language=English
+Committing an MSI transaction
+.
+
+MessageId=702
+Severity=Success
+SymbolicName=MSG_ROLLBACK_MSI_TRANSACTION
+Language=English
+Rolling back an MSI transaction
+.
+
+MessageId=703
+Severity=Warning
+SymbolicName=MSG_UNSUPPORTED_MSI_TRANSACTION
+Language=English
+Not starting an MSI transaction since Windows Installer version on this machine does not support it
+.
+
+MessageId=704
+Severity=Error
+SymbolicName=MSG_ERROR_REBOOT_MSI_TRANSACTION
+Language=English
+Package required reboot inside an MSI transaction. Transaction will now rollback as this is not supported by Windows Installer
+.
+
+MessageId=705
+Severity=Success
+SymbolicName=MSG_UX_DECLINED_MSI_TRANSACTION
+Language=English
+UX voted against MSI transaction on rollback boundary '%1!ls!'
+.

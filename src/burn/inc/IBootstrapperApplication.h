@@ -373,6 +373,19 @@ DECLARE_INTERFACE_IID_(IBootstrapperApplication, IUnknown, "53C31D56-49C0-426B-A
         __in BOOTSTRAPPER_ACTION_STATE rollback
         ) = 0;
 
+    // OnPlanRollbackBoundary - called when the engine plans a rollback boundary.
+    //                          pfTransaction is TRUE on entry if MSI transactions are requested and supported by Windows Installer version on the target machine.
+    //                          When pfTransaction is FALSE on entry then MSI transaction is not possible on this boundary or machine.
+    //
+    // Return:
+    //  IDCANCEL instructs the engine to stop planning.
+    //
+    //  IDNOACTION instructs the engine to continue.
+    STDMETHOD_(int, OnPlanRollbackBoundary)(
+        __in_z LPCWSTR wzRollbackId,
+        __inout BOOL *pfTransaction
+        ) = 0;
+
     // OnPlanComplete - called when the engine completes planning.
     //
     STDMETHOD_(void, OnPlanComplete)(

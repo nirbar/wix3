@@ -14,5 +14,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
         DisableRollback = 0x1,
         DisableSystemRestore = 0x2,
         ParallelCache = 0x4,
+        Transaction = 0x8
     }
 }

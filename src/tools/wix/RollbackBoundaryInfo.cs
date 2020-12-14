@@ -9,11 +9,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
     /// </summary>
     internal class RollbackBoundaryInfo
     {
-        public RollbackBoundaryInfo(string id)
+        public RollbackBoundaryInfo(string id, YesNoType transaction)
         {
             this.Default = true;
             this.Id = id;
             this.Vital = YesNoType.Yes;
+            this.Transaction = transaction;
         }
 
         public RollbackBoundaryInfo(Row row)
@@ -21,12 +22,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.Id = row[0].ToString();
 
             this.Vital = (null == row[10] || 1 == (int)row[10]) ? YesNoType.Yes : YesNoType.No;
+            this.Transaction = (1 == row[23] as int?) ? YesNoType.Yes : YesNoType.No;
             this.SourceLineNumbers = row.SourceLineNumbers;
         }
 
         public bool Default { get; private set; }
         public string Id { get; private set; }
         public YesNoType Vital { get; private set; }
+        public YesNoType Transaction { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }
     }
 }

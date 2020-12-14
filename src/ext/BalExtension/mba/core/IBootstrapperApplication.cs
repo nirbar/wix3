@@ -183,6 +183,13 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             [MarshalAs(UnmanagedType.U4)] ActionState rollback
             );
 
+        [PreserveSig]
+        [return: MarshalAs(UnmanagedType.I4)]
+        Result OnPlanRollbackBoundary(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzRollbackId,
+            ref bool transaction
+            );
+
         void OnPlanComplete(
             int hrStatus
             );

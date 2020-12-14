@@ -3104,6 +3104,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             variableCache.Add(String.Concat("packageVersion.", id), package.Version);
         }
 
+        private enum TransactionType
+        {
+            None,
+            X86,
+            X64,
+            Unknown
+        }
+
         /// <summary>
         /// Binds a bundle.
         /// </summary>
@@ -3586,7 +3594,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // we get these install/repair (aka: forward) rollback boundaries
             // defined.
             ChainInfo chain = new ChainInfo(chainTable.Rows[0]); // WixChain table always has one and only row in it.
-            RollbackBoundaryInfo previousRollbackBoundary = new RollbackBoundaryInfo("WixDefaultBoundary"); // ensure there is always a rollback boundary at the beginning of the chain.
+            TransactionType transactionType = chain.Transaction ? TransactionType.Unknown : TransactionType.None;
+            RollbackBoundaryInfo previousRollbackBoundary = new RollbackBoundaryInfo("WixDefaultBoundary", chain.Transaction ? YesNoType.Yes : YesNoType.No); // ensure there is always a rollback boundary at the beginning of the chain.
             foreach (Row row in wixGroupTable.Rows)
             {
                 string rowParentName = (string)row[0];
@@ -3608,12 +3617,47 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         }
 
                         chain.Packages.Add(packageInfo);
+                        if (TransactionType.None != transactionType && Compiler.ChainPackageType.Msi != packageInfo.ChainPackageType && Compiler.ChainPackageType.Msp != packageInfo.ChainPackageType)
+                        {
+                            core.OnMessage(WixErrors.MsiTransactionAllowedPackages(packageInfo.SourceLineNumbers));
+                        }
+
+                        // X64 check can only be made on MSI packages
+                        if (packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi))
+                        {
+                            switch (transactionType)
+                            {
+                                case TransactionType.None:
+                                default:
+                                    break;
+
+                                case TransactionType.Unknown:
+                                    transactionType = packageInfo.X64 ? TransactionType.X64 : TransactionType.X86;
+                                    break;
+
+                                case TransactionType.X64:
+                                    if (!packageInfo.X64)
+                                    {
+                                        core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                                    }
+                                    break;
+
+                                case TransactionType.X86:
+                                    if (packageInfo.X64)
+                                    {
+                                        core.OnMessage(WixErrors.MsiTransactionX86AndX64(packageInfo.SourceLineNumbers));
+                                    }
+                                    break;
+                            }
+                        }
                     }
                     else // must be a rollback boundary.
                     {
                         // Discard the next rollback boundary if we have a previously defined boundary. Of course,
                         // a boundary specifically defined will override the default boundary.
                         RollbackBoundaryInfo nextRollbackBoundary = allBoundaries[rowChildName];
+                        transactionType = YesNoType.Yes == nextRollbackBoundary.Transaction ? TransactionType.Unknown : TransactionType.None;
+
                         if (null != previousRollbackBoundary && !previousRollbackBoundary.Default)
                         {
                             this.core.OnMessage(WixWarnings.DiscardedRollbackBoundary(nextRollbackBoundary.SourceLineNumbers, nextRollbackBoundary.Id));
@@ -4416,6 +4460,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     writer.WriteStartElement("RollbackBoundary");
                     writer.WriteAttributeString("Id", rollbackBoundary.Id);
                     writer.WriteAttributeString("Vital", YesNoType.Yes == rollbackBoundary.Vital ? "yes" : "no");
+                    writer.WriteAttributeString("Transaction", YesNoType.Yes == rollbackBoundary.Transaction ? "yes" : "no");
                     writer.WriteEndElement();
                 }
 
