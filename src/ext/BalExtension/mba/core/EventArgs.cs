@@ -1148,6 +1148,25 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
     }
 
     /// <summary>
+    /// Additional arguments used when the engine plans a rollback boundary.
+    /// </summary>
+    [Serializable]
+    public class MsiTransactionBeginEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Creates a new instance of the <see cref="PlanRollbackBoundaryEventArgs"/> class.
+        /// </summary>
+        /// <param name="id">Rollback Id.</param>
+        public MsiTransactionBeginEventArgs(string id)
+            : base()
+        {
+            TransactionId = id;
+        }
+
+        public string TransactionId { get; set; }
+    }
+
+    /// <summary>
     /// Additional arguments used when the engine has completed planning the installation.
     /// </summary>
     [Serializable]

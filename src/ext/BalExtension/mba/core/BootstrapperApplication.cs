@@ -261,6 +261,21 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<ExecuteBeginEventArgs> ExecuteBegin;
 
         /// <summary>
+        /// Fired when the engine begins an MSI transactions.
+        /// </summary>
+        public event EventHandler<MsiTransactionBeginEventArgs> MsiTransactionBegin;
+
+        /// <summary>
+        /// Fired when the engine commits an MSI transactions.
+        /// </summary>
+        public event EventHandler MsiTransactionCommit;
+
+        /// <summary>
+        /// Fired when the engine rolls back an MSI transactions.
+        /// </summary>
+        public event EventHandler MsiTransactionRollback;
+
+        /// <summary>
         /// Fired when the engine has begun installing a specific package.
         /// </summary>
         public event EventHandler<ExecutePackageBeginEventArgs> ExecutePackageBegin;
@@ -969,6 +984,42 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         }
 
         /// <summary>
+        /// Called when the engine begins an MSI transaction.
+        /// </summary>
+        protected virtual void OnMsiTransactionBegin(MsiTransactionBeginEventArgs args)
+        {
+            EventHandler<MsiTransactionBeginEventArgs> handler = this.MsiTransactionBegin;
+            if (null != handler)
+            {
+                handler(this, args);
+            }
+        }
+
+        /// <summary>
+        /// Called when the engine commits an MSI transaction
+        /// </summary>
+        protected virtual void OnMsiTransactionCommit()
+        {
+            EventHandler handler = this.MsiTransactionCommit;
+            if (null != handler)
+            {
+                handler(this, new EventArgs());
+            }
+        }
+
+        /// <summary>
+        /// Called when the engine rolls back an MSI transaction.
+        /// </summary>
+        protected virtual void OnMsiTransactionRollback()
+        {
+            EventHandler handler = this.MsiTransactionRollback;
+            if (null != handler)
+            {
+                handler(this, new EventArgs());
+            }
+        }
+
+        /// <summary>
         /// Called when the engine has begun installing a specific package.
         /// </summary>
         /// <param name="args">Additional arguments for this event.</param>
@@ -1457,6 +1508,22 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             this.OnExecuteBegin(args);
 
             return args.Result;
+        }
+
+        void IBootstrapperApplication.OnMsiTransactionBegin(string wzTransactionId)
+        {
+            MsiTransactionBeginEventArgs args = new MsiTransactionBeginEventArgs(wzTransactionId);
+            this.OnMsiTransactionBegin(args);
+        }
+
+        void IBootstrapperApplication.OnMsiTransactionCommit()
+        {
+            this.OnMsiTransactionCommit();
+        }
+
+        void IBootstrapperApplication.OnMsiTransactionRollback()
+        {
+            this.OnMsiTransactionRollback();
         }
 
         Result IBootstrapperApplication.OnExecutePackageBegin(string wzPackageId, bool fExecute)

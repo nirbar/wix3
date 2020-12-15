@@ -1653,6 +1653,8 @@ static HRESULT ExecuteMsiBeginTransaction(
 {
 	HRESULT hr = S_OK;
 
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionBegin(szTransactionId);
+
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
 	{
@@ -1679,6 +1681,8 @@ static HRESULT ExecuteMsiCommitTransaction(
 {
 	HRESULT hr = S_OK;
 
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionCommit();
+
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
 	{
@@ -1701,6 +1705,9 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	)
 {
 	HRESULT hr = S_OK;
+
+
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionRollback();
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)

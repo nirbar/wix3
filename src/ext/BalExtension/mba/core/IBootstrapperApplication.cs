@@ -317,6 +317,16 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             [MarshalAs(UnmanagedType.U4)] int cExecutingPackages
             );
 
+        void OnMsiTransactionBegin(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId
+            );
+
+        void OnMsiTransactionCommit(
+            );
+
+        void OnMsiTransactionRollback(
+            );
+
         [PreserveSig]
         [return: MarshalAs(UnmanagedType.I4)]
         Result OnExecutePackageBegin(

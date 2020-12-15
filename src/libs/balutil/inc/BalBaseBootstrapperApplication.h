@@ -437,6 +437,25 @@ public: // IBootstrapperApplication
         return CheckCanceled() ? IDCANCEL : IDNOACTION;
     }
 
+    STDMETHODIMP_(void) OnMsiTransactionBegin(
+        __in_z LPCWSTR /*wzTransactionId*/
+        ) override
+    {
+        return;
+    }
+
+    STDMETHODIMP_(void) OnMsiTransactionCommit(
+        ) override
+    {
+        return;
+    }
+
+    STDMETHODIMP_(void) OnMsiTransactionRollback(
+        ) override
+    {
+        return;
+    }
+
     virtual STDMETHODIMP_(int) OnExecutePackageBegin(
         __in_z LPCWSTR wzPackageId,
         __in BOOL fExecute
