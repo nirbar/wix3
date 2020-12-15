@@ -160,7 +160,8 @@ HRESULT ElevationChildResumeAutomaticUpdates();
 HRESULT ElevationMsiBeginTransaction(
 	__in HANDLE hPipe,
 	__in_opt HWND hwndParent,
-	__in LPVOID pvContext
+	__in LPVOID pvContext,
+    __in_z LPCWSTR szTransactionId
 	);
 HRESULT ElevationMsiCommitTransaction(
 	__in HANDLE hPipe,

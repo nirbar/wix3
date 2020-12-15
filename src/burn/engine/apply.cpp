@@ -225,8 +225,9 @@ static HRESULT ExecutePackageComplete(
     );
 
 static HRESULT DoMsiBeginTransaction(
-	__in BURN_EXECUTE_CONTEXT *context
-	, __in BURN_ENGINE_STATE* pEngineState
+	__in BURN_EXECUTE_CONTEXT *context,
+	__in BURN_ENGINE_STATE* pEngineState,
+    __in_z LPCWSTR szTransactionId
 	);
 static HRESULT DoMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT *context
@@ -237,9 +238,10 @@ static HRESULT DoMsiRollbackTransaction(
 	, __in BURN_ENGINE_STATE* pEngineState
 	);
 static HRESULT ExecuteMsiBeginTransaction(
-	__in BURN_EXECUTE_CONTEXT* pContext
-	,__in BURN_ENGINE_STATE* pEngineState
-	);
+	__in BURN_EXECUTE_CONTEXT* pContext,
+	__in BURN_ENGINE_STATE* pEngineState,
+    __in_z LPCWSTR szTransactionId
+    );
 static HRESULT ExecuteMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext
 	, __in BURN_ENGINE_STATE* pEngineState
@@ -785,7 +787,7 @@ extern "C" HRESULT ApplyExecute(
             if (pExecuteAction->rollbackBoundary.pRollbackBoundary && pExecuteAction->rollbackBoundary.pRollbackBoundary->fTransaction)
             {
                 LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION);
-                hr = DoMsiBeginTransaction(&context, pEngineState);
+                hr = DoMsiBeginTransaction(&context, pEngineState, pExecuteAction->rollbackBoundary.pRollbackBoundary->sczId);
                 ExitOnFailure(hr, "Failed starting an MSI transaction");
                 fInTransaction = TRUE;
             }
@@ -1645,15 +1647,16 @@ static void DoRollbackCache(
 
 static HRESULT ExecuteMsiBeginTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext
-	, __in BURN_ENGINE_STATE* pEngineState
-	)
+	, __in BURN_ENGINE_STATE* pEngineState,
+    __in_z LPCWSTR szTransactionId
+)
 {
 	HRESULT hr = S_OK;
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
 	{
-		hr = ElevationMsiBeginTransaction(pEngineState->companionConnection.hPipe, pEngineState->userExperience.hwndApply, pContext);
+		hr = ElevationMsiBeginTransaction(pEngineState->companionConnection.hPipe, pEngineState->userExperience.hwndApply, pContext, szTransactionId);
 		ExitOnFailure(hr, "Failed to begin an MSI transaction.");
 	}
 	else
@@ -1661,7 +1664,7 @@ static HRESULT ExecuteMsiBeginTransaction(
 		MSIHANDLE hMsiTrns = NULL;
 		HANDLE hMsiTrnsEvent = NULL;
 		
-        hr = WiuBeginTransaction(L"WiX", 0, &hMsiTrns, &hMsiTrnsEvent);
+        hr = WiuBeginTransaction(szTransactionId, 0, &hMsiTrns, &hMsiTrnsEvent);
 		ExitOnFailure(hr, "Failed beginning an MSI transaction");
 	}
 
@@ -1717,13 +1720,14 @@ LExit:
 
 // Currently, supporting only elevated transactions.
 static HRESULT DoMsiBeginTransaction(
-	__in BURN_EXECUTE_CONTEXT *pContext
-	, __in BURN_ENGINE_STATE* pEngineState
+	__in BURN_EXECUTE_CONTEXT *pContext,
+	__in BURN_ENGINE_STATE* pEngineState,
+    __in_z LPCWSTR szTransactionId
 	)
 {
 	HRESULT hr = S_OK;
 
-	hr = ExecuteMsiBeginTransaction(pContext, pEngineState);
+	hr = ExecuteMsiBeginTransaction(pContext, pEngineState, szTransactionId);
 	ExitOnFailure(hr, "Failed to execute EXE package.");
 
 LExit:
