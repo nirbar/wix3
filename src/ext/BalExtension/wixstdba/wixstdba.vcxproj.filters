@@ -21,12 +21,14 @@
     <ClCompile Include="wixstdba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(WixRoot)src\common\precomp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="wixstdba.def">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="wixstdba.build" />
     <None Include="Resources\HyperlinkTheme.wxl">
       <Filter>Resource Files</Filter>
     </None>
@@ -66,6 +68,29 @@
     <None Include="Resources\mbapreq.wxl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Resources\1028\mbapreq.wxl" />
+    <None Include="Resources\1029\mbapreq.wxl" />
+    <None Include="Resources\1030\mbapreq.wxl" />
+    <None Include="Resources\1031\mbapreq.wxl" />
+    <None Include="Resources\1032\mbapreq.wxl" />
+    <None Include="Resources\1035\mbapreq.wxl" />
+    <None Include="Resources\1036\mbapreq.wxl" />
+    <None Include="Resources\1038\mbapreq.wxl" />
+    <None Include="Resources\1040\mbapreq.wxl" />
+    <None Include="Resources\1041\mbapreq.wxl" />
+    <None Include="Resources\1042\mbapreq.wxl" />
+    <None Include="Resources\1043\mbapreq.wxl" />
+    <None Include="Resources\1044\mbapreq.wxl" />
+    <None Include="Resources\1045\mbapreq.wxl" />
+    <None Include="Resources\1046\mbapreq.wxl" />
+    <None Include="Resources\1049\mbapreq.wxl" />
+    <None Include="Resources\1051\mbapreq.wxl" />
+    <None Include="Resources\1053\mbapreq.wxl" />
+    <None Include="Resources\1055\mbapreq.wxl" />
+    <None Include="Resources\1060\mbapreq.wxl" />
+    <None Include="Resources\2052\mbapreq.wxl" />
+    <None Include="Resources\2070\mbapreq.wxl" />
+    <None Include="Resources\3082\mbapreq.wxl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="precomp.h">

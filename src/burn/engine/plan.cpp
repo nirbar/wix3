@@ -42,6 +42,7 @@ static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
     __in BURN_VARIABLES* pVariables,
     __in BURN_USER_EXPERIENCE* pUX,
+    __in BURN_LOGGING* pLog,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     );
@@ -860,7 +861,7 @@ static HRESULT ProcessPackage(
     ExitOnRootFailure(hr, "UX aborted plan package begin.");
 
     pEffectiveRollbackBoundary = (BOOTSTRAPPER_ACTION_UNINSTALL == pPlan->action) ? pPackage->pRollbackBoundaryBackward : pPackage->pRollbackBoundaryForward;
-    hr = ProcessPackageRollbackBoundary(pPlan, pVariables, pUX, pEffectiveRollbackBoundary, ppRollbackBoundary);
+    hr = ProcessPackageRollbackBoundary(pPlan, pVariables, pUX, pLog, pEffectiveRollbackBoundary, ppRollbackBoundary);
     ExitOnFailure(hr, "Failed to process package rollback boundary.");
 
     // If the package is in a requested state, plan it.
@@ -928,6 +929,7 @@ static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
     __in BURN_VARIABLES* pVariables,
     __in BURN_USER_EXPERIENCE* pUX,
+    __in BURN_LOGGING* pLog,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     )
@@ -945,7 +947,7 @@ static HRESULT ProcessPackageRollbackBoundary(
         }
 
         // Start new rollback boundary.
-        hr = PlanRollbackBoundaryBegin(pPlan, pVariables, pUX, pEffectiveRollbackBoundary);
+        hr = PlanRollbackBoundaryBegin(pPlan, pVariables, pUX, pLog, pEffectiveRollbackBoundary);
         ExitOnFailure(hr, "Failed to plan rollback boundary begin.");
 
         *ppRollbackBoundary = pEffectiveRollbackBoundary;
@@ -1741,6 +1743,7 @@ extern "C" HRESULT PlanRollbackBoundaryBegin(
     __in BURN_PLAN* pPlan,
     __in BURN_VARIABLES * pVariables,
     __in BURN_USER_EXPERIENCE * pUX,
+    __in BURN_LOGGING * pLog,
     __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary
     )
 {
@@ -1766,6 +1769,8 @@ extern "C" HRESULT PlanRollbackBoundaryBegin(
             LogId(REPORT_WARNING, MSG_UNSUPPORTED_MSI_TRANSACTION);
         }
     }
+
+    LoggingSetMsiTransactionVariable(pRollbackBoundary, pLog, pVariables); // ignore errors.
 
     nResult = pUX->pUserExperience->OnPlanRollbackBoundary(pRollbackBoundary->sczId, &fTransaction);
 

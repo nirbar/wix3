@@ -161,17 +161,20 @@ HRESULT ElevationMsiBeginTransaction(
 	__in HANDLE hPipe,
 	__in_opt HWND hwndParent,
 	__in LPVOID pvContext,
-    __in_z LPCWSTR szTransactionId
+    __in_z LPCWSTR szTransactionId,
+    __in_z LPCWSTR szLogPath
 	);
 HRESULT ElevationMsiCommitTransaction(
 	__in HANDLE hPipe,
 	__in_opt HWND hwndParent,
-	__in LPVOID pvContext
+	__in LPVOID pvContext,
+    __in_z LPCWSTR szLogPath
 	);
 HRESULT ElevationMsiRollbackTransaction(
 	__in HANDLE hPipe,
 	__in_opt HWND hwndParent,
-	__in LPVOID pvContext
+	__in LPVOID pvContext,
+    __in_z LPCWSTR szLogPath
 	);
 
 #ifdef __cplusplus

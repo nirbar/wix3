@@ -15,7 +15,6 @@
   </metadata>
 
   <files>
-    <file src="Readme.md" target="README.md" />
     <file src="src\Setup\Nupkg\WiX.props" target="build\PanelSW.Custom.WiX.props" />
     <file src="build\ship\x86\candle.exe" target="tools\bin\candle.exe" />
     <file src="build\ship\x86\candle.exe.config" target="tools\bin\candle.exe.config" />

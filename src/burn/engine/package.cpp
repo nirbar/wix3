@@ -73,6 +73,10 @@ extern "C" HRESULT PackagesParseFromXml(
 			hr = XmlGetYesNoAttribute(pixnNode, L"Transaction", &pRollbackBoundary->fTransactionInManifest);
 			ExitOnFailure(hr, "Failed to get @Transaction.");
 
+			// @LogPathVariable
+			hr = XmlGetAttributeEx(pixnNode, L"LogPathVariable", &pRollbackBoundary->sczLogPathVariable);
+			ExitOnFailure(hr, "Failed to get @Transaction.");
+
             // prepare next iteration
             ReleaseNullObject(pixnNode);
             ReleaseNullBSTR(bstrNodeName);
@@ -356,6 +360,7 @@ extern "C" void PackagesUninitialize(
         for (DWORD i = 0; i < pPackages->cRollbackBoundaries; ++i)
         {
             ReleaseStr(pPackages->rgRollbackBoundaries[i].sczId);
+            ReleaseStr(pPackages->rgRollbackBoundaries[i].sczLogPathVariable);
         }
         MemFree(pPackages->rgRollbackBoundaries);
     }

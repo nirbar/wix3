@@ -4461,6 +4461,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     writer.WriteAttributeString("Id", rollbackBoundary.Id);
                     writer.WriteAttributeString("Vital", YesNoType.Yes == rollbackBoundary.Vital ? "yes" : "no");
                     writer.WriteAttributeString("Transaction", YesNoType.Yes == rollbackBoundary.Transaction ? "yes" : "no");
+                    writer.WriteAttributeString("LogPathVariable", rollbackBoundary.LogPathVariable);
                     writer.WriteEndElement();
                 }
 

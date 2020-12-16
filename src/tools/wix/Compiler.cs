@@ -21367,6 +21367,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             string id = null;
             YesNoType vital = YesNoType.Yes;
             YesNoType transaction = YesNoType.No;
+            string logPathVariable = null;
 
             // This crazy list lets us evaluate extension attributes *after* all core attributes
             // have been parsed and dealt with, regardless of authoring order.
@@ -21388,6 +21389,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             break;
                         case "Transaction":
                             transaction = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
+                            break;
+                        case "LogPathVariable":
+                            logPathVariable = this.core.GetAttributeValue(sourceLineNumbers, attrib, true);
                             break;
                         default:
                             allowed = false;
@@ -21421,6 +21425,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     this.core.OnMessage(WixErrors.IllegalIdentifier(sourceLineNumbers, node.Name, "Id", id));
                 }
+            }
+            if (!string.IsNullOrEmpty(logPathVariable) && (YesNoType.Yes != transaction))
+            {
+                this.core.OnMessage(WixErrors.IllegalAttributeValueWithoutOtherAttribute(sourceLineNumbers, node.LocalName, "LogPathVariable", logPathVariable, "Transaction", "yes"));
+            }
+            else if ((null == logPathVariable) && (YesNoType.Yes == transaction))
+            {
+                logPathVariable = "WixBundleLog_" + id;
             }
 
             // Now that the package ID is known, we can parse the extension attributes...
@@ -21459,6 +21471,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 if (YesNoType.NotSet != transaction)
                 {
                     row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
+                    if (YesNoType.Yes == transaction)
+                    {
+                        row[15] = logPathVariable;
+                    }
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);

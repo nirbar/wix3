@@ -15,6 +15,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.Id = id;
             this.Vital = YesNoType.Yes;
             this.Transaction = transaction;
+            if (YesNoType.Yes == Transaction)
+            {
+                this.LogPathVariable = "WixBundleLog_" + id;
+            }
         }
 
         public RollbackBoundaryInfo(Row row)
@@ -23,6 +27,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             this.Vital = (null == row[10] || 1 == (int)row[10]) ? YesNoType.Yes : YesNoType.No;
             this.Transaction = (1 == row[23] as int?) ? YesNoType.Yes : YesNoType.No;
+            if (YesNoType.Yes == Transaction)
+            {
+                LogPathVariable = row[15] as string;
+            }
             this.SourceLineNumbers = row.SourceLineNumbers;
         }
 
@@ -30,6 +38,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public string Id { get; private set; }
         public YesNoType Vital { get; private set; }
         public YesNoType Transaction { get; private set; }
+        public string LogPathVariable { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }
     }
 }

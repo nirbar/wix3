@@ -380,10 +380,12 @@ HRESULT DAPI WiuBeginTransaction(
     __in_z LPCWSTR szName,
     __in DWORD dwTransactionAttributes,
     __out MSIHANDLE* phTransactionHandle,
-    __out HANDLE* phChangeOfOwnerEvent
+    __out HANDLE* phChangeOfOwnerEvent,
+    __in_z LPCWSTR szLogPath
     );
 HRESULT DAPI WiuEndTransaction(
-    __in DWORD dwTransactionState
+    __in DWORD dwTransactionState,
+    __in_z LPCWSTR szLogPath
     );
 
 #ifdef __cplusplus

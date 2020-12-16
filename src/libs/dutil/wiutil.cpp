@@ -887,7 +887,8 @@ extern "C" HRESULT DAPI WiuBeginTransaction(
     __in_z LPCWSTR szName,
     __in DWORD dwTransactionAttributes,
     __out MSIHANDLE * phTransactionHandle,
-    __out HANDLE * phChangeOfOwnerEvent
+    __out HANDLE * phChangeOfOwnerEvent,
+    __in_z LPCWSTR szLogPath
     )
 {
     HRESULT hr = S_OK;
@@ -899,6 +900,9 @@ extern "C" HRESULT DAPI WiuBeginTransaction(
         ExitOnWin32Error(er, hr, "MsiBeginTransaction is not supported");
     }
 
+    hr = WiuEnableLog(WIU_LOG_DEFAULT | INSTALLLOGMODE_VERBOSE | INSTALLLOGMODE_INSTALLSTART | INSTALLLOGMODE_INSTALLEND, szLogPath, INSTALLLOGATTRIBUTES_APPEND);
+    ExitOnFailure(hr, "Failed to enable logging for rollback boundary");
+
     er = vpfnMsiBeginTransaction(szName, dwTransactionAttributes, phTransactionHandle, phChangeOfOwnerEvent);
     ExitOnWin32Error(er, hr, "Failed to begin transaction.");
 
@@ -907,7 +911,8 @@ LExit:
 }
 
 extern "C" HRESULT DAPI WiuEndTransaction(
-    __in DWORD dwTransactionState
+    __in DWORD dwTransactionState,
+    __in_z LPCWSTR szLogPath
     )
 {
     HRESULT hr = S_OK;
@@ -918,6 +923,9 @@ extern "C" HRESULT DAPI WiuEndTransaction(
         er = ERROR_NOT_SUPPORTED;
         ExitOnWin32Error(er, hr, "MsiEndTransaction is not supported");
     }
+
+    hr = WiuEnableLog(WIU_LOG_DEFAULT | INSTALLLOGMODE_VERBOSE | INSTALLLOGMODE_INSTALLSTART | INSTALLLOGMODE_INSTALLEND, szLogPath, INSTALLLOGATTRIBUTES_APPEND);
+    ExitOnFailure(hr, "Failed to enable logging for rollback boundary");
 
     er = vpfnMsiEndTransaction(dwTransactionState);
     ExitOnWin32Error(er, hr, "Failed to end transaction.");

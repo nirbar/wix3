@@ -889,7 +889,7 @@ MessageId=700
 Severity=Success
 SymbolicName=MSG_BEGIN_MSI_TRANSACTION
 Language=English
-Starting an MSI transaction
+Starting an MSI transaction, log file path: '%1!ls!'
 .
 
 MessageId=701

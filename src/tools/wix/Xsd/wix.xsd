@@ -877,6 +877,14 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="LogPathVariable" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>
+            When Transaction="yes", name of a Variable that will hold the path to the MSI transaction log file. An empty value will cause the variable to not
+            be set. The default is "WixBundleLog_[RollbackId]".
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
     </xs:complexType>
   </xs:element>
   <xs:attributeGroup name="ChainPackageCommonAttributes">
