@@ -620,11 +620,15 @@ DECLARE_INTERFACE_IID_(IBootstrapperApplication, IUnknown, "53C31D56-49C0-426B-A
     // OnMsiTransactionCommit - Called when the engine commits an MSI transaction.
     //
     STDMETHOD_(void, OnMsiTransactionCommit)(
+        __in_z LPCWSTR wzTransactionId,
+        __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
         ) = 0;
 
     // OnMsiTransactionRollback - Called when the engine rolls back an MSI transaction.
     //
     STDMETHOD_(void, OnMsiTransactionRollback)(
+        __in_z LPCWSTR wzTransactionId,
+        __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
         ) = 0;
 
     // OnExecuteBegin - called when the engine begins executing a package.

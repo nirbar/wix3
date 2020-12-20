@@ -21438,6 +21438,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // Now that the package ID is known, we can parse the extension attributes...
             Dictionary<string, string> contextValues = new Dictionary<string, string>();
             contextValues["RollbackBoundaryId"] = id;
+            contextValues["Transaction"] = transaction.ToString();
             foreach (KeyValuePair<SourceLineNumberCollection, XmlAttribute> pair in extensionAttributes)
             {
                 this.core.ParseExtensionAttribute(pair.Key, (XmlElement)node, pair.Value, contextValues);

@@ -322,9 +322,13 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             );
 
         void OnMsiTransactionCommit(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
+            [MarshalAs(UnmanagedType.U4)] ref ApplyRestart restart
             );
 
         void OnMsiTransactionRollback(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
+            [MarshalAs(UnmanagedType.U4)] ref ApplyRestart restart
             );
 
         [PreserveSig]

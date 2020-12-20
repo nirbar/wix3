@@ -7,7 +7,7 @@
     <authors>WiX, Nir Bar</authors>
     <owners>WiX, Nir Bar</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <license type="file">LICENSE</license>
+    <license type="file">LICENSE.TXT</license>
     <projectUrl>https://github.com/nirbar/wix3</projectUrl>
     <repository type="git" url="https://github.com/nirbar/wix3.git" branch="develop-psw" />
     <description>WiX custom build based on v3.11.2 with fixes and additions</description>
@@ -15,7 +15,7 @@
   </metadata>
 
   <files>
-    <file src="LICENSE.TXT" target="LICENSE" />
+    <file src="LICENSE.TXT" target="LICENSE.TXT" />
     <file src="build\PanelSW.Custom.WiX.props" target="build\PanelSW.Custom.WiX.props" />
     <file src="tools\bin\candle.exe" target="tools\bin\candle.exe" />
     <file src="tools\bin\candle.exe.config" target="tools\bin\candle.exe.config" />

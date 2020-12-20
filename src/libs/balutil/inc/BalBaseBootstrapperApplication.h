@@ -445,12 +445,16 @@ public: // IBootstrapperApplication
     }
 
     STDMETHODIMP_(void) OnMsiTransactionCommit(
+        __in_z LPCWSTR /*wzTransactionId*/,
+        __inout BOOTSTRAPPER_APPLY_RESTART* /*pRestart*/
         ) override
     {
         return;
     }
 
     STDMETHODIMP_(void) OnMsiTransactionRollback(
+        __in_z LPCWSTR /*wzTransactionId*/,
+        __inout BOOTSTRAPPER_APPLY_RESTART* /*pRestart*/
         ) override
     {
         return;

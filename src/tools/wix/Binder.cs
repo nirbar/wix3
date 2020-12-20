@@ -3623,7 +3623,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         }
 
                         // X64 check can only be made on MSI packages
-                        if (packageInfo.ChainPackageType.HasFlag(Compiler.ChainPackageType.Msi))
+                        if (Compiler.ChainPackageType.Msi == packageInfo.ChainPackageType)
                         {
                             switch (transactionType)
                             {

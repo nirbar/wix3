@@ -143,6 +143,7 @@ static HRESULT DoRollbackActions(
     __in BURN_EXECUTE_CONTEXT* pContext,
     __in DWORD dwCheckpoint,
 	__in BOOL fInTransaction,
+    __in_z LPCWSTR szTransactionId,
     __in_z LPCWSTR szTransactionLogPath,
     __out BOOL* pfKeepRegistration,
     __out BOOTSTRAPPER_APPLY_RESTART* pRestart
@@ -237,12 +238,16 @@ static HRESULT DoMsiBeginTransaction(
 static HRESULT DoMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT *context,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
+    __in_z LPCWSTR szTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
 	);
 static HRESULT DoMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT *context,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
+    __in_z LPCWSTR szTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
 	);
 static HRESULT ExecuteMsiBeginTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
@@ -253,12 +258,16 @@ static HRESULT ExecuteMsiBeginTransaction(
 static HRESULT ExecuteMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
-	);
+    __in_z LPCWSTR wzTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    );
 static HRESULT ExecuteMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
+    __in_z LPCWSTR wzTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
 	);
 
 // function definitions
@@ -789,10 +798,15 @@ extern "C" HRESULT ApplyExecute(
 			if (fInTransaction)
 			{
                 LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
-				hr = DoMsiCommitTransaction(&context, pEngineState, szTransactionLogPath);
+				hr = DoMsiCommitTransaction(&context, pEngineState, pRollbackBoundary->sczId, szTransactionLogPath, pRestart);
 				ExitOnFailure(hr, "Failed committing an MSI transaction");
 				fInTransaction = FALSE;
                 ReleaseNullStr(szTransactionLogPath);
+
+                if (BOOTSTRAPPER_APPLY_RESTART_INITIATED == *pRestart)
+                {
+                    ExitFunction();
+                }
             }
 
 			// Start New transaction
@@ -854,7 +868,7 @@ extern "C" HRESULT ApplyExecute(
             }
             else // the action failed, roll back to previous rollback boundary.
             {
-				HRESULT hrRollback = DoRollbackActions(pEngineState, &context, dwCheckpoint, fInTransaction, szTransactionLogPath, pfKeepRegistration, pRestart);
+				HRESULT hrRollback = DoRollbackActions(pEngineState, &context, dwCheckpoint, fInTransaction, pRollbackBoundary->sczId, szTransactionLogPath, pfKeepRegistration, pRestart);
                 UNREFERENCED_PARAMETER(hrRollback);
 				fInTransaction = FALSE;
                 ReleaseNullStr(szTransactionLogPath);
@@ -875,7 +889,7 @@ extern "C" HRESULT ApplyExecute(
 	if (fInTransaction)
 	{
         LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
-        hr = DoMsiCommitTransaction(&context, pEngineState, szTransactionLogPath);
+        hr = DoMsiCommitTransaction(&context, pEngineState, pRollbackBoundary->sczId, szTransactionLogPath, pRestart);
 		ExitOnFailure(hr, "Failed committing an MSI transaction");
 		fInTransaction = FALSE;
         ReleaseNullStr(szTransactionLogPath);
@@ -1697,12 +1711,14 @@ LExit:
 static HRESULT ExecuteMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
-	)
+    __in_z LPCWSTR szTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    )
 {
 	HRESULT hr = S_OK;
 
-    pEngineState->userExperience.pUserExperience->OnMsiTransactionCommit();
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionCommit(szTransactionId, pRestart);
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
@@ -1735,13 +1751,15 @@ LExit:
 static HRESULT ExecuteMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
-	)
+    __in_z LPCWSTR szTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    )
 {
 	HRESULT hr = S_OK;
 
 
-    pEngineState->userExperience.pUserExperience->OnMsiTransactionRollback();
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionRollback(szTransactionId, pRestart);
 
 	// Per user/machine context
 	if (pEngineState->plan.fPerMachine)
@@ -1791,12 +1809,14 @@ LExit:
 static HRESULT DoMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT *pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
+    __in_z LPCWSTR wzTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
 	)
 {
 	HRESULT hr = S_OK;
 
-	hr = ExecuteMsiCommitTransaction(pContext, pEngineState, szLogPath);
+	hr = ExecuteMsiCommitTransaction(pContext, pEngineState, wzTransactionId, szLogPath, pRestart);
 	ExitOnFailure(hr, "Failed to execute EXE package.");
 
 LExit:
@@ -1805,12 +1825,14 @@ LExit:
 static HRESULT DoMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT *pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
-    __in_z LPCWSTR szLogPath
+    __in_z LPCWSTR wzTransactionId,
+    __in_z LPCWSTR szLogPath,
+    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
 	)
 {
 	HRESULT hr = S_OK;
 
-	hr = ExecuteMsiRollbackTransaction(pContext, pEngineState, szLogPath);
+	hr = ExecuteMsiRollbackTransaction(pContext, pEngineState, wzTransactionId, szLogPath, pRestart);
 	ExitOnFailure(hr, "Failed to execute EXE package.");
 
 LExit:
@@ -1936,6 +1958,7 @@ static HRESULT DoRollbackActions(
     __in BURN_EXECUTE_CONTEXT* pContext,
     __in DWORD dwCheckpoint,
 	__in BOOL fInTransaction,
+    __in_z LPCWSTR szTransactionId,
     __in_z LPCWSTR szTransactionLogPath,
 	__out BOOL* pfKeepRegistration,
     __out BOOTSTRAPPER_APPLY_RESTART* pRestart
@@ -1952,7 +1975,7 @@ static HRESULT DoRollbackActions(
 	if (fInTransaction)
 	{
         LogId(REPORT_STANDARD, MSG_ROLLBACK_MSI_TRANSACTION);
-        hr = DoMsiRollbackTransaction(pContext, pEngineState, szTransactionLogPath);
+        hr = DoMsiRollbackTransaction(pContext, pEngineState, szTransactionId, szTransactionLogPath, pRestart);
 		ExitOnFailure(hr, "Failed rolling back transaction");
 	}
 

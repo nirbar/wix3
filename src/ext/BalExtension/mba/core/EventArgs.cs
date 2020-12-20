@@ -1134,7 +1134,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// Creates a new instance of the <see cref="PlanRollbackBoundaryEventArgs"/> class.
         /// </summary>
         /// <param name="id">Rollback Id.</param>
-        /// <param name="transaction">Whether or not transaction is requested for this rollback boundary.</param>
+        /// <param name="transaction">Whether or not transaction is requested and supported for this rollback boundary.</param>
         /// <param name="recommendation">The return code of the operation.</param>
         public PlanRollbackBoundaryEventArgs(string id, bool transaction, int recommendation)
             : base(recommendation)
@@ -1143,27 +1143,56 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             Transaction = transaction;
         }
 
+        /// <summary>
+        /// On entry, True if MSI transaction was requested and supported on the target machine.
+        /// Set to false to disable the MSI transaction.
+        /// When false on entry, setting this value to true is ignored by the engine.
+        /// </summary>
         public bool Transaction { get; set; }
-        public string RollbackId { get; set; }
+        public string RollbackId { get; private set; }
     }
 
     /// <summary>
-    /// Additional arguments used when the engine plans a rollback boundary.
+    /// Additional arguments used when the engine begins an MSI transaction.
     /// </summary>
     [Serializable]
-    public class MsiTransactionBeginEventArgs : EventArgs
+    public class MsiTransactionEventArgs : EventArgs
     {
         /// <summary>
-        /// Creates a new instance of the <see cref="PlanRollbackBoundaryEventArgs"/> class.
+        /// Creates a new instance of the <see cref="MsiTransactionEventArgs"/> class.
         /// </summary>
         /// <param name="id">Rollback Id.</param>
-        public MsiTransactionBeginEventArgs(string id)
+        public MsiTransactionEventArgs(string id)
             : base()
         {
             TransactionId = id;
         }
 
-        public string TransactionId { get; set; }
+        public string TransactionId { get; private set; }
+    }
+
+    /// <summary>
+    /// Additional arguments used when the engine commits or rolls back an MSI transaction.
+    /// </summary>
+    [Serializable]
+    public class MsiTransactionEndEventArgs : MsiTransactionEventArgs
+    {
+        /// <summary>
+        /// Creates a new instance of the <see cref="MsiTransactionEndEventArgs"/> class.
+        /// </summary>
+        /// <param name="id">Rollback Id.</param>
+        /// <param name="restart">Reboot state.</param>
+        public MsiTransactionEndEventArgs(string id, ApplyRestart restart)
+            : base(id)
+        {
+            Restart = restart;
+        }
+
+        /// <summary>
+        /// Gets or sets reboot state.
+        /// Set to <see cref="ApplyRestart.RestartInitiated"/> to reboot the system now.
+        /// </summary>
+        public ApplyRestart Restart { get; set; }
     }
 
     /// <summary>

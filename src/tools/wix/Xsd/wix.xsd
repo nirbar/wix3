@@ -885,6 +885,17 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:anyAttribute namespace="##other" processContents="lax">
+        <xs:annotation>
+          <xs:documentation>
+            Extensibility point in the WiX XML Schema.  Schema extensions can register additional
+            attributes at this point in the schema.  The extension's
+            <html:code><html:nobr>CompilerExtension.ParseAttribute()</html:nobr></html:code>
+            method will be called with the rollback boundary identifier as the 'RollbackBoundaryId' key in
+            <html:code>contextValues</html:code>.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:anyAttribute>
     </xs:complexType>
   </xs:element>
   <xs:attributeGroup name="ChainPackageCommonAttributes">
