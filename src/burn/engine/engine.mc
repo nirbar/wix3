@@ -889,21 +889,21 @@ MessageId=700
 Severity=Success
 SymbolicName=MSG_BEGIN_MSI_TRANSACTION
 Language=English
-Starting an MSI transaction, log file path: '%1!ls!'
+Starting MSI transaction '%1!ls!', log file path: '%2!ls!'
 .
 
 MessageId=701
 Severity=Success
 SymbolicName=MSG_COMMIT_MSI_TRANSACTION
 Language=English
-Committing an MSI transaction
+Committing MSI transaction '%1!ls!'
 .
 
 MessageId=702
 Severity=Success
 SymbolicName=MSG_ROLLBACK_MSI_TRANSACTION
 Language=English
-Rolling back an MSI transaction
+Rolling back MSI transaction '%1!ls!'
 .
 
 MessageId=703

@@ -797,7 +797,7 @@ extern "C" HRESULT ApplyExecute(
 			// End previous transaction
 			if (fInTransaction)
 			{
-                LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
+                LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION, pRollbackBoundary->sczId);
 				hr = DoMsiCommitTransaction(&context, pEngineState, pRollbackBoundary->sczId, szTransactionLogPath, pRestart);
 				ExitOnFailure(hr, "Failed committing an MSI transaction");
 				fInTransaction = FALSE;
@@ -819,7 +819,7 @@ extern "C" HRESULT ApplyExecute(
                     VariableGetFormatted(&pEngineState->variables, pExecuteAction->rollbackBoundary.pRollbackBoundary->sczLogPathVariable, &szTransactionLogPath);
                 }
 
-                LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION, szTransactionLogPath);
+                LogId(REPORT_STANDARD, MSG_BEGIN_MSI_TRANSACTION, pExecuteAction->rollbackBoundary.pRollbackBoundary->sczId, szTransactionLogPath);
                 hr = DoMsiBeginTransaction(&context, pEngineState, pExecuteAction->rollbackBoundary.pRollbackBoundary->sczId, szTransactionLogPath);
                 ExitOnFailure(hr, "Failed starting an MSI transaction");
                 fInTransaction = TRUE;
@@ -888,7 +888,7 @@ extern "C" HRESULT ApplyExecute(
 
 	if (fInTransaction)
 	{
-        LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION);
+        LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION, pRollbackBoundary->sczId);
         hr = DoMsiCommitTransaction(&context, pEngineState, pRollbackBoundary->sczId, szTransactionLogPath, pRestart);
 		ExitOnFailure(hr, "Failed committing an MSI transaction");
 		fInTransaction = FALSE;
@@ -1974,7 +1974,7 @@ static HRESULT DoRollbackActions(
 	// Rollback MSI transaction
 	if (fInTransaction)
 	{
-        LogId(REPORT_STANDARD, MSG_ROLLBACK_MSI_TRANSACTION);
+        LogId(REPORT_STANDARD, MSG_ROLLBACK_MSI_TRANSACTION, szTransactionId);
         hr = DoMsiRollbackTransaction(pContext, pEngineState, szTransactionId, szTransactionLogPath, pRestart);
 		ExitOnFailure(hr, "Failed rolling back transaction");
 	}
