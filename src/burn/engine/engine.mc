@@ -926,3 +926,10 @@ SymbolicName=MSG_UX_DECLINED_MSI_TRANSACTION
 Language=English
 UX voted against MSI transaction on rollback boundary '%1!ls!'
 .
+
+MessageId=706
+Severity=Warning
+SymbolicName=MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG
+Language=English
+Skipping package '%1!ls!' on non-vital rollback boundary failure
+.

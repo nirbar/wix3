@@ -786,16 +786,41 @@ extern "C" HRESULT ApplyExecute(
             continue;
         }
 
-		// If we are seeking the next rollback boundary, skip if this action wasn't it.
+        // If we are seeking the next rollback boundary then skip chain packages installations.
         if (fSeekNextRollbackBoundary)
         {
-			if (BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY == pExecuteAction->type)
+            switch (pExecuteAction->type)
             {
-                continue;
-            }
-            else
-            {
+            case BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY:
                 fSeekNextRollbackBoundary = FALSE;
+                break;
+
+            case BURN_EXECUTE_ACTION_TYPE_EXE_PACKAGE:
+                if (pExecuteAction->exePackage.pPackage->Exe.fPseudoBundle) // Related bundle, not part of the chain
+                {
+                    break;
+                }
+                else // Exe package, part of the chain
+                {
+                    LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->exePackage.pPackage->sczId);
+                    continue;
+                }
+
+            case BURN_EXECUTE_ACTION_TYPE_MSI_PACKAGE:
+                LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->msiPackage.pPackage->sczId);
+                continue;
+
+            case BURN_EXECUTE_ACTION_TYPE_MSP_TARGET:
+                LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->mspTarget.pPackage->sczId);
+                continue;
+
+            case BURN_EXECUTE_ACTION_TYPE_MSU_PACKAGE:
+                LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->msuPackage.pPackage->sczId);
+                continue;
+
+            case BURN_EXECUTE_ACTION_TYPE_COMPATIBLE_PACKAGE: __fallthrough; // We allow this since it isn't part of the authored chain
+            default:
+                break;
             }
         }
 
@@ -804,16 +829,16 @@ extern "C" HRESULT ApplyExecute(
 
         if (*pfSuspend || BOOTSTRAPPER_APPLY_RESTART_INITIATED == *pRestart)
         {
-			if (pRollbackBoundary && pRollbackBoundary->fTransaction)
+            if (pRollbackBoundary && pRollbackBoundary->fTransaction)
             {
-				hr = E_INVALIDSTATE;
+                hr = E_INVALIDSTATE;
                 LogId(REPORT_STANDARD, MSG_ERROR_REBOOT_MSI_TRANSACTION);
-			}
-			else
-			{
-				ExitFunction();
-			}
-		}
+            }
+            else
+            {
+                ExitFunction();
+            }
+        }
 
         if (FAILED(hr))
         {
@@ -838,6 +863,7 @@ extern "C" HRESULT ApplyExecute(
                 }
 
                 // Move forward to next rollback boundary.
+                hr = S_OK;
                 fSeekNextRollbackBoundary = TRUE;
             }
         }
