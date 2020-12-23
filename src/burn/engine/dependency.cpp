@@ -470,7 +470,7 @@ extern "C" HRESULT DependencyPlanPackage(
 
         // Put a checkpoint before the execute action so that rollback happens
         // if execute fails.
-        hr = PlanExecuteCheckpoint(pPlan);
+        hr = PlanExecuteCheckpoint(pPlan, FALSE);
         ExitOnFailure(hr, "Failed to plan provider checkpoint action.");
     }
 
@@ -991,7 +991,7 @@ static HRESULT AddPackageDependencyActions(
 
         // Put a checkpoint before the execute action so that rollback happens
         // if execute fails.
-        hr = PlanExecuteCheckpoint(pPlan);
+        hr = PlanExecuteCheckpoint(pPlan, FALSE);
         ExitOnFailure(hr, "Failed to plan dependency checkpoint action.");
     }
 

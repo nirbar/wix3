@@ -546,8 +546,15 @@ extern "C" HRESULT PlanPackages(
     // If we still have an open rollback boundary, complete it.
     if (pRollbackBoundary)
     {
+        // Commit MSI transaction
+        if (pRollbackBoundary->fTransaction)
+        {
+            hr = PlanExecuteCheckpoint(pPlan, TRUE);
+            ExitOnFailure(hr, "Failed to plan checkpoint.");
+        }
+
         hr = PlanRollbackBoundaryComplete(pPlan);
-        ExitOnFailure(hr, "Failed to plan rollback boundary begin.");
+        ExitOnFailure(hr, "Failed to plan rollback boundary complete.");
 
         pRollbackBoundary = NULL;
     }
@@ -916,7 +923,7 @@ static HRESULT ProcessPackage(
     // Add the checkpoint after each package and dependency registration action.
     if (BOOTSTRAPPER_ACTION_STATE_NONE != pPackage->execute || BOOTSTRAPPER_ACTION_STATE_NONE != pPackage->rollback || BURN_DEPENDENCY_ACTION_NONE != pPackage->dependencyExecute)
     {
-        hr = PlanExecuteCheckpoint(pPlan);
+        hr = PlanExecuteCheckpoint(pPlan, FALSE);
         ExitOnFailure(hr, "Failed to append execute checkpoint.");
     }
 
@@ -942,6 +949,13 @@ static HRESULT ProcessPackageRollbackBoundary(
         // Complete previous rollback boundary.
         if (*ppRollbackBoundary)
         {
+            // Terminate earlier MSI transaction
+            if ((*ppRollbackBoundary)->fTransaction)
+            {
+                hr = PlanExecuteCheckpoint(pPlan, TRUE);
+                ExitOnFailure(hr, "Failed to plan checkpoint.");
+            }
+
             hr = PlanRollbackBoundaryComplete(pPlan);
             ExitOnFailure(hr, "Failed to plan rollback boundary complete.");
         }
@@ -1573,7 +1587,7 @@ extern "C" HRESULT PlanExecuteCacheSyncAndRollback(
         pAction->type = BURN_EXECUTE_ACTION_TYPE_UNCACHE_PACKAGE;
         pAction->uncachePackage.pPackage = pPackage;
 
-        hr = PlanExecuteCheckpoint(pPlan);
+        hr = PlanExecuteCheckpoint(pPlan, FALSE);
         ExitOnFailure(hr, "Failed to append execute checkpoint for cache rollback.");
     }
 
@@ -1582,7 +1596,8 @@ LExit:
 }
 
 extern "C" HRESULT PlanExecuteCheckpoint(
-    __in BURN_PLAN* pPlan
+    __in BURN_PLAN* pPlan,
+    __in BOOL fCommitTransaction
     )
 {
     HRESULT hr = S_OK;
@@ -1595,6 +1610,7 @@ extern "C" HRESULT PlanExecuteCheckpoint(
 
     pAction->type = BURN_EXECUTE_ACTION_TYPE_CHECKPOINT;
     pAction->checkpoint.dwId = dwCheckpointId;
+    pAction->checkpoint.fCommitTransaction = fCommitTransaction;
 
     // rollback checkpoint
     hr = PlanAppendRollbackAction(pPlan, &pAction);

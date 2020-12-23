@@ -203,6 +203,7 @@ typedef struct _BURN_EXECUTE_ACTION
         struct
         {
             DWORD dwId;
+            BOOL fCommitTransaction;
         } checkpoint;
         struct
         {
@@ -460,7 +461,8 @@ HRESULT PlanExecuteCacheSyncAndRollback(
     __in BOOL fPlanPackageCacheRollback
     );
 HRESULT PlanExecuteCheckpoint(
-    __in BURN_PLAN* pPlan
+    __in BURN_PLAN* pPlan,
+    __in BOOL fCommitTransaction
     );
 HRESULT PlanInsertExecuteAction(
     __in DWORD dwIndex,

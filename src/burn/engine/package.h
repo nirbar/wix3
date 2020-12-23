@@ -156,6 +156,7 @@ typedef struct _BURN_ROLLBACK_BOUNDARY
     BOOL fTransaction;
     BOOL fTransactionInManifest; // This should be used in plan phase, to allow multiple plan calls
     LPWSTR sczLogPathVariable;
+    LPWSTR sczLogPath;
 } BURN_ROLLBACK_BOUNDARY;
 
 typedef struct _BURN_PATCH_TARGETCODE

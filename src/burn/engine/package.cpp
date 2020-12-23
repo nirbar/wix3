@@ -361,6 +361,7 @@ extern "C" void PackagesUninitialize(
         {
             ReleaseStr(pPackages->rgRollbackBoundaries[i].sczId);
             ReleaseStr(pPackages->rgRollbackBoundaries[i].sczLogPathVariable);
+            ReleaseStr(pPackages->rgRollbackBoundaries[i].sczLogPath);
         }
         MemFree(pPackages->rgRollbackBoundaries);
     }

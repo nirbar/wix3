@@ -925,7 +925,7 @@ extern "C" HRESULT MsiEnginePlanAddPackage(
         // Plan a checkpoint between rollback and execute so that we always attempt
         // rollback in the case that the MSI was not able to rollback itself (e.g.
         // user pushes cancel after InstallFinalize).
-        hr = PlanExecuteCheckpoint(pPlan);
+        hr = PlanExecuteCheckpoint(pPlan, FALSE);
         ExitOnFailure(hr, "Failed to append execute checkpoint.");
     }
 
