@@ -818,6 +818,10 @@ extern "C" HRESULT ApplyExecute(
                 LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->msuPackage.pPackage->sczId);
                 continue;
 
+            case BURN_EXECUTE_ACTION_TYPE_PACKAGE_DEPENDENCY:
+                LogId(REPORT_WARNING, MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG, pExecuteAction->packageDependency.pPackage->sczId);
+                continue;
+
             case BURN_EXECUTE_ACTION_TYPE_COMPATIBLE_PACKAGE: __fallthrough; // We allow this since it isn't part of the authored chain
             default:
                 break;
