@@ -387,6 +387,8 @@ HRESULT DAPI WiuEndTransaction(
     __in DWORD dwTransactionState,
     __in_z LPCWSTR szLogPath
     );
+BOOL DAPI WiuIsMsiTransactionSupported(
+    );
 
 #ifdef __cplusplus
 }

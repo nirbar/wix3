@@ -198,25 +198,25 @@ extern "C" HRESULT LoggingSetMsiTransactionVariable(
     )
 {
     HRESULT hr = S_OK;
-    LPWSTR sczLogPath = NULL;
-
-    if (BURN_LOGGING_STATE_DISABLED == pLog->state)
-    {
-        VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, L"", FALSE);
-        ExitFunction();
-    }
+    LPWSTR szLogPath = NULL;
 
     if (pRollbackBoundary && pRollbackBoundary->sczLogPathVariable && *pRollbackBoundary->sczLogPathVariable)
     {
-        hr = StrAllocFormatted(&sczLogPath, L"%ls_%03u_%ls.%ls", pLog->sczPrefix, vdwPackageSequence, pRollbackBoundary->sczId, pLog->sczExtension);
+        if (BURN_LOGGING_STATE_DISABLED == pLog->state)
+        {
+            VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, L"", FALSE);
+            ExitFunction();
+        }
+
+        hr = StrAllocFormatted(&szLogPath, L"%ls_%03u_%ls.%ls", pLog->sczPrefix, vdwPackageSequence, pRollbackBoundary->sczId, pLog->sczExtension);
         ExitOnFailure(hr, "Failed to allocate path for MSI transaction log.");
 
-        hr = VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, sczLogPath, FALSE);
+        hr = VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, szLogPath, FALSE);
         ExitOnFailure(hr, "Failed to set log path into variable.");
     }
 
 LExit:
-    ReleaseStr(sczLogPath);
+    ReleaseStr(szLogPath);
 
     return hr;
 }

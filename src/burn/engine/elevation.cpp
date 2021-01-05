@@ -1718,7 +1718,6 @@ static HRESULT OnMsiBeginTransaction(
     __in DWORD cbData
     )
 {
-    UNREFERENCED_PARAMETER(pContext);
     HRESULT hr = S_OK;
     LPWSTR szTransactionId = NULL;
     LPWSTR szLogPath = NULL;
@@ -1728,7 +1727,7 @@ static HRESULT OnMsiBeginTransaction(
     ExitOnFailure(hr, "Failed getting MSI transaction Id");
 
     hr = BuffReadString(pbData, cbData, &iData, &szLogPath);
-    ExitOnFailure(hr, "Failed getting MSI transaction Id");
+    ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
     hr = WiuBeginTransaction(szTransactionId, 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent, szLogPath);
 	ExitOnFailure(hr, "Failed beginning an MSI transaction");
@@ -1745,13 +1744,12 @@ static HRESULT OnMsiCommitTransaction(
     __in DWORD cbData
 	)
 {
-    UNREFERENCED_PARAMETER(pContext);
 	HRESULT hr = S_OK;
     LPWSTR szLogPath = NULL;
     SIZE_T iData = 0;
 
     hr = BuffReadString(pbData, cbData, &iData, &szLogPath);
-    ExitOnFailure(hr, "Failed getting MSI transaction Id");
+    ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
 	ExitOnFailure(hr, "Failed committing an MSI transaction");
@@ -1773,13 +1771,12 @@ static HRESULT OnMsiRollbackTransaction(
     __in DWORD cbData
 	)
 {
-    UNREFERENCED_PARAMETER(pContext);
     HRESULT hr = S_OK;
     LPWSTR szLogPath = NULL;
     SIZE_T iData = 0;
 
     hr = BuffReadString(pbData, cbData, &iData, &szLogPath);
-    ExitOnFailure(hr, "Failed getting MSI transaction Id");
+    ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
 	ExitOnFailure(hr, "Failed rolling back an MSI transaction");

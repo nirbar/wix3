@@ -185,7 +185,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
 
         [PreserveSig]
         [return: MarshalAs(UnmanagedType.I4)]
-        Result OnPlanRollbackBoundary(
+        Result OnPlanMsiTransaction(
             [MarshalAs(UnmanagedType.LPWStr)] string wzRollbackId,
             ref bool transaction
             );

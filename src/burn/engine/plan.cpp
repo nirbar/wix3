@@ -1766,37 +1766,32 @@ extern "C" HRESULT PlanRollbackBoundaryBegin(
     HRESULT hr = S_OK;
     BURN_EXECUTE_ACTION* pExecuteAction = NULL;
     int nResult = IDNOACTION;
-    BOOL fTransaction = FALSE;
-    BOOL fTransactionAllowed = FALSE;
 
     // Best effort to support MSI transactions
+    pRollbackBoundary->fTransaction = FALSE;
     if (pRollbackBoundary->fTransactionInManifest)
     {
-        DWORD64 qwMsiVersion = 0;
-
-        VariableGetVersion(pVariables, L"VersionMsi", &qwMsiVersion);
-        if (MAKEQWORDVERSION(4, 5, 0, 0) <= qwMsiVersion)
+        if (WiuIsMsiTransactionSupported())
         {
-            fTransaction = TRUE;
-            fTransactionAllowed = TRUE;
+            pRollbackBoundary->fTransaction = TRUE;
+
+            LoggingIncrementPackageSequence();
+            LoggingSetMsiTransactionVariable(pRollbackBoundary, pLog, pVariables); // ignore errors.
+
+            nResult = pUX->pUserExperience->OnPlanMsiTransaction(pRollbackBoundary->sczId, &pRollbackBoundary->fTransaction);
+
+            hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
+            ExitOnRootFailure(hr, "UX aborted plan rollback boundary.");
+
+            if (!pRollbackBoundary->fTransaction)
+            {
+                LogId(REPORT_STANDARD, MSG_UX_DECLINED_MSI_TRANSACTION, pRollbackBoundary->sczId);
+            }
         }
         else
         {
             LogId(REPORT_WARNING, MSG_UNSUPPORTED_MSI_TRANSACTION);
         }
-    }
-
-    LoggingSetMsiTransactionVariable(pRollbackBoundary, pLog, pVariables); // ignore errors.
-
-    nResult = pUX->pUserExperience->OnPlanRollbackBoundary(pRollbackBoundary->sczId, &fTransaction);
-
-    hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
-    ExitOnRootFailure(hr, "UX aborted plan rollback boundary.");
-
-    pRollbackBoundary->fTransaction = fTransaction && fTransactionAllowed;
-    if (fTransactionAllowed && !fTransaction)
-    {
-        LogId(REPORT_STANDARD, MSG_UX_DECLINED_MSI_TRANSACTION, pRollbackBoundary->sczId);
     }
 
     // Add begin rollback boundary to execute plan.

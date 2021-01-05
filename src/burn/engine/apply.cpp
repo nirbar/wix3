@@ -1772,7 +1772,6 @@ LExit:
 	return hr;
 }
 
-// Currently, supporting only elevated transactions.
 static HRESULT DoMsiBeginTransaction(
     __in BURN_EXECUTE_CONTEXT* pContext,
     __in BURN_ENGINE_STATE* pEngineState,

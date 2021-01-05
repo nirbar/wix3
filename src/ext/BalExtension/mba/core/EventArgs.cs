@@ -1125,18 +1125,18 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
     }
 
     /// <summary>
-    /// Additional arguments used when the engine plans a rollback boundary.
+    /// Additional arguments used when the engine plans an MSI transaction.
     /// </summary>
     [Serializable]
-    public class PlanRollbackBoundaryEventArgs : ResultEventArgs
+    public class PlanMsiTransactionEventArgs : ResultEventArgs
     {
         /// <summary>
-        /// Creates a new instance of the <see cref="PlanRollbackBoundaryEventArgs"/> class.
+        /// Creates a new instance of the <see cref="PlanMsiTransactionEventArgs"/> class.
         /// </summary>
         /// <param name="id">Rollback Id.</param>
         /// <param name="transaction">Whether or not transaction is requested and supported for this rollback boundary.</param>
         /// <param name="recommendation">The return code of the operation.</param>
-        public PlanRollbackBoundaryEventArgs(string id, bool transaction, int recommendation)
+        public PlanMsiTransactionEventArgs(string id, bool transaction, int recommendation)
             : base(recommendation)
         {
             RollbackId = id;
@@ -1146,7 +1146,6 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// <summary>
         /// On entry, True if MSI transaction was requested and supported on the target machine.
         /// Set to false to disable the MSI transaction.
-        /// When false on entry, setting this value to true is ignored by the engine.
         /// </summary>
         public bool Transaction { get; set; }
         public string RollbackId { get; private set; }

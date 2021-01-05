@@ -159,9 +159,9 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<PlanPackageCompleteEventArgs> PlanPackageComplete;
 
         /// <summary>
-        /// Fired when the engine plans a rollback boundary.
+        /// Fired when the engine plans an MSI transaction. The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
         /// </summary>
-        public event EventHandler<PlanRollbackBoundaryEventArgs> PlanRollbackBoundary;
+        public event EventHandler<PlanMsiTransactionEventArgs> PlanMsiTransaction;
 
         /// <summary>
         /// Fired when the engine has completed planning the installation.
@@ -716,19 +716,19 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         }
 
         /// <summary>
-        /// Called when the engine plans a rollback boundary.
+        /// Called when the engine plans an MSI transaction.
+        /// The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
         /// <para>
         /// Transaction is TRUE on entry if MSI transactions are requested and supported by Windows Installer version on the target machine.
-        /// When Transaction is FALSE on entry then MSI transaction is not possible on this boundary or machine.
         /// </para>
         /// <para>
         /// Result may be one of None, OK, Cancel
         /// </para>
         /// </summary>
         /// <param name="args">Additional arguments for this event.</param>
-        protected virtual void OnPlanRollbackBoundary(PlanRollbackBoundaryEventArgs args)
+        protected virtual void OnPlanMsiTransaction(PlanMsiTransactionEventArgs args)
         {
-            EventHandler<PlanRollbackBoundaryEventArgs> handler = this.PlanRollbackBoundary;
+            EventHandler<PlanMsiTransactionEventArgs> handler = this.PlanMsiTransaction;
             if (null != handler)
             {
                 handler(this, args);
@@ -1365,10 +1365,10 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             this.OnPlanPackageComplete(new PlanPackageCompleteEventArgs(wzPackageId, hrStatus, state, requested, execute, rollback));
         }
 
-        Result IBootstrapperApplication.OnPlanRollbackBoundary(string wzRollbackId, ref bool pfTransaction)
+        Result IBootstrapperApplication.OnPlanMsiTransaction(string wzRollbackId, ref bool pfTransaction)
         {
-            PlanRollbackBoundaryEventArgs args = new PlanRollbackBoundaryEventArgs(wzRollbackId, pfTransaction, 0);
-            this.OnPlanRollbackBoundary(args);
+            PlanMsiTransactionEventArgs args = new PlanMsiTransactionEventArgs(wzRollbackId, pfTransaction, 0);
+            this.OnPlanMsiTransaction(args);
 
             pfTransaction = args.Transaction;
             return args.Result;

@@ -181,6 +181,7 @@
 	
 	<!-- XSD -->
     <file src="tools\XSD\wix.xsd" target="tools\XSD\wix.xsd" />
+    <file src="src\tools\wix\Xsd\wix.xsd" target="content" />
     <file src="tools\XSD\WixUtilExtension.xsd" target="tools\XSD\WixUtilExtension.xsd" />
     <file src="tools\XSD\WixBalExtension.xsd" target="tools\XSD\WixBalExtension.xsd" />
     <file src="tools\XSD\WixThmutil.xsd" target="tools\XSD\WixThmutil.xsd" />

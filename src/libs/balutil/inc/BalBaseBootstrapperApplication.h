@@ -269,7 +269,7 @@ public: // IBootstrapperApplication
     {
     }
 
-    virtual STDMETHODIMP_(int) OnPlanRollbackBoundary(
+    virtual STDMETHODIMP_(int) OnPlanMsiTransaction(
         __in_z LPCWSTR /*wzRollbackId*/,
         __inout BOOL* /*pfTransaction*/
         )
