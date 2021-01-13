@@ -28,9 +28,6 @@ typedef struct _BURN_EXECUTE_CONTEXT
     DWORD cExecutedPackages;
     DWORD cExecutePackagesTotal;
     DWORD* pcOverallProgressTicks;
-
-    MSIHANDLE hMsiTrns;
-    HANDLE hMsiTrnsEvent;
 } BURN_EXECUTE_CONTEXT;
 
 
@@ -1672,6 +1669,8 @@ static HRESULT ExecuteMsiBeginTransaction(
     )
 {
 	HRESULT hr = S_OK;
+    PMSIHANDLE hMsiTrns;
+    HANDLE hMsiTrnsEvent = NULL;
 
     pEngineState->userExperience.pUserExperience->OnMsiTransactionBegin(szTransactionId);
 
@@ -1683,11 +1682,13 @@ static HRESULT ExecuteMsiBeginTransaction(
 	}
 	else
 	{
-        hr = WiuBeginTransaction(szTransactionId, 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent, szLogPath);
+        hr = WiuBeginTransaction(szTransactionId, 0, &hMsiTrns, &hMsiTrnsEvent, szLogPath);
 		ExitOnFailure(hr, "Failed beginning an MSI transaction");
 	}
 
 LExit:
+    ReleaseHandle(hMsiTrnsEvent);
+
 	return hr;
 }
 
@@ -1713,18 +1714,6 @@ static HRESULT ExecuteMsiCommitTransaction(
 	{
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
 		ExitOnFailure(hr, "Failed beginning an MSI transaction");
-
-        if (pContext->hMsiTrns)
-        {
-            ::MsiCloseHandle(pContext->hMsiTrns);
-            pContext->hMsiTrns = NULL;
-        }
-
-        if (pContext->hMsiTrnsEvent)
-        {
-            ::CloseHandle(pContext->hMsiTrnsEvent);
-            pContext->hMsiTrnsEvent = NULL;
-        }
     }
 
 LExit:
@@ -1754,18 +1743,6 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	{
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
 		ExitOnFailure(hr, "Failed beginning an MSI transaction");
-
-        if (pContext->hMsiTrns)
-        {
-            ::MsiCloseHandle(pContext->hMsiTrns);
-            pContext->hMsiTrns = NULL;
-        }
-
-        if (pContext->hMsiTrnsEvent)
-        {
-            ::CloseHandle(pContext->hMsiTrnsEvent);
-            pContext->hMsiTrnsEvent = NULL;
-        }
     }
 
 LExit:

@@ -74,26 +74,20 @@ typedef struct _BURN_ELEVATION_CHILD_MESSAGE_CONTEXT
     BURN_VARIABLES* pVariables;
     BURN_REGISTRATION* pRegistration;
     BURN_USER_EXPERIENCE* pUserExperience;
-
-    MSIHANDLE hMsiTrns;
-    HANDLE hMsiTrnsEvent;
 } BURN_ELEVATION_CHILD_MESSAGE_CONTEXT;
 
 
 // internal function declarations
 
 static HRESULT OnMsiBeginTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
 	);
 static HRESULT OnMsiCommitTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
 	);
 static HRESULT OnMsiRollbackTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
 	);
@@ -1566,15 +1560,15 @@ static HRESULT ProcessElevatedChildMessage(
     switch (pMsg->dwMessage)
     {
 	case BURN_ELEVATION_TRANSACTION_BEGIN:
-		hrResult = OnMsiBeginTransaction(pContext, (BYTE*)pMsg->pvData, pMsg->cbData);
+		hrResult = OnMsiBeginTransaction((BYTE*)pMsg->pvData, pMsg->cbData);
 		break;
 
 	case BURN_ELEVATION_TRANSACTION_COMMIT:
-		hrResult = OnMsiCommitTransaction(pContext, (BYTE*)pMsg->pvData, pMsg->cbData);
+		hrResult = OnMsiCommitTransaction((BYTE*)pMsg->pvData, pMsg->cbData);
 		break;
 
 	case BURN_ELEVATION_TRANSACTION_ROLLBACK:
-		hrResult = OnMsiRollbackTransaction(pContext, (BYTE*)pMsg->pvData, pMsg->cbData);
+		hrResult = OnMsiRollbackTransaction((BYTE*)pMsg->pvData, pMsg->cbData);
 		break;
 
 	case BURN_ELEVATION_MESSAGE_TYPE_APPLY_INITIALIZE:
@@ -1713,7 +1707,6 @@ static HRESULT ProcessResult(
 }
 
 static HRESULT OnMsiBeginTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
     )
@@ -1722,6 +1715,8 @@ static HRESULT OnMsiBeginTransaction(
     LPWSTR szTransactionId = NULL;
     LPWSTR szLogPath = NULL;
     SIZE_T iData = 0;
+    PMSIHANDLE hMsiTrns;
+    HANDLE hMsiTrnsEvent = NULL;
 
     hr = BuffReadString(pbData, cbData, &iData, &szTransactionId);
     ExitOnFailure(hr, "Failed getting MSI transaction Id");
@@ -1729,17 +1724,17 @@ static HRESULT OnMsiBeginTransaction(
     hr = BuffReadString(pbData, cbData, &iData, &szLogPath);
     ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
-    hr = WiuBeginTransaction(szTransactionId, 0, &pContext->hMsiTrns, &pContext->hMsiTrnsEvent, szLogPath);
+    hr = WiuBeginTransaction(szTransactionId, 0, &hMsiTrns, &hMsiTrnsEvent, szLogPath);
 	ExitOnFailure(hr, "Failed beginning an MSI transaction");
 
 LExit:
+    ReleaseHandle(hMsiTrnsEvent);
     ReleaseStr(szTransactionId);
     ReleaseStr(szLogPath);
 
 	return hr;
 }
 static HRESULT OnMsiCommitTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
 	)
@@ -1754,19 +1749,12 @@ static HRESULT OnMsiCommitTransaction(
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
 	ExitOnFailure(hr, "Failed committing an MSI transaction");
 
-    ::MsiCloseHandle(pContext->hMsiTrns);
-    pContext->hMsiTrns = NULL;
-
-    ::CloseHandle(pContext->hMsiTrnsEvent);
-    pContext->hMsiTrnsEvent = NULL;
-
 LExit:
     ReleaseStr(szLogPath);
 
     return hr;
 }
 static HRESULT OnMsiRollbackTransaction(
-	__in BURN_ELEVATION_CHILD_MESSAGE_CONTEXT* pContext,
     __in BYTE* pbData,
     __in DWORD cbData
 	)
@@ -1780,12 +1768,6 @@ static HRESULT OnMsiRollbackTransaction(
 
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
 	ExitOnFailure(hr, "Failed rolling back an MSI transaction");
-
-    ::MsiCloseHandle(pContext->hMsiTrns);
-    pContext->hMsiTrns = NULL;
-
-    ::CloseHandle(pContext->hMsiTrnsEvent);
-    pContext->hMsiTrnsEvent = NULL;
 
 LExit:
     ReleaseStr(szLogPath);

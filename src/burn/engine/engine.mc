@@ -910,7 +910,7 @@ MessageId=703
 Severity=Warning
 SymbolicName=MSG_UNSUPPORTED_MSI_TRANSACTION
 Language=English
-Not starting an MSI transaction since Windows Installer version on this machine does not support it
+Not planning an MSI transaction since Windows Installer version on this machine does not support it
 .
 
 MessageId=704
