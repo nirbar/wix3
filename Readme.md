@@ -2,7 +2,7 @@
 
 [Panel::Software](http://www.panel-sw.com) provides a customized edition of WiX built on top of WiX 3.11.2 with the following changes
 
-- Fix WiX issue [6252](https://github.com/wixtoolset/issues/issues/6252): Fix reboot on upgrade when "-norestart" is specified on command line
+- Fix WiX issue [6252](https://github.com/wixtoolset/issues/issues/6252): Fix reboot with related bundles when "-norestart" is specified on command line
 - [Bundle/@RunAsAdmin](https://github.com/wixtoolset/issues/issues/5309) attribute creates a bootstrapper that requires elevation when launched
 - Support [MSI transactions](https://github.com/wixtoolset/issues/issues/5386): Execute multiple MSI/MSP packages as an atomic package with unified commit/rollback behavior.
 - Add attribute MediaTemplate/@AggressiveSmartCabbing:
@@ -16,6 +16,7 @@
 - Fix WiX issue [6174](https://github.com/wixtoolset/issues/issues/6174): Fix bloated bootstrapper when authoring detached containers
 - Fix Wix issue [6309](https://github.com/wixtoolset/issues/issues/6309): Fix non-vital rollback boundary handling of failures.
 - Fix WiX issue [6298](https://github.com/wixtoolset/issues/issues/6298): Fix extracting bootstrappers with detached containers
+- Fix WiX issue [6348](https://github.com/wixtoolset/issues/issues/6348): Fix .NET chaining response to files-in-use message.
 - Changes by WiX up to build 3.14.0.4118
 - Build for .NET Framework 4.0
 

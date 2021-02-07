@@ -234,7 +234,7 @@ static HRESULT OnNetFxFilesInUse(
 
     // send message
     message.type = GENERIC_EXECUTE_MESSAGE_FILES_IN_USE;
-    message.dwAllowedResults = MB_ABORTRETRYIGNORE;
+    message.dwAllowedResults = MB_YESNOCANCELRETRY;
     message.filesInUse.cFiles = cFiles;
     message.filesInUse.rgwzFiles = (LPCWSTR*)rgwzFiles;
     dwResponse = (DWORD)pfnMessageHandler(&message, pvContext);

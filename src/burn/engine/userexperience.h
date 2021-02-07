@@ -10,6 +10,7 @@ extern "C" {
 // constants
 
 const DWORD MB_RETRYTRYAGAIN = 0xF;
+const DWORD MB_YESNOCANCELRETRY = 0xD;
 
 
 // structs

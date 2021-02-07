@@ -481,6 +481,29 @@ static int FilterResult(
             }
             break;
 
+        case MB_YESNOCANCELRETRY: // Custom code used for files-in-use in .net chainer.
+            if (IDOK == nResult || IDYES == nResult)
+            {
+                nResult = IDYES;
+            }
+            else if (IDNO == nResult || IDIGNORE == nResult)
+            {
+                nResult = IDNO;
+            }
+            else if (IDCANCEL == nResult || IDABORT == nResult)
+            {
+                nResult = IDCANCEL;
+            }
+            else if (IDRETRY == nResult || IDTRYAGAIN == nResult)
+            {
+                nResult = IDRETRY;
+            }
+            else
+            {
+                nResult = IDNOACTION;
+            }
+            break;
+
         default:
             AssertSz(FALSE, "Unknown allowed results.");
             break;
