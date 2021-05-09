@@ -17,7 +17,8 @@
 - Fix Wix issue [6309](https://github.com/wixtoolset/issues/issues/6309): Fix non-vital rollback boundary handling of failures.
 - Fix WiX issue [6298](https://github.com/wixtoolset/issues/issues/6298): Fix extracting bootstrappers with detached containers
 - Fix WiX issue [6348](https://github.com/wixtoolset/issues/issues/6348): Fix .NET chaining response to files-in-use message.
-- Changes by WiX up to build 3.14.0.4118
+- Fix WiX issue [6450](https://github.com/wixtoolset/issues/issues/6450): Support multiple firewall rules with the same name.
+- Changes by WiX up to git commit 376423b8101f4b59ee865e8a255cfe190fa5a7f1
 - Build for .NET Framework 4.0
 
 # WiX Toolset on GitHub
