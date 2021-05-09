@@ -1,12 +1,27 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information.
 
 #include "precomp.h"
+#include <Rpc.h>
+#pragma comment (lib, "Rpcrt4.lib")
 
 LPCWSTR vcsFirewallExceptionQuery =
     L"SELECT `Name`, `RemoteAddresses`, `Port`, `Protocol`, `Program`, `Attributes`, `Profile`, `Component_`, `Description` FROM `WixFirewallException`";
 enum eFirewallExceptionQuery { feqName = 1, feqRemoteAddresses, feqPort, feqProtocol, feqProgram, feqAttributes, feqProfile, feqComponent, feqDescription };
 enum eFirewallExceptionTarget { fetPort = 1, fetApplication, fetUnknown };
 enum eFirewallExceptionAttributes { feaIgnoreFailures = 1 };
+
+const HRESULT S_FW_NO_MATCH = S_FALSE;
+const HRESULT S_FW_PARTIAL_MATCH = (S_FW_NO_MATCH + 1);
+const HRESULT S_FW_FULL_MATCH = (S_FW_PARTIAL_MATCH + 1);
+
+static HRESULT RemoveException(LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures);
+static HRESULT RemoveApplicationException(BOOL fSupportProfiles, LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures);
+static HRESULT RemovePortException(BOOL fSupportProfiles, LPCWSTR wzName, int iProfile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures);
+static HRESULT FindExistingRule(INetFwRules* pNetFwRules, INetFwRule* pNewFwRule, INetFwRule** ppExistingFwRule);
+static HRESULT FindExistingRule(INetFwRules* pRules, LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, INetFwRule** ppRule);
+static HRESULT CompareFwRules(INetFwRule* pFwRule1, INetFwRule* pFwRule2);
+static HRESULT CompareFwRules(INetFwRule* pFwRule1, LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription);
+
 
 /******************************************************************
  SchedFirewallExceptions - immediate custom action worker to 
@@ -436,13 +451,25 @@ static HRESULT AddApplicationException(
     BSTR bstrFile = NULL;
     BSTR bstrName = NULL;
     INetFwRules* pNetFwRules = NULL;
-    INetFwRule* pNetFwRule = NULL;
+    INetFwRule* pNewFwRule = NULL;
+    INetFwRule* pExistingFwRule = NULL;
 
     // convert to BSTRs to make COM happy
     bstrFile = ::SysAllocString(wzFile);
     ExitOnNull(bstrFile, hr, E_OUTOFMEMORY, "failed SysAllocString for path");
     bstrName = ::SysAllocString(wzName);
     ExitOnNull(bstrName, hr, E_OUTOFMEMORY, "failed SysAllocString for name");
+
+    hr = CreateFwRuleObject(bstrName, iProfile, wzRemoteAddresses, wzPort, iProtocol, wzDescription, &pNewFwRule);
+    ExitOnFailure(hr, "failed to create FwRule object");
+
+    // set edge traversal to true
+    hr = pNewFwRule->put_EdgeTraversal(VARIANT_TRUE);
+    ExitOnFailure(hr, "failed to set application exception edgetraversal property");
+
+    // set path
+    hr = pNewFwRule->put_ApplicationName(bstrFile);
+    ExitOnFailure(hr, "failed to set application name");
 
     // get the collection of firewall rules
     hr = GetFirewallRules(fIgnoreFailures, &pNetFwRules);
@@ -452,43 +479,37 @@ static HRESULT AddApplicationException(
         ExitFunction();
     }
 
-    // try to find it (i.e., support reinstall)
-    hr = pNetFwRules->Item(bstrName, &pNetFwRule);
-    if (HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) == hr)
-    {
-        hr = CreateFwRuleObject(bstrName, iProfile, wzRemoteAddresses, wzPort, iProtocol, wzDescription, &pNetFwRule);
-        ExitOnFailure(hr, "failed to create FwRule object");
+    hr = FindExistingRule(pNetFwRules, pNewFwRule, &pExistingFwRule);
+    ExitOnFailure(hr, "failed looking for an existing firewall rule");
 
-        // set edge traversal to true
-        hr = pNetFwRule->put_EdgeTraversal(VARIANT_TRUE);
-        ExitOnFailure(hr, "failed to set application exception edgetraversal property");
-        
-        // set path
-        hr = pNetFwRule->put_ApplicationName(bstrFile);
-        ExitOnFailure(hr, "failed to set application name");
-        
-        // enable it
-        hr = pNetFwRule->put_Enabled(VARIANT_TRUE);
-        ExitOnFailure(hr, "failed to to enable application exception");
-     
-        // add it to the list of authorized apps
-        hr = pNetFwRules->Add(pNetFwRule);
-        ExitOnFailure(hr, "failed to add app to the authorized apps list");
+    if (pExistingFwRule && (hr == S_FW_FULL_MATCH))
+    {
+        WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Enabling existing firewall rule '%ls'", wzName);
+        hr = pExistingFwRule->put_Enabled(VARIANT_TRUE);
+        ExitOnFailure(hr, "failed to enable firewall rule");
     }
     else
     {
-        // we found an existing app exception (if we succeeded, that is)
-        ExitOnFailure(hr, "failed trying to find existing app");
-        
-        // enable it (just in case it was disabled)
-        pNetFwRule->put_Enabled(VARIANT_TRUE);
+        if (pExistingFwRule && (hr == S_FW_PARTIAL_MATCH))
+        {
+            WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Ignoring a partially matching rule '%ls'", wzName);
+        }
+
+        // Rule doesn't already exist, so add and enable it
+        hr = pNewFwRule->put_Enabled(VARIANT_TRUE);
+        ExitOnFailure(hr, "failed to to enable port exception");
+
+        // add it to the list of authorized ports
+        hr = pNetFwRules->Add(pNewFwRule);
+        ExitOnFailure(hr, "failed to add app to the authorized ports list");
     }
 
 LExit:
     ReleaseBSTR(bstrName);
     ReleaseBSTR(bstrFile);
     ReleaseObject(pNetFwRules);
-    ReleaseObject(pNetFwRule);
+    ReleaseObject(pNewFwRule);
+    ReleaseObject(pExistingFwRule);
 
     return fIgnoreFailures ? S_OK : hr;
 }
@@ -591,16 +612,20 @@ static HRESULT AddPortException(
     __in LPCWSTR wzPort,
     __in int iProtocol,
     __in LPCWSTR wzDescription
-    )
+)
 {
     HRESULT hr = S_OK;
     BSTR bstrName = NULL;
     INetFwRules* pNetFwRules = NULL;
-    INetFwRule* pNetFwRule = NULL;
+    INetFwRule* pNewFwRule = NULL;
+    INetFwRule* pExistingFwRule = NULL;
 
     // convert to BSTRs to make COM happy
     bstrName = ::SysAllocString(wzName);
     ExitOnNull(bstrName, hr, E_OUTOFMEMORY, "failed SysAllocString for name");
+
+    hr = CreateFwRuleObject(bstrName, iProfile, wzRemoteAddresses, wzPort, iProtocol, wzDescription, &pNewFwRule);
+    ExitOnFailure(hr, "failed to create FwRule object");
 
     // get the collection of firewall rules
     hr = GetFirewallRules(fIgnoreFailures, &pNetFwRules);
@@ -610,34 +635,36 @@ static HRESULT AddPortException(
         ExitFunction();
     }
 
-    // try to find it (i.e., support reinstall)
-    hr = pNetFwRules->Item(bstrName, &pNetFwRule);
-    if (HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) == hr)
+    hr = FindExistingRule(pNetFwRules, pNewFwRule, &pExistingFwRule);
+    ExitOnFailure(hr, "failed looking for an existing firewall rule");
+
+    if (pExistingFwRule && (hr == S_FW_FULL_MATCH))
     {
-        hr = CreateFwRuleObject(bstrName, iProfile, wzRemoteAddresses, wzPort, iProtocol, wzDescription, &pNetFwRule);
-        ExitOnFailure(hr, "failed to create FwRule object");
-
-        // enable it
-        hr = pNetFwRule->put_Enabled(VARIANT_TRUE);
-        ExitOnFailure(hr, "failed to to enable port exception");
-
-        // add it to the list of authorized ports
-        hr = pNetFwRules->Add(pNetFwRule);
-        ExitOnFailure(hr, "failed to add app to the authorized ports list");
+        WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Enabling existing firewall rule '%ls'", wzName);
+        hr = pExistingFwRule->put_Enabled(VARIANT_TRUE);
+        ExitOnFailure(hr, "failed to enable firewall rule");
     }
     else
     {
-        // we found an existing port exception (if we succeeded, that is)
-        ExitOnFailure(hr, "failed trying to find existing port rule");
+        if (pExistingFwRule && (hr == S_FW_PARTIAL_MATCH))
+        {
+            WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Ignoring a partially matching rule '%ls'", wzName);
+        }
 
-        // enable it (just in case it was disabled)
-        pNetFwRule->put_Enabled(VARIANT_TRUE);
+        // Rule doesn't already exist, so add and enable it
+        hr = pNewFwRule->put_Enabled(VARIANT_TRUE);
+        ExitOnFailure(hr, "failed to to enable port exception");
+
+        // add it to the list of authorized ports
+        hr = pNetFwRules->Add(pNewFwRule);
+        ExitOnFailure(hr, "failed to add app to the authorized ports list");
     }
 
 LExit:
     ReleaseBSTR(bstrName);
     ReleaseObject(pNetFwRules);
-    ReleaseObject(pNetFwRule);
+    ReleaseObject(pNewFwRule);
+    ReleaseObject(pExistingFwRule);
 
     return fIgnoreFailures ? S_OK : hr;
 }
@@ -711,20 +738,18 @@ LExit:
 }
 
 /******************************************************************
- RemoveException - Removes the exception rule with the given name.
+ RemoveException - Removes an exception rule.
 
 ********************************************************************/
-static HRESULT RemoveException(
-    __in LPCWSTR wzName, 
-    __in BOOL fIgnoreFailures
-    )
+static HRESULT RemoveException(LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures)
 {
     HRESULT hr = S_OK;;
     INetFwRules* pNetFwRules = NULL;
-
-    // convert to BSTRs to make COM happy
-    BSTR bstrName = ::SysAllocString(wzName);
-    ExitOnNull(bstrName, hr, E_OUTOFMEMORY, "failed SysAllocString for path");
+    INetFwRule* pNetFwRule = NULL;
+    BSTR bstrName = NULL;
+    UUID idUnique;
+    RPC_STATUS iRpc = RPC_S_OK;
+    RPC_WSTR wzUuid = NULL;
 
     // get the collection of firewall rules
     hr = GetFirewallRules(fIgnoreFailures, &pNetFwRules);
@@ -734,12 +759,40 @@ static HRESULT RemoveException(
         ExitFunction();
     }
 
-    hr = pNetFwRules->Remove(bstrName);
-    ExitOnFailure(hr, "failed to remove authorized app");
+    hr = FindExistingRule(pNetFwRules, wzName, iProfile, wzFile, wzRemoteAddresses, wzPort, iProtocol, wzDescription, &pNetFwRule);
+    ExitOnFailure(hr, "failed to locate firewall rule");
+
+    if (pNetFwRule && (hr > S_FW_NO_MATCH))
+    {
+        if (hr == S_FW_PARTIAL_MATCH)
+        {
+            WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Removing a partially matching rule '%ls'", wzName);
+        }
+
+        iRpc = UuidCreateSequential(&idUnique);
+        ExitOnNull(((iRpc == RPC_S_OK) || (iRpc == RPC_S_UUID_LOCAL_ONLY) || (iRpc == RPC_S_UUID_NO_ADDRESS)), hr, iRpc, "Failed allocating a UUID");
+
+        iRpc = UuidToStringW(&idUnique, &wzUuid);
+        ExitOnNull((iRpc == RPC_S_OK), hr, iRpc, "Failed allocating a UUID string");
+
+        bstrName = SysAllocString((LPCWSTR)wzUuid);
+        ExitOnNull(bstrName, hr, iRpc, "Failed allocating a UUID string");
+
+        hr = pNetFwRule->put_Name(bstrName);
+        ExitOnFailure(hr, "failed to set unique name to firewall rule");
+
+        hr = pNetFwRules->Remove(bstrName);
+        ExitOnFailure(hr, "failed to remove firewall rule");
+    }
 
 LExit:
     ReleaseBSTR(bstrName);
+    ReleaseObject(pNetFwRule);
     ReleaseObject(pNetFwRules);
+    if (wzUuid)
+    {
+        RpcStringFreeW(&wzUuid);
+    }
 
     return fIgnoreFailures ? S_OK : hr;
 }
@@ -877,20 +930,13 @@ static HRESULT AddPortException(
     return hr;
 }
 
-static HRESULT RemoveApplicationException(
-    __in BOOL fSupportProfiles,
-    __in LPCWSTR wzName,
-    __in LPCWSTR wzFile, 
-    __in BOOL fIgnoreFailures,
-    __in LPCWSTR wzPort,
-    __in int iProtocol
-    )
+static HRESULT RemoveApplicationException(BOOL fSupportProfiles, LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures) 
 {
     HRESULT hr = S_OK;
 
     if (fSupportProfiles)
     {
-        hr = RemoveException(wzName, fIgnoreFailures);
+        hr = RemoveException(wzName, iProfile, wzFile, NULL, wzPort, iProtocol, wzDescription, fIgnoreFailures);
     }
     else
     {
@@ -906,19 +952,13 @@ static HRESULT RemoveApplicationException(
     return hr;
 }
 
-static HRESULT RemovePortException(
-    __in BOOL fSupportProfiles,
-    __in LPCWSTR wzName,
-    __in LPCWSTR wzPort,
-    __in int iProtocol,
-    __in BOOL fIgnoreFailures
-    )
+static HRESULT RemovePortException(BOOL fSupportProfiles, LPCWSTR wzName, int iProfile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, BOOL fIgnoreFailures)
 {
     HRESULT hr = S_OK;
 
     if (fSupportProfiles)
     {
-        hr = RemoveException(wzName, fIgnoreFailures);
+        hr = RemoveException(wzName, iProfile, NULL, wzRemoteAddresses, wzPort, iProtocol, wzDescription, fIgnoreFailures);
     }
     else
     {
@@ -1028,7 +1068,7 @@ extern "C" UINT __stdcall ExecFirewallExceptions(
 
             case WCA_TODO_UNINSTALL:
                 WcaLog(LOGMSG_STANDARD, "Uninstalling firewall exception2 %ls on port %ls, protocol %d", pwzName, pwzPort, iProtocol);
-                hr = RemovePortException(fSupportProfiles, pwzName, pwzPort, iProtocol, fIgnoreFailures);
+                hr = RemovePortException(fSupportProfiles, pwzName, iProfile, pwzRemoteAddresses, pwzPort, iProtocol, pwzDescription, fIgnoreFailures);
                 ExitOnFailure3(hr, "failed to remove port exception for name '%ls' on port %ls, protocol %d", pwzName, pwzPort, iProtocol);
                 break;
             }
@@ -1046,7 +1086,7 @@ extern "C" UINT __stdcall ExecFirewallExceptions(
 
             case WCA_TODO_UNINSTALL:
                 WcaLog(LOGMSG_STANDARD, "Uninstalling firewall exception2 %ls (%ls)", pwzName, pwzFile);
-                hr = RemoveApplicationException(fSupportProfiles, pwzName, pwzFile, fIgnoreFailures, pwzPort, iProtocol);
+                hr = RemoveApplicationException(fSupportProfiles, pwzName, iProfile, pwzFile, pwzPort, iProtocol, pwzDescription, fIgnoreFailures);
                 ExitOnFailure2(hr, "failed to remove application exception for name '%ls', file '%ls'", pwzName, pwzFile);
                 break;
             }
@@ -1064,4 +1104,450 @@ LExit:
     ::CoUninitialize();
 
     return WcaFinalize(FAILED(hr) ? ERROR_INSTALL_FAILURE : ERROR_SUCCESS);
+}
+
+static HRESULT CompareFwRules(INetFwRule* pFwRule1, LPCWSTR wzName2, int iProfile2, LPCWSTR wzFile2, LPCWSTR wzRemoteAddresses2, LPCWSTR wzPort2, int iProtocol2, LPCWSTR wzDescription2)
+{
+    HRESULT hr = S_OK;
+    HRESULT hrMatch = S_FW_NO_MATCH;
+    BSTR szVal1 = NULL;
+    LONG lVal1 = 0;
+
+    hr = pFwRule1->get_Name(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Name");
+
+    if (((szVal1 && *szVal1) != (wzName2 && *wzName2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, wzName2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_NO_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+
+    hr = pFwRule1->get_ApplicationName(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule ApplicationName");
+
+    if (((szVal1 && *szVal1) != (wzFile2 && *wzFile2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, wzFile2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+
+    hr = pFwRule1->get_Profiles(&lVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Profiles");
+
+    if (lVal1 != iProfile2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_RemoteAddresses(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule RemoteAddresses");
+
+    if (((szVal1 && *szVal1) != (wzRemoteAddresses2 && *wzRemoteAddresses2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, wzRemoteAddresses2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+
+    hr = pFwRule1->get_LocalPorts(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule LocalPorts");
+
+    if (((szVal1 && *szVal1) != (wzPort2 && *wzPort2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, wzPort2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+
+    hr = pFwRule1->get_Protocol(&lVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Protocol");
+
+    if (lVal1 != iProtocol2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_Description(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Description");
+
+    if (((szVal1 && *szVal1) != (wzDescription2 && *wzDescription2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, wzDescription2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+
+    hrMatch = S_FW_FULL_MATCH;
+LExit:
+    ReleaseBSTR(szVal1);
+
+    return FAILED(hr) ? hr : hrMatch;
+}
+
+static HRESULT CompareFwRules(INetFwRule* pFwRule1, INetFwRule* pFwRule2)
+{
+    HRESULT hr = S_OK;
+    HRESULT hrMatch = S_FW_NO_MATCH;
+    NET_FW_ACTION fwAct1;
+    NET_FW_ACTION fwAct2;
+    NET_FW_RULE_DIRECTION fwDir1;
+    NET_FW_RULE_DIRECTION fwDir2;
+    BSTR szVal1 = NULL;
+    BSTR szVal2 = NULL;
+    LONG lVal1 = 0;
+    LONG lVal2 = 0;
+    VARIANT_BOOL vbVal1;
+    VARIANT_BOOL vbVal2;
+
+    hr = pFwRule1->get_Name(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Name");
+
+    hr = pFwRule2->get_Name(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule Name");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_NO_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_Action(&fwAct1);
+    ExitOnFailure(hr, "failed to get firewall rule action");
+
+    hr = pFwRule2->get_Action(&fwAct2);
+    ExitOnFailure(hr, "failed to get firewall rule action");
+
+    if (fwAct1 != fwAct2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_ApplicationName(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule ApplicationName");
+
+    hr = pFwRule2->get_ApplicationName(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule ApplicationName");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_Description(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Description");
+
+    hr = pFwRule2->get_Description(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule Description");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_Direction(&fwDir1);
+    ExitOnFailure(hr, "failed to get firewall rule Direction");
+
+    hr = pFwRule2->get_Direction(&fwDir2);
+    ExitOnFailure(hr, "failed to get firewall rule Direction");
+
+    if (fwAct1 != fwAct2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_Grouping(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Grouping");
+
+    hr = pFwRule2->get_Grouping(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule Grouping");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_IcmpTypesAndCodes(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule IcmpTypesAndCodes");
+
+    hr = pFwRule2->get_IcmpTypesAndCodes(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule IcmpTypesAndCodes");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_InterfaceTypes(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule InterfaceTypes");
+
+    hr = pFwRule2->get_InterfaceTypes(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule InterfaceTypes");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_LocalAddresses(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule LocalAddresses");
+
+    hr = pFwRule2->get_LocalAddresses(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule LocalAddresses");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_LocalPorts(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule LocalPorts");
+
+    hr = pFwRule2->get_LocalPorts(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule LocalPorts");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_EdgeTraversal(&vbVal1);
+    ExitOnFailure(hr, "failed to get firewall rule EdgeTraversal");
+
+    hr = pFwRule2->get_EdgeTraversal(&vbVal2);
+    ExitOnFailure(hr, "failed to get firewall rule EdgeTraversal");
+
+    if (vbVal1 != vbVal2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_Profiles(&lVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Profiles");
+
+    hr = pFwRule2->get_Profiles(&lVal2);
+    ExitOnFailure(hr, "failed to get firewall rule Profiles");
+
+    if (lVal1 != lVal2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_Protocol(&lVal1);
+    ExitOnFailure(hr, "failed to get firewall rule Protocol");
+
+    hr = pFwRule2->get_Protocol(&lVal2);
+    ExitOnFailure(hr, "failed to get firewall rule Protocol");
+
+    if (lVal1 != lVal2)
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+
+    hr = pFwRule1->get_RemoteAddresses(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule RemoteAddresses");
+
+    hr = pFwRule2->get_RemoteAddresses(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule RemoteAddresses");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_RemotePorts(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule RemotePorts");
+
+    hr = pFwRule2->get_RemotePorts(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule RemotePorts");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hr = pFwRule1->get_ServiceName(&szVal1);
+    ExitOnFailure(hr, "failed to get firewall rule ServiceName");
+
+    hr = pFwRule2->get_ServiceName(&szVal2);
+    ExitOnFailure(hr, "failed to get firewall rule ServiceName");
+
+    if (((szVal1 && *szVal1) != (szVal2 && *szVal2)) || (szVal1 && (CSTR_EQUAL != ::CompareStringW(LOCALE_INVARIANT, 0, szVal1, -1, szVal2, -1))))
+    {
+        ExitFunction1(hrMatch = S_FW_PARTIAL_MATCH);
+    }
+    ReleaseNullBSTR(szVal1);
+    ReleaseNullBSTR(szVal2);
+
+    hrMatch = S_FW_FULL_MATCH;
+LExit:
+    ReleaseBSTR(szVal1);
+    ReleaseBSTR(szVal2);
+
+    return FAILED(hr) ? hr : hrMatch;
+}
+
+static HRESULT FindExistingRule(INetFwRules* pNetFwRules, INetFwRule* pNewFwRule, INetFwRule** ppExistingFwRule)
+{
+    HRESULT hr = S_OK;
+    INetFwRule* pExistingFwRule = NULL;
+    INetFwRule* pFullMatchRule = NULL;
+    INetFwRule* pPartialMatchRule = NULL;
+    IUnknown* pUnkEnumerator = NULL;
+    IEnumVARIANT* pEnum = NULL;
+
+    *ppExistingFwRule = NULL;
+
+    hr = pNetFwRules->get__NewEnum(&pUnkEnumerator);
+    ExitOnFailure(hr, "failed to get firewall rules enumerator");
+    if (pUnkEnumerator)
+    {
+        hr = pUnkEnumerator->QueryInterface(__uuidof(IEnumVARIANT), (void**)&pEnum);
+        ExitOnFailure(hr, "failed to get firewall rules enumerator object");
+
+        for (;;)
+        {
+            ReleaseNullObject(pExistingFwRule);
+            VARIANT varRule;
+
+            hr = pEnum->Next(1, &varRule, NULL);
+            ExitOnFailure(hr, "failed to get next firewall rule");
+            if (hr == S_FALSE)
+            {
+                break;
+            }
+
+            hr = (V_DISPATCH(&varRule))->QueryInterface(__uuidof(INetFwRule), reinterpret_cast<void**>(&pExistingFwRule));
+            ExitOnFailure(hr, "failed to get next firewall rule object");
+
+            hr = CompareFwRules(pExistingFwRule, pNewFwRule);
+            ExitOnFailure(hr, "failed to compare firewall rules");
+
+            // Found existing
+            if (!pPartialMatchRule && (hr == S_FW_PARTIAL_MATCH))
+            {
+                pPartialMatchRule = pExistingFwRule;
+                pExistingFwRule = NULL;
+                // Loop on in attempt to find a full match
+            }
+            else if (hr == S_FW_FULL_MATCH)
+            {
+                pFullMatchRule = pExistingFwRule;
+                pExistingFwRule = NULL;
+                break;
+            }
+        }
+    }
+
+    if (pFullMatchRule)
+    {
+        *ppExistingFwRule = pFullMatchRule;
+        pFullMatchRule = NULL;
+        hr = S_FW_FULL_MATCH;
+    }
+    else if (pPartialMatchRule)
+    {
+        *ppExistingFwRule = pPartialMatchRule;
+        pPartialMatchRule = NULL;
+        hr = S_FW_PARTIAL_MATCH;
+    }
+
+LExit:
+    ReleaseObject(pPartialMatchRule);
+    ReleaseObject(pFullMatchRule);
+    ReleaseObject(pExistingFwRule);
+    ReleaseObject(pEnum);
+    ReleaseObject(pUnkEnumerator);
+
+    return hr;
+}
+
+static HRESULT FindExistingRule(INetFwRules* pRules, LPCWSTR wzName, int iProfile, LPCWSTR wzFile, LPCWSTR wzRemoteAddresses, LPCWSTR wzPort, int iProtocol, LPCWSTR wzDescription, INetFwRule** ppRule)
+{
+    HRESULT hr = S_OK;
+    INetFwRule* pExistingFwRule = NULL;
+    INetFwRule* pFullMatchRule = NULL;
+    INetFwRule* pPartialMatchRule = NULL;
+    IUnknown* pUnkEnumerator = NULL;
+    IEnumVARIANT* pEnum = NULL;
+
+    *ppRule = NULL;
+
+    hr = pRules->get__NewEnum(&pUnkEnumerator);
+    ExitOnFailure(hr, "failed to get firewall rules enumerator");
+    if (pUnkEnumerator)
+    {
+        hr = pUnkEnumerator->QueryInterface(__uuidof(IEnumVARIANT), (void**)&pEnum);
+        ExitOnFailure(hr, "failed to get firewall rules enumerator object");
+
+        for (;;)
+        {
+            ReleaseNullObject(pExistingFwRule);
+            VARIANT varRule;
+
+            hr = pEnum->Next(1, &varRule, NULL);
+            ExitOnFailure(hr, "failed to get next firewall rule");
+            if (hr == S_FALSE)
+            {
+                break;
+            }
+
+            hr = (V_DISPATCH(&varRule))->QueryInterface(__uuidof(INetFwRule), reinterpret_cast<void**>(&pExistingFwRule));
+            ExitOnFailure(hr, "failed to get next firewall rule object");
+
+            hr = CompareFwRules(pExistingFwRule, wzName, iProfile, wzFile, wzRemoteAddresses, wzPort, iProtocol, wzDescription);
+            ExitOnFailure(hr, "failed to compare firewall rules");
+
+            // Found existing
+            if (!pPartialMatchRule && (hr == S_FW_PARTIAL_MATCH))
+            {
+                pPartialMatchRule = pExistingFwRule;
+                pExistingFwRule = NULL;
+                // Loop on in attempt to find a full match
+            }
+            else if (hr == S_FW_FULL_MATCH)
+            {
+                pFullMatchRule = pExistingFwRule;
+                pExistingFwRule = NULL;
+                break;
+            }
+        }
+    }
+
+    if (pFullMatchRule)
+    {
+        *ppRule = pFullMatchRule;
+        pFullMatchRule = NULL;
+        hr = S_FW_FULL_MATCH;
+    }
+    else if (pPartialMatchRule)
+    {
+        *ppRule = pPartialMatchRule;
+        pPartialMatchRule = NULL;
+        hr = S_FW_PARTIAL_MATCH;
+    }
+
+LExit:
+    ReleaseObject(pPartialMatchRule);
+    ReleaseObject(pFullMatchRule);
+    ReleaseObject(pExistingFwRule);
+    ReleaseObject(pEnum);
+    ReleaseObject(pUnkEnumerator);
+
+    return hr;
 }
