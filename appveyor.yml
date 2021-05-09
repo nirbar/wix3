@@ -21,7 +21,6 @@ environment:
 
 install:
 - ps: iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
-- cmd: curl.exe -fsS -o msxsl.exe http://download.microsoft.com/download/f/2/6/f263ac46-1fe9-4ae9-8fd3-21102100ebf5/msxsl.exe
 - cmd: curl.exe -fsS -o nuget.exe https://dist.nuget.org/win-x86-commandline/v5.7.0/nuget.exe
 - cmd: choco install visualstudio2013-sdk & exit 0
 
@@ -33,7 +32,16 @@ build:
   verbosity: normal
 
 before_package:
-- cmd: msxsl.exe src\Setup\Nupkg\WiX.nuspec src\Setup\Nupkg\WiX.nuspec.xslt -o "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" NUSPEC_VS_VERSION=%NUSPEC_VS_VERSION%
+- ps: $inXslt = Join-Path $env:APPVEYOR_BUILD_FOLDER "src\Setup\Nupkg\WiX.nuspec.xslt"
+- ps: $inNuspec = Join-Path $env:APPVEYOR_BUILD_FOLDER "src\Setup\Nupkg\WiX.nuspec"
+- ps: $outNuspec = Join-Path $env:APPVEYOR_BUILD_FOLDER ("build\WiX." + $env:NUSPEC_VS_VERSION + ".nuspec")
+- ps: $outNuspecStream = New-Object IO.FileStream $outNuspec, ([System.IO.FileMode]::Create)
+- ps: $XSLParams = New-Object System.Xml.Xsl.XsltArgumentList
+- ps: $XSLParams.AddParam("NUSPEC_VS_VERSION", "", $env:NUSPEC_VS_VERSION)
+- ps: $XSLInputElement = New-Object System.Xml.Xsl.XslCompiledTransform
+- ps: $XSLInputElement.Load($inXslt)
+- ps: $XSLInputElement.Transform($inNuspec, $XSLParams, $outNuspecStream)
+- ps: $outNuspecStream.Dispose()
 - cmd: .\nuget.exe pack "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" -Version "3.12.0-b%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
 
 test: off
