@@ -3,6 +3,8 @@
 namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
 {
     using Microsoft.Build.Framework;
+    using Microsoft.Build.Utilities;
+    using System;
 
     public sealed class HeatDirectory : HeatTask
     {
@@ -15,6 +17,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
         private string componentGroupName;
         private string directoryRefId;
         private string preprocessorVariable;
+        private bool assignPreprocessorVariable;
+        private ITaskItem defineConstants;
 
         public string ComponentGroupName
         {
@@ -76,6 +80,19 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             get { return "dir"; }
         }
 
+        public bool AssignPreprocessorVariable
+        {
+            get { return assignPreprocessorVariable; }
+            set { assignPreprocessorVariable = value; }
+        }
+
+        [Output]
+        public ITaskItem DefineConstants
+        {
+            get { return this.defineConstants; }
+            set { this.defineConstants = value; }
+        }
+
         /// <summary>
         /// Generate the command line arguments to write to the response file from the properties.
         /// </summary>
@@ -94,7 +111,18 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             commandLineBuilder.AppendIfTrue("-sreg", this.SuppressRegistry);
             commandLineBuilder.AppendIfTrue("-srd", this.SuppressRootDirectory);
             commandLineBuilder.AppendSwitchIfNotNull("-template ", this.Template);
-            commandLineBuilder.AppendSwitchIfNotNull("-var ", this.PreprocessorVariable);
+
+            // If a preprocessor variable isn't supplied then we can assign a random one and add it to MSBuild DefineConstants
+            if (this.AssignPreprocessorVariable && string.IsNullOrWhiteSpace(this.PreprocessorVariable))
+            {
+                this.PreprocessorVariable = "rnd" + Guid.NewGuid().ToString("N");
+                this.DefineConstants = new TaskItem(string.Format("{0}={1}", this.PreprocessorVariable, this.Directory));
+                commandLineBuilder.AppendSwitch("-var var." + this.PreprocessorVariable);
+            }
+            else
+            {
+                commandLineBuilder.AppendSwitchIfNotNull("-var ", this.PreprocessorVariable);
+            }
 
             base.BuildCommandLine(commandLineBuilder);
             return commandLineBuilder.ToString();

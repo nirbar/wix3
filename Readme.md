@@ -18,6 +18,7 @@
 - Fix WiX issue [6298](https://github.com/wixtoolset/issues/issues/6298): Fix extracting bootstrappers with detached containers
 - Fix WiX issue [6348](https://github.com/wixtoolset/issues/issues/6348): Fix .NET chaining response to files-in-use message.
 - Fix WiX issue [6450](https://github.com/wixtoolset/issues/issues/6450): Support multiple firewall rules with the same name.
+- When using MSBuild HarvestDirectory target, support generating a random preprocessor variable
 - Changes by WiX up to git commit 376423b8101f4b59ee865e8a255cfe190fa5a7f1
 - Build for .NET Framework 4.0
 

@@ -1348,6 +1348,7 @@
       HarvestProjects;
       HarvestDirectory;
       HarvestFile;
+      MergeHeatDefinedConstants;
     </HarvestDependsOn>
   </PropertyGroup>
   <Target
@@ -1772,6 +1773,7 @@
     %(HarvestDirectory.SuppressCom) - Suppress COM elements.
     %(HarvestDirectory.SuppressRootDirectory) - Suppress a Directory element for the root directory.
     $(HarvestDirectory.SuppressRegistry) - Suppress registry harvesting.
+    $(HarvestDirectory.AssignPreprocessorVariable) - If PreprocessorVariable is not supplied then assign a randomly named preprocessor variable.
 
     [OUT]
     $(IntermediateOutputPath)_%(HarvestDirectory.ComponentGroupName)_dir.wxs
@@ -1789,6 +1791,7 @@
       <SuppressCom>$(HarvestDirectorySuppressCom)</SuppressCom>
       <SuppressRootDirectory>$(HarvestDirectorySuppressRootDirectory)</SuppressRootDirectory>
       <SuppressRegistry>$(HarvestDirectorySuppressRegistry)</SuppressRegistry>
+      <AssignPreprocessorVariable>$(HarvestDirectoryAssignPreprocessorVariable)</AssignPreprocessorVariable>
     </HarvestDirectory>
   </ItemDefinitionGroup>
 
@@ -1810,7 +1813,7 @@
     Inputs="@(_HarvestDirectoryContent);%(HarvestDirectory.Transforms)"
     Outputs="$(IntermediateOutputPath)_%(HarvestDirectory.ComponentGroupName)_dir.wxs"
     Condition=" '@(HarvestDirectory)' != '' ">
-
+    
     <HeatDirectory
       NoLogo="$(HarvestDirectoryNoLogo)"
       SuppressAllWarnings="$(HarvestDirectorySuppressAllWarnings)"
@@ -1835,13 +1838,20 @@
       SuppressCom="%(HarvestDirectory.SuppressCom)"
       SuppressRootDirectory="%(HarvestDirectory.SuppressRootDirectory)"
       SuppressRegistry="%(HarvestDirectory.SuppressRegistry)"
+      AssignPreprocessorVariable="%(HarvestDirectory.AssignPreprocessorVariable)"
       AdditionalOptions="$(HarvestDirectoryAdditionalOptions)">
 
       <Output TaskParameter="OutputFile" ItemName="Compile" />
       <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+      <Output TaskParameter="DefineConstants" ItemName="_HarvestDefineConstants" />
 
     </HeatDirectory>
+  </Target>
 
+  <Target Name="MergeHeatDefinedConstants" Condition="'@(_HarvestDefineConstants)' != ''">
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);@(_HarvestDefineConstants)</DefineConstants>
+    </PropertyGroup>
   </Target>
 
   <!--
