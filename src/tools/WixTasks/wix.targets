@@ -1797,6 +1797,7 @@
 
   <PropertyGroup>
     <HarvestDirectoryDependsOn>
+      DeleteHarvestDirectoryFiles;
       GetHarvestDirectoryContent
     </HarvestDirectoryDependsOn>
   </PropertyGroup>
@@ -1806,6 +1807,11 @@
     <CreateItem Include="@(HarvestDirectory->'%(FullPath)\**\*')">
       <Output TaskParameter="Include" ItemName="_HarvestDirectoryContent" />
     </CreateItem>
+  </Target>
+
+  <!-- Delete harvest files for which we generate a proprocessor variable to ensure the generated preprocessor variable is re-added to DefineConstants -->
+  <Target Name="DeleteHarvestDirectoryFiles">
+    <Delete Files="$(IntermediateOutputPath)_%(HarvestDirectory.ComponentGroupName)_dir.wxs" Condition="'%(HarvestDirectory.AssignPreprocessorVariable)' != '' And %(HarvestDirectory.AssignPreprocessorVariable)"/>
   </Target>
 
   <Target Name="HarvestDirectory"

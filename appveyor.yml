@@ -40,10 +40,10 @@ before_package:
 - ps: $XSLInputElement.Load($inXslt)
 - ps: $XSLInputElement.Transform($inNuspec, $XSLParams, $outNuspecStream)
 - ps: $outNuspecStream.Dispose()
-- cmd: .\nuget.exe pack "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" -Version "3.12.0-b%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
+- cmd: .\nuget.exe pack "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" -Version "3.12.0-c%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
 
 test: off
 
 artifacts:
-- path: build\nuget-out\PanelSW.Custom.WiX.3.12.0-b%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%.nupkg
-  name: PanelSW.Custom.WiX.3.12.0-b%build%-vs%NUSPEC_VS_VERSION%.nupkg
+- path: build\nuget-out\PanelSW.Custom.WiX.3.12.0-c%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%.nupkg
+  name: PanelSW.Custom.WiX.3.12.0-c%build%-vs%NUSPEC_VS_VERSION%.nupkg
