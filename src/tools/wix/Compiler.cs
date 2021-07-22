@@ -8213,7 +8213,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
         private void ParseMediaTemplateElement(XmlNode node, string patchId)
         {
             SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
-            string cabinetTemplate = "cab{0}.cab";
+            bool isBundle = node.ParentNode.LocalName.Equals("Bundle");
+            string cabinetTemplate = isBundle ? "bundle-container-{0}.cab" : "cab{0}.cab";
             string compressionLevel = null; // this defaults to mszip in Binder
             string diskPrompt = null;
             bool patch = null != patchId;
@@ -8223,7 +8224,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             Wix.CompressionLevelType compressionLevelType = Wix.CompressionLevelType.NotSet;
             YesNoType aggressiveSmartCabbing = YesNoType.NotSet;
 
-            YesNoType embedCab = patch ? YesNoType.Yes : YesNoType.NotSet;
+            YesNoType embedCab = patch || isBundle ? YesNoType.Yes : YesNoType.NotSet;
 
             foreach (XmlAttribute attrib in node.Attributes)
             {
@@ -8240,7 +8241,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                             // Create an example cabinet name using the maximum number of cabinets supported, 999.
                             string exampleCabinetName = String.Format(cabinetTemplate, "###");
-                            if (!CompilerCore.IsValidLocIdentifier(exampleCabinetName))
+                            if (!isBundle && !CompilerCore.IsValidLocIdentifier(exampleCabinetName))
                             {
                                 // The example name should not match the authored template since that would nullify the
                                 // reason for having multiple cabients. External cabinet files must also be valid file names.
@@ -8255,6 +8256,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             }
                             break;
                         case "CompressionLevel":
+                            if (isBundle)
+                            {
+                                this.core.OnMessage(WixErrors.IllegalAttributeWhenNestedInElement(sourceLineNumbers, node.Name, attrib.Name, node.ParentNode.LocalName));
+                            }
                             compressionLevel = this.core.GetAttributeValue(sourceLineNumbers, attrib);
                             if (0 < compressionLevel.Length)
                             {
@@ -8265,6 +8270,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             }
                             break;
                         case "DiskPrompt":
+                            if (isBundle)
+                            {
+                                this.core.OnMessage(WixErrors.IllegalAttributeWhenNestedInElement(sourceLineNumbers, node.Name, attrib.Name, node.ParentNode.LocalName));
+                            }
                             diskPrompt = this.core.GetAttributeValue(sourceLineNumbers, attrib);
                             this.core.CreateWixSimpleReferenceRow(sourceLineNumbers, "Property", "DiskPrompt"); // ensure the output has a DiskPrompt Property defined
                             this.core.OnMessage(WixWarnings.ReservedAttribute(sourceLineNumbers, node.Name, attrib.Name));
@@ -8273,6 +8282,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             embedCab = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
                         case "VolumeLabel":
+                            if (isBundle)
+                            {
+                                this.core.OnMessage(WixErrors.IllegalAttributeWhenNestedInElement(sourceLineNumbers, node.Name, attrib.Name, node.ParentNode.LocalName));
+                            }
                             volumeLabel = this.core.GetAttributeValue(sourceLineNumbers, attrib);
                             this.core.OnMessage(WixWarnings.ReservedAttribute(sourceLineNumbers, node.Name, attrib.Name));
                             break;
@@ -8280,9 +8293,17 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             maximumUncompressedMediaSize = this.core.GetAttributeIntegerValue(sourceLineNumbers, attrib, 1, int.MaxValue);
                             break;
                         case "MaximumCabinetSizeForLargeFileSplitting":
+                            if (isBundle)
+                            {
+                                this.core.OnMessage(WixErrors.IllegalAttributeWhenNestedInElement(sourceLineNumbers, node.Name, attrib.Name, node.ParentNode.LocalName));
+                            }
                             maximumCabinetSizeForLargeFileSplitting = this.core.GetAttributeIntegerValue(sourceLineNumbers, attrib, CompilerCore.MinValueOfMaxCabSizeForLargeFileSplitting, CompilerCore.MaxValueOfMaxCabSizeForLargeFileSplitting);
                             break;
                         case "AggressiveSmartCabbing":
+                            if (isBundle)
+                            {
+                                this.core.OnMessage(WixErrors.IllegalAttributeWhenNestedInElement(sourceLineNumbers, node.Name, attrib.Name, node.ParentNode.LocalName));
+                            }
                             aggressiveSmartCabbing = core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             continue;
                         default:
@@ -20145,6 +20166,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 break;
                             case "WixVariable":
                                 this.ParseWixVariableElement(child);
+                                break;
+                            case "MediaTemplate":
+                                this.ParseMediaTemplateElement(child, null);
                                 break;
                             default:
                                 this.core.UnexpectedElement(node, child);

@@ -77,6 +77,7 @@
         <xs:element ref="Chain" minOccurs="1" maxOccurs="1" />
         <xs:element ref="Container" />
         <xs:element ref="ContainerRef" />
+        <xs:element ref="MediaTemplate" />
         <xs:element ref="PayloadGroup" />
         <xs:element ref="PayloadGroupRef" />
         <xs:element ref="RelatedBundle" />
@@ -8813,6 +8814,7 @@
           <xs:documentation>
                         Indicates the compression level for the Media's cabinet.  This attribute can 
                         only be used in conjunction with the Cabinet attribute.  The default is 'mszip'.
+                        This attribute should not be used in bundles.
                     </xs:documentation>
         </xs:annotation>
         <xs:simpleType>
@@ -8831,12 +8833,15 @@
                         The disk name, which is usually the visible text printed on the disk. This localizable text is used
                         to prompt the user when this disk needs to be inserted. This value will be used in the "[1]" of the 
                         DiskPrompt Property. Using this attribute will require you to define a DiskPrompt Property.
+                        This attribute should not be used in bundles.
                     </xs:documentation>
         </xs:annotation>
       </xs:attribute>
       <xs:attribute name="EmbedCab" type="YesNoTypeUnion">
         <xs:annotation>
-          <xs:documentation>Instructs the binder to embed the cabinets in the product if 'yes'.</xs:documentation>
+          <xs:documentation>
+                        Instructs the binder to embed the cabinets in the product if 'yes'. 
+                        Default value is 'yes' for bundles and 'no' for MSI</xs:documentation>
         </xs:annotation>
       </xs:attribute>
       <xs:attribute name="AggressiveSmartCabbing" type="YesNoTypeUnion">
@@ -8845,6 +8850,7 @@
                         Whether or not to reuse equivalent files' cab entry.
                         Versioned files are considered equivalent if they have equal name, size, version, and language.
                         Unversioned files are considered equivalent if they have equal size and MD5 hash value.
+                        This attribute should not be used in bundles.
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
@@ -8857,6 +8863,7 @@
                         used to verify that the proper disk is in the drive before attempting 
                         to install files. The entry in this column must match the volume label 
                         of the physical media. 
+                        This attribute should not be used in bundles.
                     </xs:documentation>
         </xs:annotation>
       </xs:attribute>
@@ -8879,6 +8886,7 @@
                         for this Fragment / Product. Setting WIX_MCSLFS environment variable can be used to override this 
                         value. Minimum allowed value of this attribute is 20 MB. Maximum allowed value and the Default 
                         value of this attribute is 2048 MB (2 GB).
+                        This attribute should not be used in bundles.
                     </xs:documentation>
         </xs:annotation>
       </xs:attribute>

@@ -72,7 +72,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         protected const UInt32 BURN_SECTION_OFFSET_COUNT = 44;
         protected const UInt32 BURN_SECTION_OFFSET_UXSIZE = 48;
         protected const UInt32 BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0 = 52;
-        protected const UInt32 BURN_SECTION_MIN_SIZE = BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0 + 4; // last field + sizeof(DWORD)
+        protected const UInt32 BURN_SECTION_MIN_SIZE = BURN_SECTION_OFFSET_UXSIZE + 4; // last field is the UX container, as containers could be authored external. + sizeof(DWORD)
 
         protected const UInt32 BURN_SECTION_MAGIC = 0x00f14300;
         protected const UInt32 BURN_SECTION_VERSION = 0x00000002;
@@ -173,11 +173,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             reader.BaseStream.Seek(this.wixburnDataOffset, SeekOrigin.Begin);
             List<byte> manifest = new List<byte>();
-            manifest.AddRange(reader.ReadBytes((int)BURN_SECTION_MIN_SIZE)); // Read until first attached container
+            manifest.AddRange(reader.ReadBytes((int)BURN_SECTION_MIN_SIZE)); // Read until UX container
             uint containerCount = BurnCommon.ReadUInt32(manifest.ToArray(), BURN_SECTION_OFFSET_COUNT);
-            if (containerCount > 2)
+            if (containerCount > 1)
             {
-                manifest.AddRange(reader.ReadBytes((int)(containerCount - 2) * 4)); // Add attached containers 
+                manifest.AddRange(reader.ReadBytes((int)(containerCount - 1) * 4)); // Add attached containers 
             }
             byte[] bytes = manifest.ToArray();
             UInt32 uint32 = 0;

@@ -2968,6 +2968,14 @@
                 MSI transactions can install only MSI and MSP packages.
             </Instance>
         </Message>
+        <Message Id="IllegalAttributeWhenNestedInElement" Number="391">
+            <Instance>
+                The {0}/@{1} attribute cannot be specified when the {0} element is nested underneath a {2} element.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="attributeName" />
+                <Parameter Type="System.String" Name="parentElement" />
+            </Instance>
+        </Message>
     </Class>
 
     <Class Name="WixWarnings" ContainerName="WixWarningEventArgs" BaseContainerName="MessageEventArgs" Level="Warning">
@@ -4037,6 +4045,13 @@
                 Reusing cab entry of file '{0}' for file '{1}'.
                 <Parameter Type="System.String" Name="srcFile" />
                 <Parameter Type="System.String" Name="otherFile" />
+            </Instance>
+        </Message>
+        <Message Id="CreatingBundleCabinet" Number="9036">
+            <Instance>
+                Creating a new bundle {0} cabinet '{1}'.
+                <Parameter Type="System.String" Name="type" />
+                <Parameter Type="System.String" Name="name" />
             </Instance>
         </Message>
     </Class>

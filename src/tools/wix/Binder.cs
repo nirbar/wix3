@@ -3397,8 +3397,34 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
             }
 
-            // Create the default attached container for payloads that need to be attached but don't have an explicit container.
-            ContainerInfo defaultAttachedContainer = new ContainerInfo("WixAttachedContainer", "bundle-attached.cab", "attached", null, this.FileManager);
+            // Create the default attached containers for payloads that need to be attached but don't have an explicit container.
+            uint cabMaxSize = (uint)2 * 1024 * 1024 * 1024;
+            bool embedCabs = true;
+            string cabNameTmplt = "bundle-container-{0}.cab";
+            Table mediaTemplateTable = this.output.Tables["WixMediaTemplate"];
+            if ((mediaTemplateTable != null) && (mediaTemplateTable.Rows.Count > 0))
+            {
+                int junk, cms;
+                GetMediaTemplateAttributes(out junk, out cms);
+                cabMaxSize = (uint)cms * 1024 * 1024;
+
+                WixMediaTemplateRow mediaTemplateRow = (WixMediaTemplateRow)mediaTemplateTable.Rows[0];
+                if (!string.IsNullOrEmpty(mediaTemplateRow.CabinetTemplate))
+                {
+                    cabNameTmplt = mediaTemplateRow.CabinetTemplate;
+                    if (cabNameTmplt.StartsWith("#"))
+                    {
+                        cabNameTmplt = cabNameTmplt.Substring(1);
+                        embedCabs = true;
+                    }
+                    else
+                    {
+                        embedCabs = false;
+                    }
+                }
+            }
+
+            ContainerInfo defaultAttachedContainer = new ContainerInfo("WixAttachedContainer", string.Format(cabNameTmplt, 0), embedCabs ? "attached" : "detached", null, this.FileManager);
             containers.Add(defaultAttachedContainer.Id, defaultAttachedContainer);
 
             Row baRow = baTable.Rows[0];
@@ -3525,13 +3551,56 @@ namespace Microsoft.Tools.WindowsInstallerXml
             string layoutDirectory = Path.GetDirectoryName(bundleFile);
 
             // Handle any payloads not explicitly in a container.
-            IEnumerable<PayloadInfoRow> payloadsWithNoContainer = allPayloads.Values.Where(p => string.IsNullOrEmpty(p.Container));
+            // Split to containers with less than max uncompressed size each
+            // New containers can be embedded so long the overall size of the bundle exe is no more than 4GB.
+            // The rest of the new containers must be detached (external)
+            const ulong EXE_MAX_SIZE = 4ul * 1024 * 1024 * 1024;
+            ulong totalUncompressedSize = 0;
+            foreach (ContainerInfo ci in containers.Values)
+            {
+                if (ci.Type.Equals("attached") && (ci != defaultAttachedContainer))
+                {
+                    foreach (PayloadInfoRow pld in ci.Payloads)
+                    {
+                        totalUncompressedSize += (ulong)pld.FileSize;
+                    }
+                }
+            }
+
+            int cabIdx = 0;
+            ContainerInfo currCntnr = defaultAttachedContainer;
+            uint cabUncompressedSize = (uint)defaultAttachedContainer.Payloads.Sum(p => p.FileSize); // Should be 0, unless author explictly used "WixAttachedContainer"
+            IEnumerable<PayloadInfoRow> payloadsWithNoContainer = allPayloads.Values.Where(p => string.IsNullOrEmpty(p.Container) || p.Container.Equals(defaultAttachedContainer.Id));
             foreach (PayloadInfoRow payload in payloadsWithNoContainer)
             {
                 if (PackagingType.Embedded == payload.Packaging)
                 {
-                    payload.Container = defaultAttachedContainer.Id;
-                    defaultAttachedContainer.Payloads.Add(payload);
+                    // If cabinet is oversized, or if exe would become oversized, then create a new cab
+                    if (((cabUncompressedSize + payload.FileSize) >= cabMaxSize) || (embedCabs && (totalUncompressedSize < EXE_MAX_SIZE) && ((totalUncompressedSize + cabUncompressedSize + (uint)payload.FileSize) >= EXE_MAX_SIZE)))
+                    {
+                        string id = "cab" + Guid.NewGuid().ToString("N");
+
+                        totalUncompressedSize += cabUncompressedSize;
+                        if (!embedCabs || ((totalUncompressedSize + (uint)payload.FileSize) >= EXE_MAX_SIZE))
+                        {
+                            embedCabs = false; // Subsequent cabs must also be detached
+                            currCntnr = new ContainerInfo(id, string.Format(cabNameTmplt, ++cabIdx), "detached", null, FileManager);
+                        }
+                        else
+                        {
+                            currCntnr = new ContainerInfo(id, id, "attached", null, FileManager);
+                        }
+                        this.core.OnMessage(WixVerboses.CreatingBundleCabinet(null, currCntnr.Type, currCntnr.Name));
+                        cabUncompressedSize = 0;
+                        containers.Add(id, currCntnr);
+                    }
+                    if ((currCntnr != defaultAttachedContainer) && defaultAttachedContainer.Id.Equals(payload.Container))
+                    {
+                        defaultAttachedContainer.Payloads.Remove(payload);
+                    }
+                    cabUncompressedSize += (uint)payload.FileSize;
+                    currCntnr.Payloads.Add(payload);
+                    payload.Container = currCntnr.Id;
                 }
                 else if (!String.IsNullOrEmpty(payload.FullFileName))
                 {

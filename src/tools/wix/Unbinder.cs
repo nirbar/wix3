@@ -1296,7 +1296,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
             using (BurnReader reader = BurnReader.Open(bundleFile, this))
             {
                 reader.ExtractUXContainer(uxExtractPath, this.tempFiles.BasePath);
-                reader.ExtractAttachedContainer(acExtractPath, this.tempFiles.BasePath);
+                reader.ExtractAttachedContainers(acExtractPath, this.tempFiles.BasePath);
+                reader.ExtractDetachedContainers(acExtractPath, this.tempFiles.BasePath);
             }
 
             return null;

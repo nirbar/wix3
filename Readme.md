@@ -9,6 +9,7 @@
   Whether or not to reuse equivalent files' cab entry. Versioned files are considered equivalent if they have equal name, size, version, and language. Unversioned files are considered equivalent if they have equal size and MD5 hash value.
   When a file is found to have an equivalent, it is placed in the same cab file and it's source is changed to the same source, so WiX built-in Smart Cabbing reuses the same cab entry for both files. 
   AggressiveSmartCabbing only works on compressed, non-patch-added, and not merged-moduled files.
+- Fix WiX issue [6521](https://github.com/wixtoolset/issues/issues/6521): Support auto-assign of payloads to containers in bundles.
 - Support canceling the build when using MSBuild
 - [RemotePayload](https://wixtoolset.org/documentation/manual/v3/xsd/wix/remotepayload.html) can be specified on any package payload rather than the main setup file
 - Add [heat.exe](https://wixtoolset.org/documentation/manual/v3/overview/heat.html) harvest type "payload_dir" to harvest a PayloadGroup. Specify _-url link_ to set base DownloadUrl for remote payloads

@@ -194,7 +194,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// </summary>
         /// <param name="outputDirectory">Directory to write extracted files to.</param>
         /// <returns>True if successful, false otherwise</returns>
-        public bool ExtractAttachedContainer(string outputDirectory, string tempDirectory)
+        public bool ExtractAttachedContainers(string outputDirectory, string tempDirectory)
         {
             // No attached container to extract
             if (this.AttachedContainers.Count == 0)
@@ -234,6 +234,22 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 File.Move(sourcePath, destinationPath);
             }
 
+            return true;
+        }
+
+        public bool ExtractDetachedContainers(string outputDirectory, string tempDirectory)
+        {
+            if (this.detachedContainers_.Count == 0)
+            {
+                return false;
+            }
+
+            if (this.invalidBundle)
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(outputDirectory);
             string bundlePath = Path.GetDirectoryName(this.fileExe);
             foreach (DetachedContainer detachedContainer in detachedContainers_.Values)
             {
