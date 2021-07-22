@@ -16,6 +16,7 @@
     <WixPlatformToolset Condition=" '$(PlatformToolset)'=='v140_xp' ">VS2015</WixPlatformToolset>
     <WixPlatformToolset Condition=" '$(PlatformToolset)'=='v141' ">VS2017</WixPlatformToolset>
     <WixPlatformToolset Condition=" '$(PlatformToolset)'=='v141_xp' ">VS2017</WixPlatformToolset>
+    <WixPlatformToolset Condition=" '$(PlatformToolset)'=='v142' ">VS2017</WixPlatformToolset>
 
     <WixPlatformToolset Condition=" '$(WixPlatformToolset)'=='' ">VS2015</WixPlatformToolset>
   </PropertyGroup>
