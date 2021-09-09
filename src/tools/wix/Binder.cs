@@ -1902,7 +1902,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // With the Component Guids set now we can create instance transforms.
             this.CreateInstanceTransforms(output);
 
-            this.ValidateComponentGuids(output);
+            this.ValidateComponentGuids(output, fileRows);
 
             this.UpdateControlText(output);
 
@@ -6205,7 +6205,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// Duplicate GUIDs without conditions are an error condition; with conditions, it's a
         /// warning, as the conditions might be mutually exclusive.
         /// </remarks>
-        private void ValidateComponentGuids(Output output)
+        private void ValidateComponentGuids(Output output, FileRowCollection fileRows)
         {
             Table componentTable = output.Tables["Component"];
             if (null != componentTable)
@@ -6225,13 +6225,30 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         {
                             allComponentsHaveConditions = componentGuidConditions[row.Guid] && thisComponentHasCondition;
 
+                            string hint = "";
+                            if (!string.IsNullOrEmpty(row.KeyPath) && !row.IsRegistryKeyPath && !row.IsOdbcDataSourceKeyPath && (fileRows != null) && (output.Type != OutputType.Patch) /* No file indexing */)
+                            {
+                                FileRow file = fileRows[row.KeyPath];
+                                if (file != null)
+                                {
+                                    hint = file.Source;
+                                }
+                            }
+
                             if (allComponentsHaveConditions)
                             {
                                 this.core.OnMessage(WixWarnings.DuplicateComponentGuidsMustHaveMutuallyExclusiveConditions(row.SourceLineNumbers, row.Component, row.Guid));
                             }
                             else
                             {
-                                this.core.OnMessage(WixErrors.DuplicateComponentGuids(row.SourceLineNumbers, row.Component, row.Guid));
+                                if (string.IsNullOrEmpty(hint))
+                                {
+                                    this.core.OnMessage(WixErrors.DuplicateComponentGuids(row.SourceLineNumbers, row.Component, row.Guid));
+                                }
+                                else
+                                {
+                                    this.core.OnMessage(WixErrors.DuplicateComponentGuids(row.SourceLineNumbers, row.Component, hint, row.Guid));
+                                }
                             }
                         }
 

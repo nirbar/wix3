@@ -2819,6 +2819,12 @@
           <Parameter Type="System.String" Name="componentId" />
           <Parameter Type="System.String" Name="guid" />
         </Instance>
+        <Instance>
+          Component/@Id='{0}' with key path '{1}' has a @Guid value '{2}' that duplicates another component in this package. It is recommended to give each component its own unique GUID.
+          <Parameter Type="System.String" Name="componentId" />
+          <Parameter Type="System.String" Name="hint" />
+          <Parameter Type="System.String" Name="guid" />
+        </Instance>
       </Message>
       <Message Id="DuplicateProviderDependencyKey" Number="370" SourceLineNumbers="no">
         <Instance>
