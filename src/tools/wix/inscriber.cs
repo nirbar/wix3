@@ -150,6 +150,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 // If there was an attached container on the original (unsigned) bundle, put it back.
                 using (BurnWriter writer = BurnWriter.Open(tempFile, this))
                 {
+                    if (reader.Version != writer.Version)
+                    {
+                        this.OnMessage(WixErrors.IncompatibleWixBurnSection(bundleFile, reader.Version));
+                        return false;
+                    }
+
                     writer.AttachedContainers.Clear();
                     writer.RememberThenResetSignature();
                     foreach (ContainerSlot cntnr in reader.AttachedContainers)

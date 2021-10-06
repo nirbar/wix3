@@ -162,18 +162,17 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             foreach (XmlNode payload in payloads)
             {
-                XmlNode sourcePathNode = payload.Attributes.GetNamedItem("SourcePath");
-                XmlNode filePathNode = payload.Attributes.GetNamedItem("FilePath");
                 XmlNode packagingNode = payload.Attributes.GetNamedItem("Packaging");
-
-                string sourcePath = sourcePathNode.Value;
-                string destinationPath = filePathNode.Value;
                 string packaging = packagingNode.Value;
 
                 if (packaging.Equals("embedded", StringComparison.OrdinalIgnoreCase))
                 {
+                    XmlNode sourcePathNode = payload.Attributes.GetNamedItem("SourcePath");
+                    XmlNode filePathNode = payload.Attributes.GetNamedItem("FilePath");
                     XmlNode containerNode = payload.Attributes.GetNamedItem("Container");
                     string container = containerNode.Value;
+                    string sourcePath = sourcePathNode.Value;
+                    string destinationPath = Path.Combine(container, filePathNode.Value);
 
                     if (detachedContainers_.ContainsKey(container))
                     {

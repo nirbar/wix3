@@ -90,7 +90,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.WriteToBurnSectionOffset(BURN_SECTION_OFFSET_FORMAT, 1); // Hard-coded to CAB for now.
             this.WriteToBurnSectionOffset(BURN_SECTION_OFFSET_COUNT, 0);
             this.WriteToBurnSectionOffset(BURN_SECTION_OFFSET_UXSIZE, 0);
-            this.WriteToBurnSectionOffset(BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0, 0);
+            for (uint i = BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0; i < BURN_SECTION_SIZE; i += sizeof(UInt32))
+            {
+                this.WriteToBurnSectionOffset(i, 0);
+            }
             this.binaryWriter.BaseStream.Flush();
 
             this.EngineSize = this.StubSize;
@@ -215,6 +218,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
         {
             if (this.invalidBundle)
             {
+                return false;
+            }
+            if (burnSectionOffsetSize > BURN_SECTION_SIZE - sizeof(UInt32))
+            {
+                this.invalidBundle = true;
+                messageHandler.OnMessage(WixErrors.TooManyAttachedContainers(null, (long)BURN_SECTION_MAX_ATTACHEDCONTAINER_COUNT));
                 return false;
             }
 

@@ -2727,9 +2727,9 @@
             <Parameter Type="System.String" Name="bundleExecutable" />
           </Instance>
         </Message>
-      <Message Id="BundleTooNew" Number="355" SourceLineNumbers="no">
+      <Message Id="IncompatibleWixBurnSection" Number="355" SourceLineNumbers="no">
         <Instance>
-          Unable to read bundle executable '{0}', because this bundle was created with a newer version of WiX (bundle version '{1}'). You must use a newer version of Windows Installer XML in order to read this bundle.
+          Unable to read bundle executable '{0}', because this bundle was created with a different version of WiX burn (.wixburn section version '{1}'). You must use the same version of Windows Installer XML in order to read this bundle.
           <Parameter Type="System.String" Name="bundleExecutable" />
           <!-- we use a 64-bit field here because the field is really a 32-bit UInt,
               but UInt gives a non-CLS-compliant warning.
@@ -2980,6 +2980,12 @@
                 <Parameter Type="System.String" Name="elementName" />
                 <Parameter Type="System.String" Name="attributeName" />
                 <Parameter Type="System.String" Name="parentElement" />
+            </Instance>
+        </Message>
+        <Message Id="TooManyAttachedContainers" Number="392">
+            <Instance>
+                The bundle has too many attached containers. The maximal attached container count is {0}.
+                <Parameter Type="System.Int64" Name="maxAllowed" />
             </Instance>
         </Message>
     </Class>

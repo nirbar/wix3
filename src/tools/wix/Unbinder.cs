@@ -1291,13 +1291,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
         private Output UnbindBundle(string bundleFile, string exportBasePath)
         {
             string uxExtractPath = Path.Combine(exportBasePath, "UX");
-            string acExtractPath = Path.Combine(exportBasePath, "AttachedContainer");
 
             using (BurnReader reader = BurnReader.Open(bundleFile, this))
             {
                 reader.ExtractUXContainer(uxExtractPath, this.tempFiles.BasePath);
-                reader.ExtractAttachedContainers(acExtractPath, this.tempFiles.BasePath);
-                reader.ExtractDetachedContainers(acExtractPath, this.tempFiles.BasePath);
+                reader.ExtractAttachedContainers(exportBasePath, this.tempFiles.BasePath);
+                reader.ExtractDetachedContainers(exportBasePath, this.tempFiles.BasePath);
             }
 
             return null;

@@ -60,7 +60,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         //   40-43:  container type (1 = CAB)
         //   44-47:  container count
         //   48-51:  byte count of manifest + UX container
-        //   52-55:  byte count of attached container
+        //   52-512: byte count of attached containers (4 bytes for each container)
         protected const UInt32 BURN_SECTION_OFFSET_MAGIC = 0;
         protected const UInt32 BURN_SECTION_OFFSET_VERSION = 4;
         protected const UInt32 BURN_SECTION_OFFSET_BUNDLEGUID = 8;
@@ -72,10 +72,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
         protected const UInt32 BURN_SECTION_OFFSET_COUNT = 44;
         protected const UInt32 BURN_SECTION_OFFSET_UXSIZE = 48;
         protected const UInt32 BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0 = 52;
-        protected const UInt32 BURN_SECTION_MIN_SIZE = BURN_SECTION_OFFSET_UXSIZE + 4; // last field is the UX container, as containers could be authored external. + sizeof(DWORD)
+        
+        protected const UInt32 BURN_SECTION_SIZE = 512;
+        protected const UInt32 BURN_SECTION_MAX_ATTACHEDCONTAINER_COUNT = (BURN_SECTION_SIZE - BURN_SECTION_OFFSET_ATTACHEDCONTAINERSIZE0) / sizeof(UInt32);
 
         protected const UInt32 BURN_SECTION_MAGIC = 0x00f14300;
-        protected const UInt32 BURN_SECTION_VERSION = 0x00000002;
+        protected const UInt32 BURN_SECTION_VERSION = 0x00000003;
+        protected const UInt32 BURN_SECTION_COMPATIBLE_VERSION = 0x00000002;
 
         protected string fileExe;
         protected IMessageHandler messageHandler;
@@ -173,12 +176,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             reader.BaseStream.Seek(this.wixburnDataOffset, SeekOrigin.Begin);
             List<byte> manifest = new List<byte>();
-            manifest.AddRange(reader.ReadBytes((int)BURN_SECTION_MIN_SIZE)); // Read until UX container
-            uint containerCount = BurnCommon.ReadUInt32(manifest.ToArray(), BURN_SECTION_OFFSET_COUNT);
-            if (containerCount > 1)
-            {
-                manifest.AddRange(reader.ReadBytes((int)(containerCount - 1) * 4)); // Add attached containers 
-            }
+            manifest.AddRange(reader.ReadBytes((int)BURN_SECTION_SIZE));
             byte[] bytes = manifest.ToArray();
             UInt32 uint32 = 0;
 
@@ -190,9 +188,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
 
             this.Version = BurnCommon.ReadUInt32(bytes, BURN_SECTION_OFFSET_VERSION);
-            if (BURN_SECTION_VERSION != this.Version)
+            if ((BURN_SECTION_VERSION != this.Version) && (BURN_SECTION_COMPATIBLE_VERSION != this.Version))
             {
-                this.messageHandler.OnMessage(WixErrors.BundleTooNew(this.fileExe, this.Version));
+                this.messageHandler.OnMessage(WixErrors.IncompatibleWixBurnSection(this.fileExe, this.Version));
                 return false;
             }
 
@@ -208,7 +206,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.OriginalSignatureOffset = BurnCommon.ReadUInt32(bytes, BURN_SECTION_OFFSET_ORIGINALSIGNATUREOFFSET);
             this.OriginalSignatureSize = BurnCommon.ReadUInt32(bytes, BURN_SECTION_OFFSET_ORIGINALSIGNATURESIZE);
 
-            this.ContainerCount = containerCount;
+            this.ContainerCount = BurnCommon.ReadUInt32(bytes, BURN_SECTION_OFFSET_COUNT);
+            if (BURN_SECTION_MAX_ATTACHEDCONTAINER_COUNT < this.ContainerCount)
+            {
+                this.messageHandler.OnMessage(WixErrors.InvalidBundle(this.fileExe));
+                return false;
+            }
             this.UXAddress = this.StubSize;
             this.UXSize = BurnCommon.ReadUInt32(bytes, BURN_SECTION_OFFSET_UXSIZE);
 
@@ -228,7 +231,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
             AttachedContainers.Clear();
             uint nextAddress = EngineSize;
-            if (ContainerCount > 0)
+            if (ContainerCount > 1)
             {
                 for (uint i = 0; i < (ContainerCount - 1 /* Excluding UX */); ++i)
                 {
@@ -283,9 +286,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     return false;
                 }
 
-                // we need 56 bytes for the manifest header, which is always going to fit in 
-                // the smallest alignment (512 bytes), but just to be paranoid...
-                if (BURN_SECTION_MIN_SIZE > BurnCommon.ReadUInt32(bytes, IMAGE_SECTION_HEADER_OFFSET_SIZEOFRAWDATA))
+                // We need 512 bytes for the manifest header
+                if (BURN_SECTION_SIZE > BurnCommon.ReadUInt32(bytes, IMAGE_SECTION_HEADER_OFFSET_SIZEOFRAWDATA))
                 {
                     this.messageHandler.OnMessage(WixErrors.StubWixburnSectionTooSmall(this.fileExe));
                     return false;
