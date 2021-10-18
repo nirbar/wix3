@@ -257,6 +257,7 @@ typedef struct _BURN_PACKAGE
             DWORD cSlipstreamMspPackages;
 
             BOOL fCompatibleInstalled;
+            BOOL fIsInstance; // For multi-instance MSI
         } Msi;
         struct
         {

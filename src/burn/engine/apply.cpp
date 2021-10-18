@@ -657,6 +657,20 @@ extern "C" HRESULT ApplyCache(
                 }
                 break;
 
+            case BURN_CACHE_ACTION_TYPE_PACKAGE_INC_REF_COUNT:
+            {
+                DWORD dwRefCount = 0;
+
+                AssertSz(pStartedPackage == pCacheAction->packageIncRefCount.pPackage, "Expected package started cached to be the same as the package ref count.");
+                CacheXcrementPackageRefCount(pCacheAction->packageIncRefCount.pPackage->sczId, pCacheAction->packageIncRefCount.pPackage->sczCacheId, pCacheAction->packageIncRefCount.pPackage->fPerMachine, TRUE, &dwRefCount);
+
+                if (dwRefCount > 1)
+                {
+                    LogId(REPORT_LEVEL::REPORT_STANDARD, MSG_CACHE_PACKAGE_REF_COUNT, pCacheAction->packageIncRefCount.pPackage->sczCacheId, dwRefCount);
+                }
+            }
+                break;
+
             case BURN_CACHE_ACTION_TYPE_SIGNAL_SYNCPOINT:
                 if (!::SetEvent(pCacheAction->syncpoint.hEvent))
                 {

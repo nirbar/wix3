@@ -933,3 +933,10 @@ SymbolicName=MSG_NON_VITAL_TLBK_BNDRY_SKIP_PKG
 Language=English
 Skipping package '%1!ls!' on non-vital rollback boundary failure
 .
+
+MessageId=707
+Severity=Success
+SymbolicName=MSG_CACHE_PACKAGE_REF_COUNT
+Language=English
+Cached package '%1!ls!' has %2!u! clients
+.

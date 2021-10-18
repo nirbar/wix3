@@ -132,6 +132,11 @@ extern "C" HRESULT CoreInitialize(
         hr = CacheInitialize(&pEngineState->registration, &pEngineState->variables, sczSourceProcessPath);
         ExitOnFailure(hr, "Failed to initialize internal cache functionality.");
     }
+    else
+    {
+        hr = CacheInitializeRegistrationId(&pEngineState->registration);
+        ExitOnFailure(hr, "Failed to initialize internal cache registration functionality.");
+    }
 
     // If we're not elevated then we'll be loading the bootstrapper application, so extract
     // the payloads from the BA container.

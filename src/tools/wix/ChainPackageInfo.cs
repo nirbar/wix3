@@ -28,6 +28,31 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
         public ChainPackageInfo(Row chainPackageRow, Table wixGroupTable, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, BinderFileManager fileManager, BinderCore core, Output bundle) : base(chainPackageRow.SourceLineNumbers, bundle.Tables["ChainPackageInfo"])
         {
+            this.Initialize(chainPackageRow, wixGroupTable, allPayloads, containers, fileManager, core, bundle);
+            this.Resolve(chainPackageRow, allPayloads, containers, fileManager, bundle);
+        }
+
+        public ChainPackageInfo(ChainPackageInfo parentMsi, MsiInstanceInfo msiInstanceInfo, Row chainPackageRow, Table wixGroupTable, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, BinderFileManager fileManager, BinderCore core, Output bundle) : base(msiInstanceInfo.SourceLineNumbers, bundle.Tables["ChainPackageInfo"])
+        {
+            // Reuse parent payloads.
+            chainPackageRow[2] = parentMsi.PackagePayload.Id;
+            foreach (PayloadInfoRow parentPayload in parentMsi.Payloads)
+            {
+                Row wixGroupRow = wixGroupTable.CreateRow(msiInstanceInfo.SourceLineNumbers);
+                wixGroupRow[0] = msiInstanceInfo.InstancePackageId;
+                wixGroupRow[1] = "Package";
+                wixGroupRow[2] = parentPayload.Id;
+                wixGroupRow[3] = "Payload";
+            }
+
+            this.Initialize(chainPackageRow, wixGroupTable, allPayloads, containers, fileManager, core, bundle);
+
+            // Resolve ProductName, ProductCode, UpgradeCode with the instance transform applied. CacheId uses ProductCode of base package
+            this.ResolveMsiPackage(chainPackageRow, fileManager, allPayloads, containers, bundle, msiInstanceInfo);
+        }
+
+        private void Initialize(Row chainPackageRow, Table wixGroupTable, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, BinderFileManager fileManager, BinderCore core, Output bundle)
+        {
             string id = (string)chainPackageRow[0];
             string packageType = (string)chainPackageRow[1];
             string payloadId = (string)chainPackageRow[2];
@@ -47,9 +72,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             string rollbackPathVariable = (string)chainPackageRow[16];
             string protocol = (string)chainPackageRow[17];
             long installSize = (int)chainPackageRow[18];
-            object suppressLooseFilePayloadGenerationData = chainPackageRow[19];
-            object enableFeatureSelectionData = chainPackageRow[20];
-            object forcePerMachineData = chainPackageRow[21];
             object displayInternalUIData = chainPackageRow[22];
 
             BundlePackageAttributes attributes = (null == attributesData) ? 0 : (BundlePackageAttributes)attributesData;
@@ -94,24 +116,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             if (null != repairableData)
             {
                 repairable = (1 == (int)repairableData) ? YesNoType.Yes : YesNoType.No;
-            }
-
-            YesNoType suppressLooseFilePayloadGeneration = YesNoType.NotSet;
-            if (null != suppressLooseFilePayloadGenerationData)
-            {
-                suppressLooseFilePayloadGeneration = (1 == (int)suppressLooseFilePayloadGenerationData) ? YesNoType.Yes : YesNoType.No;
-            }
-
-            YesNoType enableFeatureSelection = YesNoType.NotSet;
-            if (null != enableFeatureSelectionData)
-            {
-                enableFeatureSelection = (1 == (int)enableFeatureSelectionData) ? YesNoType.Yes : YesNoType.No;
-            }
-
-            YesNoType forcePerMachine = YesNoType.NotSet;
-            if (null != forcePerMachineData)
-            {
-                forcePerMachine = (1 == (int)forcePerMachineData) ? YesNoType.Yes : YesNoType.No;
             }
 
             YesNoType displayInternalUI = YesNoType.NotSet;
@@ -190,10 +194,18 @@ namespace Microsoft.Tools.WindowsInstallerXml
             // Default the install size to the calculated package size.
             this.InstallSize = this.Size;
 
+            if (CompilerCore.IntegerNotSet != installSize)
+            {
+                this.InstallSize = installSize;
+            }
+        }
+
+        private void Resolve(Row chainPackageRow, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, BinderFileManager fileManager, Output bundle)
+        {
             switch (this.ChainPackageType)
             {
                 case Compiler.ChainPackageType.Msi:
-                    this.ResolveMsiPackage(fileManager, allPayloads, containers, suppressLooseFilePayloadGeneration, enableFeatureSelection, forcePerMachine, bundle);
+                    this.ResolveMsiPackage(chainPackageRow, fileManager, allPayloads, containers, bundle);
                     break;
                 case Compiler.ChainPackageType.Msp:
                     this.ResolveMspPackage(bundle);
@@ -204,11 +216,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 case Compiler.ChainPackageType.Exe:
                     this.ResolveExePackage();
                     break;
-            }
-
-            if (CompilerCore.IntegerNotSet != installSize)
-            {
-                this.InstallSize = installSize;
             }
         }
 
@@ -243,7 +250,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public string InstallCondition
         {
             get { return (string)this.Fields[3].Data; }
-            private set { this.Fields[3].Data = value;  }
+            private set { this.Fields[3].Data = value; }
         }
 
         public string InstallCommand
@@ -579,8 +586,30 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// <summary>
         /// Initializes package state from the MSI contents.
         /// </summary>
-        private void ResolveMsiPackage(BinderFileManager fileManager, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, YesNoType suppressLooseFilePayloadGeneration, YesNoType enableFeatureSelection, YesNoType forcePerMachine, Output bundle)
+        private void ResolveMsiPackage(Row chainPackageRow, BinderFileManager fileManager, Dictionary<string, PayloadInfoRow> allPayloads, Dictionary<string, ContainerInfo> containers, Output bundle, MsiInstanceInfo msiInstanceInfo = null)
         {
+            object suppressLooseFilePayloadGenerationData = chainPackageRow[19];
+            object enableFeatureSelectionData = chainPackageRow[20];
+            object forcePerMachineData = chainPackageRow[21];
+
+            YesNoType suppressLooseFilePayloadGeneration = YesNoType.NotSet;
+            if (null != suppressLooseFilePayloadGenerationData)
+            {
+                suppressLooseFilePayloadGeneration = (1 == (int)suppressLooseFilePayloadGenerationData) ? YesNoType.Yes : YesNoType.No;
+            }
+
+            YesNoType enableFeatureSelection = YesNoType.NotSet;
+            if (null != enableFeatureSelectionData)
+            {
+                enableFeatureSelection = (1 == (int)enableFeatureSelectionData) ? YesNoType.Yes : YesNoType.No;
+            }
+
+            YesNoType forcePerMachine = YesNoType.NotSet;
+            if (null != forcePerMachineData)
+            {
+                forcePerMachine = (1 == (int)forcePerMachineData) ? YesNoType.Yes : YesNoType.No;
+            }
+
             string sourcePath = this.PackagePayload.FullFileName;
             bool longNamesInImage = false;
             bool compressed = false;
@@ -608,7 +637,41 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                 using (Microsoft.Deployment.WindowsInstaller.Database db = new Microsoft.Deployment.WindowsInstaller.Database(sourcePath))
                 {
-                    this.ProductCode = ChainPackageInfo.GetProperty(db, "ProductCode");
+                    string originalUpgradeCode = ChainPackageInfo.GetProperty(db, "UpgradeCode");
+                    string upgradeCode = originalUpgradeCode; // May be different in MSI instances
+                    string displayName = ChainPackageInfo.GetProperty(db, "ProductName");
+                    string productCode = ChainPackageInfo.GetProperty(db, "ProductCode");
+                    string defaultCacheCode = productCode;
+
+                    if (msiInstanceInfo != null)
+                    {
+                        db.ViewTransform(":" + msiInstanceInfo.InstanceId);
+
+                        string transformPropertyQueryFormat = "SELECT `Data` FROM `_TransformView` WHERE `Table` = 'Property' AND `Column` = 'Value' AND `Row` = '{0}'";
+                        productCode = db.ExecuteScalar(transformPropertyQueryFormat, "ProductCode") as string;
+
+                        // Optional UpgradeCode.
+                        IList<string> results = db.ExecuteStringQuery(transformPropertyQueryFormat, "UpgradeCode");
+                        if ((results != null) && (results.Count == 1))
+                        {
+                            if (!string.IsNullOrEmpty(results[0]))
+                            {
+                                upgradeCode = results[0];
+                            }
+                        }
+
+                        // Optional Name
+                        results = db.ExecuteStringQuery(transformPropertyQueryFormat, "ProductName");
+                        if ((results != null) && (results.Count == 1))
+                        {
+                            if (!string.IsNullOrEmpty(results[0]))
+                            {
+                                displayName = results[0];
+                            }
+                        }
+                    }
+
+                    this.ProductCode = productCode;
                     this.Language = ChainPackageInfo.GetProperty(db, "ProductLanguage");
                     this.Version = ChainPackageInfo.GetProperty(db, "ProductVersion");
 
@@ -640,12 +703,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                     if (String.IsNullOrEmpty(this.CacheId))
                     {
-                        this.CacheId = String.Format("{0}v{1}", this.ProductCode, this.Version);
+                        this.CacheId = String.Format("{0}v{1}", defaultCacheCode, this.Version);
                     }
 
                     if (String.IsNullOrEmpty(this.DisplayName))
                     {
-                        this.DisplayName = ChainPackageInfo.GetProperty(db, "ProductName");
+                        this.DisplayName = displayName;
                     }
 
                     this.Manufacturer = ChainPackageInfo.GetProperty(db, "Manufacturer");
@@ -730,10 +793,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         }
                     }
 
-                    this.UpgradeCode = ChainPackageInfo.GetProperty(db, "UpgradeCode");
+                    this.UpgradeCode = upgradeCode;
 
-                        // Represent the Upgrade table as related packages.
-                    if (db.Tables.Contains("Upgrade") && !String.IsNullOrEmpty(this.UpgradeCode))
+                    // Represent the Upgrade table as related packages.
+                    if (db.Tables.Contains("Upgrade") && !String.IsNullOrEmpty(originalUpgradeCode))
                     {
                         using (Microsoft.Deployment.WindowsInstaller.View view = db.OpenView("SELECT `UpgradeCode`, `VersionMin`, `VersionMax`, `Language`, `Attributes` FROM `Upgrade`"))
                         {
@@ -749,6 +812,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
 
                                     RelatedPackage related = new RelatedPackage();
                                     related.Id = record.GetString(1);
+                                    // We assume that MSI instances that modify the UpgradeCode also modify the Upgrade table
+                                    if (!originalUpgradeCode.Equals(this.UpgradeCode) && related.Id.Equals(originalUpgradeCode))
+                                    {
+                                        related.Id = this.UpgradeCode;
+                                    }
+
                                     related.MinVersion = record.GetString(2);
                                     related.MaxVersion = record.GetString(3);
 
@@ -873,7 +942,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                     }
 
                                     this.Payloads.Add(payloadNew);
-                                    allPayloads.Add(payloadNew.Id, payloadNew);
+                                    if (!allPayloads.ContainsKey(payloadNew.Id)) // Duplicate is possible when using multi-instance MSI
+                                    {
+                                        allPayloads.Add(payloadNew.Id, payloadNew);
+                                    }
 
                                     this.Size += payloadNew.FileSize; // add the newly added payload to the package size.
                                 }
@@ -988,10 +1060,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                     if (hasVersion)
                                     {
                                         string version = record.GetString(2) ?? this.Version;
-                                        string displayName = record.GetString(3) ?? this.DisplayName;
+                                        string depDisplayName = record.GetString(3) ?? this.DisplayName;
                                         int attributes = record.GetInteger(4);
 
-                                        dependency = new ProvidesDependency(providerKey, version, displayName, attributes);
+                                        dependency = new ProvidesDependency(providerKey, version, depDisplayName, attributes);
                                     }
                                     else
                                     {

@@ -49,6 +49,11 @@ static void RegisterSourceDirectory(
     __in BURN_PACKAGE* pPackage,
     __in_z LPCWSTR wzCacheDirectory
     );
+static HRESULT ConcatInstanceProperties(
+    __in BURN_PACKAGE* pPackage,
+    __in BOOTSTRAPPER_ACTION_STATE nAction,
+    __inout_z LPWSTR* psczArguments
+    );
 
 
 // function definitions
@@ -82,6 +87,10 @@ extern "C" HRESULT MsiEngineParsePackageFromXml(
     // @DisplayInternalUI
     hr = XmlGetYesNoAttribute(pixnMsiPackage, L"DisplayInternalUI", &pPackage->Msi.fDisplayInternalUI);
     ExitOnFailure(hr, "Failed to get @DisplayInternalUI.");
+
+    // @IsInstance
+    hr = XmlGetYesNoAttribute(pixnMsiPackage, L"IsInstance", &pPackage->Msi.fIsInstance);
+    ExitOnFailure(hr, "Failed to get @IsInstance.");
 
     // select feature nodes
     hr = XmlSelectNodes(pixnMsiPackage, L"MsiFeature", &pixnNodes);
@@ -1180,6 +1189,13 @@ extern "C" HRESULT MsiEngineExecutePackage(
     hr = ConcatPatchProperty(pExecuteAction->msiPackage.pPackage, pExecuteAction->msiPackage.rgSlipstreamPatches, &sczObfuscatedProperties);
     ExitOnFailure(hr, "Failed to add patch properties to obfuscated argument string.");
 
+    // Add MSI multi-instance properties
+    hr = ConcatInstanceProperties(pExecuteAction->msiPackage.pPackage, pExecuteAction->msiPackage.action, &sczProperties);
+    ExitOnFailure(hr, "Failed to add instance properties to argument string.");
+
+    hr = ConcatInstanceProperties(pExecuteAction->msiPackage.pPackage, pExecuteAction->msiPackage.action, &sczObfuscatedProperties);
+    ExitOnFailure(hr, "Failed to add instance properties to obfuscated argument string.");
+
     LogId(REPORT_STANDARD, MSG_APPLYING_PACKAGE, LoggingRollbackOrExecute(fRollback), pExecuteAction->msiPackage.pPackage->sczId, LoggingActionStateToString(pExecuteAction->msiPackage.action), sczMsiPath, sczObfuscatedProperties ? sczObfuscatedProperties : L"");
 
     //
@@ -1884,4 +1900,53 @@ LExit:
     ReleaseStr(sczMsiDirectory);
 
     return;
+}
+
+static HRESULT ConcatInstanceProperties(
+    __in BURN_PACKAGE* pPackage,
+    __in BOOTSTRAPPER_ACTION_STATE nAction,
+    __inout_z LPWSTR* psczArguments
+    )
+{
+    HRESULT hr = S_OK;
+    LPWSTR sczProperties = NULL;
+
+    if (pPackage->Msi.fIsInstance)
+    {
+        switch (nAction)
+        {
+            // On install, set MSINEWINSTANCE
+        case BOOTSTRAPPER_ACTION_STATE_INSTALL:
+        case BOOTSTRAPPER_ACTION_STATE_ADMIN_INSTALL:
+        case BOOTSTRAPPER_ACTION_STATE_MAJOR_UPGRADE:
+            hr = StrAllocString(&sczProperties, L" MSINEWINSTANCE=1", 0);
+            ExitOnFailure(hr, "Failed to add MSINEWINSTANCE to argument string.");
+            break;
+
+            // On anything but install, use MSIINSTANCEGUID
+        case BOOTSTRAPPER_ACTION_STATE_UNINSTALL:
+        case BOOTSTRAPPER_ACTION_STATE_MODIFY:
+        case BOOTSTRAPPER_ACTION_STATE_REPAIR:
+        case BOOTSTRAPPER_ACTION_STATE_MINOR_UPGRADE:
+        case BOOTSTRAPPER_ACTION_STATE_PATCH:
+            hr = StrAllocFormatted(&sczProperties, L" MSIINSTANCEGUID=%s", pPackage->Msi.sczProductCode);
+            ExitOnFailure(hr, "Failed to add MSIINSTANCEGUID to argument string.");
+            break;
+
+        default:
+        case BOOTSTRAPPER_ACTION_STATE_NONE:
+            break;
+        }
+    }
+
+    if (sczProperties && *sczProperties)
+    {
+        hr = StrAllocConcat(psczArguments, sczProperties, 0);
+        ExitOnFailure(hr, "Failed to add instance properties to argument string.");
+    }
+
+LExit:
+    ReleaseStr(sczProperties);
+
+    return hr;
 }

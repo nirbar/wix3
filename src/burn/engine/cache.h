@@ -10,6 +10,9 @@ extern "C" {
 
 // functions
 
+HRESULT CacheInitializeRegistrationId(
+    __in BURN_REGISTRATION* pRegistration
+    );
 HRESULT CacheInitialize(
     __in BURN_REGISTRATION* pRegistration,
     __in BURN_VARIABLES* pVariables,
@@ -144,6 +147,13 @@ void CacheCleanup(
     __in_z LPCWSTR wzBundleId
     );
 void CacheUninitialize();
+HRESULT CacheXcrementPackageRefCount(
+    __in_z LPCWSTR wzPackageId,
+    __in_z LPCWSTR wzCacheId,
+    __in BOOL fPerMachine,
+    __in BOOL fIncrement,
+    __out LPDWORD pdwRefCount
+    );
 
 #ifdef __cplusplus
 }

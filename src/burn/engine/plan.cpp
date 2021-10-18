@@ -2141,6 +2141,16 @@ static HRESULT AddCachePackageHelper(
     // and the array may be resized later which would move a pointer around in memory.
     iPackageStartAction = pPlan->cCacheActions - 1;
 
+    // Increment package ref count. We do this first so the package will not be deleted on rollback if it was already present
+    if (pPackage->execute >= BOOTSTRAPPER_ACTION_STATE_INSTALL)
+    {
+        hr = AppendCacheAction(pPlan, &pCacheAction);
+        ExitOnFailure(hr, "Failed to append cache action.");
+
+        pCacheAction->type = BURN_CACHE_ACTION_TYPE_PACKAGE_INC_REF_COUNT;
+        pCacheAction->packageIncRefCount.pPackage = pPackage;
+    }
+
     if (fPlanCacheRollback)
     {
         // Create a package cache rollback action.
@@ -2957,6 +2967,10 @@ static void CacheActionLog(
 
     case BURN_CACHE_ACTION_TYPE_PACKAGE_START:
         LogStringLine(REPORT_STANDARD, "%ls action[%u]: PACKAGE_START id: %ls, plan index for skip: %u, payloads to cache: %u, bytes to cache: %llu, skip until retried: %hs", wzBase, iAction, pAction->packageStart.pPackage->sczId, pAction->packageStart.iPackageCompleteAction, pAction->packageStart.cCachePayloads, pAction->packageStart.qwCachePayloadSizeTotal, LoggingBoolToString(pAction->fSkipUntilRetried));
+        break;
+
+    case BURN_CACHE_ACTION_TYPE_PACKAGE_INC_REF_COUNT:
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: PACKAGE_INC_REF_COUNT id: %ls, cache-id: %ls", wzBase, iAction, pAction->packageIncRefCount.pPackage->sczId, pAction->packageIncRefCount.pPackage->sczCacheId);
         break;
 
     case BURN_CACHE_ACTION_TYPE_PACKAGE_STOP:

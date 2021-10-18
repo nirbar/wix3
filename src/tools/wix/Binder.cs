@@ -3497,6 +3497,15 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
             }
 
+            // Load MSI instance packages
+            Table msiInstanceTable = bundle.EnsureTable(this.core.TableDefinitions["MsiInstance"]);
+            Dictionary<string, MsiInstanceInfo> msiInstances = new Dictionary<string, MsiInstanceInfo>();
+            foreach (Row row in msiInstanceTable.Rows)
+            {
+                MsiInstanceInfo msiInstance = new MsiInstanceInfo(row);
+                msiInstances[msiInstance.InstancePackageId] = msiInstance;
+            }
+
             // Get the chain packages, this may add more payloads.
             Dictionary<string, ChainPackageInfo> allPackages = new Dictionary<string, ChainPackageInfo>();
             Dictionary<string, RollbackBoundaryInfo> allBoundaries = new Dictionary<string, RollbackBoundaryInfo>();
@@ -3512,7 +3521,26 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     Table chainPackageInfoTable = bundle.EnsureTable(this.core.TableDefinitions["ChainPackageInfo"]);
 
-                    ChainPackageInfo packageInfo = new ChainPackageInfo(row, wixGroupTable, allPayloads, containers, this.FileManager, this.core, bundle);
+                    // If the package is an MSI instance, reuse parent's payloads
+                    string id = (string)row[0];
+                    ChainPackageInfo packageInfo = null;
+                    if (msiInstances.ContainsKey(id))
+                    {
+                        MsiInstanceInfo msiInstanceInfo = msiInstances[id];
+                        ChainPackageInfo parentMsiInfo;
+                        if (!allPackages.TryGetValue(msiInstanceInfo.ParentPackageId, out parentMsiInfo))
+                        {
+                            core.OnMessage(WixErrors.IdentifierNotFound("Package", msiInstanceInfo.ParentPackageId));
+                            continue;
+                        }
+
+                        packageInfo = new ChainPackageInfo(parentMsiInfo, msiInstanceInfo, row, wixGroupTable, allPayloads, containers, this.FileManager, this.core, bundle);
+                    }
+                    else
+                    {
+                        packageInfo = new ChainPackageInfo(row, wixGroupTable, allPayloads, containers, this.FileManager, this.core, bundle);
+                    }
+
                     allPackages.Add(packageInfo.Id, packageInfo);
 
                     chainPackageInfoTable.Rows.Add(packageInfo);
@@ -3979,7 +4007,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
 
             string manifestPath = Path.Combine(this.TempFilesLocation, "bundle-manifest.xml");
-            this.CreateBurnManifest(bundleFile, bundleInfo, bundleUpdateRow, updateRegistrationInfo, manifestPath, allRelatedBundles, allVariables, orderedSearches, allPayloads, chain, containers, catalogs, bundle.Tables["WixBundleTag"], approvedExesForElevation, commandLinesByPackage);
+            this.CreateBurnManifest(bundleFile, bundleInfo, bundleUpdateRow, updateRegistrationInfo, manifestPath, allRelatedBundles, allVariables, orderedSearches, allPayloads, chain, containers, catalogs, bundle.Tables["WixBundleTag"], approvedExesForElevation, commandLinesByPackage, msiInstances);
 
             this.UpdateBurnResources(bundleTempPath, bundleFile, bundleInfo);
 
@@ -4409,7 +4437,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             }
         }
 
-        private void CreateBurnManifest(string outputPath, WixBundleRow bundleInfo, WixBundleUpdateRow updateRow, WixUpdateRegistrationRow updateRegistrationInfo, string path, List<RelatedBundleInfo> allRelatedBundles, List<VariableInfo> allVariables, List<WixSearchInfo> orderedSearches, Dictionary<string, PayloadInfoRow> allPayloads, ChainInfo chain, Dictionary<string, ContainerInfo> containers, Dictionary<string, CatalogInfo> catalogs, Table wixBundleTagTable, List<ApprovedExeForElevation> approvedExesForElevation, Dictionary<string, List<WixCommandLineRow>> commandLinesByPackage)
+        private void CreateBurnManifest(string outputPath, WixBundleRow bundleInfo, WixBundleUpdateRow updateRow, WixUpdateRegistrationRow updateRegistrationInfo, string path, List<RelatedBundleInfo> allRelatedBundles, List<VariableInfo> allVariables, List<WixSearchInfo> orderedSearches, Dictionary<string, PayloadInfoRow> allPayloads, ChainInfo chain, Dictionary<string, ContainerInfo> containers, Dictionary<string, CatalogInfo> catalogs, Table wixBundleTagTable, List<ApprovedExeForElevation> approvedExesForElevation, Dictionary<string, List<WixCommandLineRow>> commandLinesByPackage, Dictionary<string, MsiInstanceInfo> msiInstances)
         {
             string executableName = Path.GetFileName(outputPath);
 
@@ -4718,6 +4746,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         writer.WriteAttributeString("Language", package.Language);
                         writer.WriteAttributeString("Version", package.Version);
                         writer.WriteAttributeString("DisplayInternalUI", package.DisplayInternalUI ? "yes" : "no");
+                        writer.WriteAttributeString("IsInstance", msiInstances.ContainsKey(package.Id) ? "yes" : "no");
                     }
                     else if (Compiler.ChainPackageType.Msp == package.ChainPackageType)
                     {

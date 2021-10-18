@@ -14429,8 +14429,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 }
                                 break;
 
-                            // We need to other elements this below the generation of the id, because the id is an
-                            // input into extension elements.  This also means that we need to re-parse these elements below.
+                                // We need to other elements this below the generation of the id, because the id is an
+                                // input into extension elements.  This also means that we need to re-parse these elements below.
                         }
                     }
                 }
@@ -21840,6 +21840,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 this.core.ParseExtensionAttribute(pair.Key, (XmlElement)node, pair.Value, contextValues);
             }
 
+            List<Row> msiInstances = new List<Row>();
             foreach (XmlNode child in node.ChildNodes)
             {
                 if (XmlNodeType.Element == child.NodeType)
@@ -21861,6 +21862,17 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 if (allowed)
                                 {
                                     this.ParseMsiPropertyElement(child, id);
+                                }
+                                break;
+                            case "MsiInstance":
+                                allowed = packageType == ChainPackageType.Msi;
+                                if (allowed)
+                                {
+                                    Row msiInstance = this.ParseMsiInstanceElement(child, id);
+                                    if (msiInstance != null)
+                                    {
+                                        msiInstances.Add(msiInstance);
+                                    }
                                 }
                                 break;
                             case "Payload":
@@ -22001,8 +22013,107 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, after);
+
+                if (msiInstances.Count > 0)
+                {
+                    AddMsiInstancePackage(node, id, msiInstances);
+                }
             }
             return id;
+        }
+
+        // Inject MsiPackage elements for each MsiInstance. This hack ensures that each instance packages are reparsed
+        // Modifications per instance:
+        //  InstallCondition - Replace with instance condition
+        //  TRANSFORMS property - set/prepend with instance transform
+        //  Explictly execute after the parent package
+        //  Append instance ID to package ID
+        //  Append instance ID to LogPathVariable and RollbackLogPathVariable, if specified
+        //  Remove all payloads (paylaods will be referenced in the instance packages by the binder)
+        private static void AddMsiInstancePackage(XmlNode node, string parentPackageId, List<Row> msiInstances)
+        {
+            string afterId = parentPackageId;
+            foreach (Row msiInst in msiInstances)
+            {
+                // Insert source line number
+                XmlProcessingInstruction sourceLineElement = node.OwnerDocument.CreateProcessingInstruction(Preprocessor.LineNumberElementName, msiInst.SourceLineNumbers.EncodedSourceLineNumbers);
+                node.ParentNode.InsertAfter(sourceLineElement, node);
+
+                // Insert the new MsiPackage
+                XmlElement packageInstance = node.CloneNode(true) as XmlElement;
+                node.ParentNode.InsertAfter(packageInstance, sourceLineElement);
+
+                // Overwrite package Id
+                string instancePackageId = msiInst.Fields[0].Data.ToString();
+                string instanceId = msiInst.Fields[2].Data.ToString();
+                string instanceCondition = msiInst.Fields[3].Data as string;
+                packageInstance.SetAttribute("Id", instancePackageId);
+
+                // Explicit sequencing
+                packageInstance.SetAttribute("After", afterId);
+                packageInstance.RemoveAttribute("Before");
+                afterId = instancePackageId;
+
+                // Modify explicit LogPathVariable, RollbackLogPathVariable
+                if (packageInstance.HasAttribute("LogPathVariable"))
+                {
+                    string instanceLogPathVariable = packageInstance.GetAttribute("LogPathVariable");
+                    instanceLogPathVariable = string.Format("{0}.{1}", instanceLogPathVariable, instanceId);
+                    packageInstance.SetAttribute("LogPathVariable", instanceLogPathVariable);
+                }
+                if (packageInstance.HasAttribute("RollbackLogPathVariable"))
+                {
+                    string instanceLogPathVariable = packageInstance.GetAttribute("RollbackLogPathVariable");
+                    instanceLogPathVariable = string.Format("{0}.{1}", instanceLogPathVariable, instanceId);
+                    packageInstance.SetAttribute("RollbackLogPathVariable", instanceLogPathVariable);
+                }
+
+                // Clear or set InstallCondition
+                if (string.IsNullOrEmpty(instanceCondition))
+                {
+                    packageInstance.RemoveAttribute("InstallCondition");
+                }
+                else
+                {
+                    packageInstance.SetAttribute("InstallCondition", instanceCondition);
+                }
+
+                bool hasTransformsProperty = false;
+                for (int i = packageInstance.ChildNodes.Count - 1; i >= 0; --i)
+                {
+                    XmlNode child = packageInstance.ChildNodes[i];
+                    if ((child.NodeType == XmlNodeType.Element) && (child.NamespaceURI == node.NamespaceURI))
+                    {
+                        XmlElement childElem = child as XmlElement;
+                        switch (childElem.LocalName)
+                        {
+                            case "MsiInstance": // Remove self and sibling instances
+                            case "Payload": // Binder will reference all package payloads
+                            case "PayloadGroupRef":
+                                packageInstance.RemoveChild(child);
+                                break;
+
+                            case "MsiProperty":
+                                if ("TRANSFORMS".Equals(childElem.GetAttribute("Name")))
+                                {
+                                    hasTransformsProperty = true;
+                                    string transforms = childElem.GetAttribute("Value");
+                                    transforms = string.Format(":{0};{1}", instanceId, transforms);
+                                }
+                                break;
+                        }
+                    }
+                }
+
+                // Add TRANSFORMS property, if it doesn't already exists
+                if (!hasTransformsProperty)
+                {
+                    XmlElement transformsProp = node.OwnerDocument.CreateElement("MsiProperty", node.NamespaceURI);
+                    transformsProp.SetAttribute("Name", "TRANSFORMS");
+                    transformsProp.SetAttribute("Value", ":" + instanceId);
+                    packageInstance.AppendChild(transformsProp);
+                }
+            }
         }
 
         /// <summary>
@@ -22298,6 +22409,60 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 row[2] = dependsOnType.ToString();
                 row[3] = dependsOnId;
             }
+        }
+
+        private Row ParseMsiInstanceElement(XmlNode node, string packageId)
+        {
+            SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
+            string id = null;
+            string condition = null;
+
+            foreach (XmlAttribute attrib in node.Attributes)
+            {
+                if (0 == attrib.NamespaceURI.Length || attrib.NamespaceURI == this.schema.TargetNamespace)
+                {
+                    switch (attrib.LocalName)
+                    {
+                        case "Id":
+                            id = this.core.GetAttributeIdentifierValue(sourceLineNumbers, attrib);
+                            break;
+                        case "Condition":
+                            condition = this.core.GetAttributeValue(sourceLineNumbers, attrib);
+                            break;
+                        default:
+                            this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
+                            break;
+                    }
+                }
+            }
+
+            if (null == id)
+            {
+                this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Id"));
+            }
+
+            foreach (XmlNode child in node.ChildNodes)
+            {
+                if (XmlNodeType.Element == child.NodeType)
+                {
+                    if (child.NamespaceURI == this.schema.TargetNamespace)
+                    {
+                        this.core.UnexpectedElement(node, child);
+                    }
+                }
+            }
+
+            if (!this.core.EncounteredError)
+            {
+                Row row = this.core.CreateRow(sourceLineNumbers, "MsiInstance");
+                row[0] = string.Format("{0}.{1}", packageId, id);
+                row[1] = packageId;
+                row[2] = id;
+                row[3] = condition;
+                return row;
+            }
+
+            return null;
         }
 
         /// <summary>

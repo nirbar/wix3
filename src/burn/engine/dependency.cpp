@@ -1145,6 +1145,9 @@ static HRESULT RegisterPackageDependency(
         }
     }
 
+    hr = CacheXcrementPackageRefCount(pPackage->sczId, pPackage->sczCacheId, fPerMachine, TRUE, nullptr);
+    ExitOnFailure(hr, "Failed to increment the package cache ref-count.");
+
 LExit:
     return hr;
 }
@@ -1188,6 +1191,8 @@ static void UnregisterPackageDependency(
             }
         }
     }
+
+    CacheXcrementPackageRefCount(pPackage->sczId, pPackage->sczCacheId, fPerMachine, FALSE, nullptr);
 }
 
 /********************************************************************

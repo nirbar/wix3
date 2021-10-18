@@ -49,6 +49,7 @@ enum BURN_CACHE_ACTION_TYPE
     BURN_CACHE_ACTION_TYPE_CACHE_PAYLOAD,
     BURN_CACHE_ACTION_TYPE_LAYOUT_PAYLOAD,
     BURN_CACHE_ACTION_TYPE_TRANSACTION_BOUNDARY,
+    BURN_CACHE_ACTION_TYPE_PACKAGE_INC_REF_COUNT,
 };
 
 enum BURN_EXECUTE_ACTION_TYPE
@@ -118,6 +119,10 @@ typedef struct _BURN_CACHE_ACTION
             DWORD64 qwCachePayloadSizeTotal;
             DWORD iPackageCompleteAction;
         } packageStart;
+        struct
+        {
+            BURN_PACKAGE* pPackage;
+        } packageIncRefCount;
         struct
         {
             BURN_PACKAGE* pPackage;

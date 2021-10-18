@@ -19,6 +19,7 @@
 - [6298](https://github.com/wixtoolset/issues/issues/6298): Fix extracting bootstrappers with detached containers
 - [6348](https://github.com/wixtoolset/issues/issues/6348): Fix .NET chaining response to files-in-use message.
 - [6450](https://github.com/wixtoolset/issues/issues/6450): Support multiple firewall rules with the same name.
+- [6472](https://github.com/wixtoolset/issues/issues/6472): Bundle can install multi-instance MSI packages. See [Authoring Multiple Instances with Instance Transforms](https://docs.microsoft.com/en-us/windows/win32/msi/authoring-multiple-instances-with-instance-transforms).
 - When using MSBuild HarvestDirectory target, support generating a random preprocessor variable
 - Changes by WiX up to git commit 376423b8101f4b59ee865e8a255cfe190fa5a7f1
 - Build for .NET Framework 4.0

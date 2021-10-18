@@ -1780,6 +1780,13 @@
         <columnDefinition name="Name" type="string" length="0" category="identifier" primaryKey="yes" />
         <columnDefinition name="Value" type="string" length="0" />
     </tableDefinition>
+    <tableDefinition name="MsiInstance" createSymbols="yes" unreal="yes">
+        <columnDefinition name="Id" type="string" length="0" category="identifier" primaryKey="yes" />
+        <columnDefinition name="ChainPackage_" type="string" length="0" category="identifier" primaryKey="yes"
+                keyTable="ChainPackage" keyColumn="1" description="Reference to a ChainPackage entry in the ChainPackage table."/>
+        <columnDefinition name="InstanceId" type="string" length="0" category="identifier" primaryKey="yes" />
+        <columnDefinition name="Condition" type="string" length="0" nullable="yes" />
+    </tableDefinition>
     <tableDefinition name="SlipstreamMsp" createSymbols="yes" unreal="yes">
         <columnDefinition name="ChainPackage_" type="string" length="0" category="identifier" primaryKey="yes"
                 keyTable="ChainPackage" keyColumn="1" description="Reference to a ChainPackage entry in the ChainPackage table for the parent Msi."/>

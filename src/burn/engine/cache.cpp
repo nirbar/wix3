@@ -6,6 +6,7 @@ static const LPCWSTR BUNDLE_CLEAN_ROOM_WORKING_FOLDER_NAME = L".cr";
 static const LPCWSTR BUNDLE_WORKING_FOLDER_NAME = L".be";
 static const LPCWSTR UNVERIFIED_CACHE_FOLDER_NAME = L".unverified";
 static const LPCWSTR PACKAGE_CACHE_FOLDER_NAME = L"Package Cache";
+static const LPCWSTR PACKAGE_CACHE_KEY = L"SOFTWARE\\Package Cache";
 static const DWORD FILE_OPERATION_RETRY_COUNT = 3;
 static const DWORD FILE_OPERATION_RETRY_WAIT = 2000;
 
@@ -16,6 +17,7 @@ static LPWSTR vsczWorkingFolder = NULL;
 static LPWSTR vsczDefaultUserPackageCache = NULL;
 static LPWSTR vsczDefaultMachinePackageCache = NULL;
 static LPWSTR vsczCurrentMachinePackageCache = NULL;
+static LPWSTR vsczRegistrationId = NULL;
 
 static HRESULT CalculateWorkingFolder(
     __in_z LPCWSTR wzBundleId,
@@ -105,6 +107,23 @@ static HRESULT VerifyPayloadAgainstChain(
     );
 
 
+extern "C" HRESULT CacheInitializeRegistrationId(
+    __in BURN_REGISTRATION* pRegistration
+    )
+{
+    HRESULT hr = S_OK;
+
+    if (!vsczRegistrationId)
+    {
+        hr = StrAllocString(&vsczRegistrationId, pRegistration->sczId, 0);
+        ExitOnFailure(hr, "Failed to initialize bundle registration id.");
+    }
+
+LExit:
+
+    return hr;
+}
+
 extern "C" HRESULT CacheInitialize(
     __in BURN_REGISTRATION* pRegistration,
     __in BURN_VARIABLES* pVariables,
@@ -174,6 +193,9 @@ extern "C" HRESULT CacheInitialize(
                 ExitOnFailure(hr, "Failed to set original source directory variable.");
             }
         }
+
+        hr = CacheInitializeRegistrationId(pRegistration);
+        ExitOnFailure(hr, "Failed to initialize bundle registration id.");
 
         vfInitializedCache = TRUE;
     }
@@ -1090,6 +1112,7 @@ extern "C" void CacheUninitialize()
     ReleaseNullStr(vsczDefaultUserPackageCache);
     ReleaseNullStr(vsczWorkingFolder);
     ReleaseNullStr(vsczSourceProcessPath);
+    ReleaseNullStr(vsczRegistrationId);
 
     vfRunningFromCache = FALSE;
     vfInitializedCache = FALSE;
@@ -1771,6 +1794,14 @@ static HRESULT RemoveBundleOrPackage(
     HRESULT hr = S_OK;
     LPWSTR sczRootCacheDirectory = NULL;
     LPWSTR sczDirectory = NULL;
+    DWORD dwRefCount = 0;
+
+    hr = CacheXcrementPackageRefCount(wzBundleOrPackageId, wzCacheId, fPerMachine, FALSE, &dwRefCount);
+    if (SUCCEEDED(hr) && (0 < dwRefCount))
+    {
+        LogId(REPORT_STANDARD, MSG_CACHE_PACKAGE_REF_COUNT, wzCacheId, dwRefCount);
+        ExitFunction();
+    }
 
     hr = CacheGetCompletedPath(fPerMachine, wzCacheId, &sczDirectory);
     ExitOnFailure(hr, "Failed to calculate cache path.");
@@ -2022,6 +2053,115 @@ static HRESULT VerifyPayloadAgainstChain(
 
 LExit:
     ReleaseMem(pbThumbprint);
+
+    return hr;
+}
+
+extern "C" HRESULT CacheXcrementPackageRefCount(
+    __in_z LPCWSTR wzPackageId,
+    __in_z LPCWSTR wzCacheId,
+    __in BOOL fPerMachine,
+    __in BOOL fIncrement,
+    __out LPDWORD pdwRefCount
+    )
+{
+    Assert(vsczRegistrationId);
+
+    HRESULT hr = S_OK;
+    DWORD dwRefCount = 0;
+    LPWSTR szCacheReg = nullptr;
+    LPWSTR szBundleAndCacheId = nullptr;
+    HKEY hkCacheKey = NULL;
+    HKEY hkRoot = fPerMachine ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
+    LPWSTR szCacheLockName = nullptr;
+    HANDLE hLock = NULL;
+    DWORD er = ERROR_SUCCESS;
+
+    hr = PathConcat(PACKAGE_CACHE_KEY, wzCacheId, &szCacheReg);
+    ExitOnFailure(hr, "Failed to concat package cache key");
+
+    hr = StrAllocFormatted(&szBundleAndCacheId, L"%s-%s-%s", vsczRegistrationId, wzPackageId, wzCacheId);
+    ExitOnFailure(hr, "Failed to create package cache mutex name");
+
+    hr = StrAllocFormatted(&szCacheLockName, L"%s\\WixBurnCacheLock_%s", fPerMachine ? L"Global" : L"Local", wzCacheId);
+    ExitOnFailure(hr, "Failed to create package cache mutex name");
+
+    hLock = ::CreateMutexW(NULL, TRUE, szCacheLockName);
+    ExitOnNullWithLastError(hLock, hr, "Failed to create cache lock.");
+
+    er = ::GetLastError();
+    if (ERROR_ALREADY_EXISTS == er)
+    {
+        er = ::WaitForSingleObject(hLock, INFINITE);
+    }
+    ExitOnWin32Error(er, hr, "Failed to wait for cache mutex lock");
+
+    hr = RegOpen(hkRoot, szCacheReg, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey);
+    if (hr == E_FILENOTFOUND)
+    {
+        // No need to create the key for a zero ref-count
+        if (!fIncrement)
+        {
+            hr = S_OK;
+            ExitFunction();
+        }
+
+        hr = RegCreate(hkRoot, szCacheReg, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey);
+        ExitOnFailure(hr, "Failed to create package cache key");
+    }
+    ExitOnFailure(hr, "Failed to open package cache key");
+
+    if (fIncrement)
+    {
+        hr = RegWriteString(hkCacheKey, szBundleAndCacheId, L"1");
+        ExitOnFailure(hr, "Failed to write package cache value");
+    }
+    else
+    {
+        hr = RegWriteString(hkCacheKey, szBundleAndCacheId, nullptr); // Delete the value
+        ExitOnWin32Error(er, hr, "Failed to clear package cache value");
+    }
+
+    hr = RegQueryKey(hkCacheKey, nullptr, &dwRefCount);
+    ExitOnFailure(hr, "Failed to get package cache ref-count");
+
+    // Zero ref-count can be cleaned from registry
+    if (dwRefCount == 0)
+    {
+        RegCloseKey(hkCacheKey);
+        hkCacheKey = NULL;
+
+        RegDelete(hkRoot, szCacheReg, REG_KEY_BITNESS::REG_KEY_32BIT, TRUE);
+
+        // Can delete the "Package Cache" key entirely?
+        if (SUCCEEDED(RegOpen(hkRoot, PACKAGE_CACHE_KEY, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey)))
+        {
+            DWORD dwPackagesCount = 0;
+     
+            if (SUCCEEDED(RegQueryKey(hkCacheKey, &dwPackagesCount, nullptr)))
+            {
+                if (dwPackagesCount == 0)
+                {
+                    RegCloseKey(hkCacheKey);
+                    hkCacheKey = NULL;
+
+                    RegDelete(hkRoot, PACKAGE_CACHE_KEY, REG_KEY_BITNESS::REG_KEY_32BIT, TRUE);
+                }
+            }
+        }
+    }
+
+LExit:
+    if (pdwRefCount)
+    {
+        *pdwRefCount = dwRefCount;
+    }
+    
+    ReleaseHandle(hLock);
+    ReleaseStr(szCacheReg);
+    ReleaseStr(szCacheLockName);
+    ReleaseStr(szBundleAndCacheId);
+    RegCloseKey(hkCacheKey);
 
     return hr;
 }

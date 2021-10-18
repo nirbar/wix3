@@ -598,6 +598,7 @@
     </xs:annotation>
     <xs:complexType>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="MsiInstance" />
         <xs:element ref="MsiProperty" />
         <xs:element ref="SlipstreamMsp" />
         <xs:element ref="Payload" />
@@ -1095,6 +1096,26 @@
       <xs:attribute name="After" type="xs:string">
         <xs:annotation>
           <xs:documentation>The identifier of a package that this group should be installed after.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="MsiInstance">
+    <xs:annotation>
+      <xs:documentation>Install a MSI with an instance transform.</xs:documentation>
+      <xs:appinfo>
+        <xse:parent namespace="http://schemas.microsoft.com/wix/2006/wi" ref="MsiPackage" />
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="Id" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>The name of the MSI instance trandform without ':' prefix.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="Condition" type="xs:string" use="optional">
+        <xs:annotation>
+          <xs:documentation>Install condition for the MSI instance.</xs:documentation>
         </xs:annotation>
       </xs:attribute>
     </xs:complexType>
