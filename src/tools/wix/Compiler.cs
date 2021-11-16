@@ -6034,6 +6034,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             string shortName = null;
             string source = sourcePath;   // assume we'll use the parents as the source for this file
             bool sourceSet = false;
+            YesNoType aggressiveSmartCabbing = YesNoType.NotSet;
 
             foreach (XmlAttribute attrib in node.Attributes)
             {
@@ -6219,6 +6220,9 @@ namespace Microsoft.Tools.WindowsInstallerXml
                             {
                                 bits &= ~MsiInterop.MsidbFileAttributesVital;
                             }
+                            break;
+                        case "AggressiveSmartCabbing":
+                            aggressiveSmartCabbing = core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
                         default:
                             this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
@@ -6478,6 +6482,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 wixFileRow.IgnoreOffsets = ignoreOffsets;
                 wixFileRow.IgnoreLengths = ignoreLengths;
                 wixFileRow.RetainOffsets = protectOffsets;
+                wixFileRow.AggressiveSmartCabbing = (aggressiveSmartCabbing != YesNoType.No);
 
                 if (null != symbols)
                 {

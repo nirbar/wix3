@@ -5114,6 +5114,11 @@
           <xs:documentation>Set if the entire file should be installed rather than creating a binary patch.</xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="AggressiveSmartCabbing" type="YesNoTypeUnion">
+        <xs:annotation>
+          <xs:documentation>When AggressiveSmartCabbint is set to "yes" in MediaTemplate element, use this attribute to disable it for specific files. If MediaTemplate/@AggressiveSmartCabbint is not set to "yes" then this attribute is ignored.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
       <xs:anyAttribute namespace="##other" processContents="lax">
         <xs:annotation>
           <xs:documentation>

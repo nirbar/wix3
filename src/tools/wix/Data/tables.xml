@@ -1473,6 +1473,7 @@
                 category="text"/>
         <columnDefinition name="RetainOffsets" type="preserved" length="0" nullable="yes"
                 category="text"/>
+        <columnDefinition name="AggressiveSmartCabbing" type="number" length="2" nullable="no" />
     </tableDefinition>
     <tableDefinition name="WixBindUpdatedFiles" unreal="yes">
         <columnDefinition name="File_" type="string" length="0" primaryKey="yes" modularize="column" keyTable="File" keyColumn="1" category="identifier" />

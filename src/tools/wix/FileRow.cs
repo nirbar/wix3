@@ -561,6 +561,11 @@ namespace Microsoft.Tools.WindowsInstallerXml
         }
 
         /// <summary>
+        /// Allows disabling aggressive smart cabbing for specific files when MediaTemplate/@AggressiveSmartCabbing is set to "yes".
+        /// </summary>
+        public bool AggressiveSmartCabbing { get; set; }
+
+        /// <summary>
         /// Compares the current FileRow with another object of the same type.
         /// </summary>
         /// <param name="obj">An object to compare with this instance.</param>

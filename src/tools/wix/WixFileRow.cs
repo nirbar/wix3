@@ -252,5 +252,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             get { return this.Fields[14].PreviousData; }
             set { this.Fields[14].PreviousData = value; }
         }
+
+        /// <summary>
+        /// Allows disabling aggressive smart cabbing for specific files when MediaTemplate/@AggressiveSmartCabbing is set to "yes".
+        /// </summary>
+        public bool AggressiveSmartCabbing
+        {
+            get { return (this.Fields[15].Data == null) || (((int)this.Fields[15].Data) != 0); }
+            set { this.Fields[15].Data = value ? 1 : 0; }
+        }
     }
 }

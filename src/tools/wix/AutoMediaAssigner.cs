@@ -210,7 +210,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     fileRow.FileSize = Convert.ToInt32(fileInfo.Length, CultureInfo.InvariantCulture);
 
                     // Aggressive smart cabbing- only if file is neither from a merge module nor patch-added.
-                    if (mediaTemplateRow.AggressiveSmartCabbing && !fileRow.FromModule && 0 >= fileRow.PatchGroup)
+                    if (mediaTemplateRow.AggressiveSmartCabbing && fileRow.AggressiveSmartCabbing && !fileRow.FromModule && 0 >= fileRow.PatchGroup)
                     {
                         try
                         {

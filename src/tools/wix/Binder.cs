@@ -1320,6 +1320,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     fileRow.PreviousIgnoreOffsets = row.PreviousIgnoreOffsets;
                     fileRow.PreviousIgnoreLengths = row.PreviousIgnoreLengths;
                     fileRow.PreviousRetainOffsets = row.PreviousRetainOffsets;
+                    fileRow.AggressiveSmartCabbing = row.AggressiveSmartCabbing;
                 }
             }
 
