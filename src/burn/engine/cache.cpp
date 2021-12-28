@@ -2107,7 +2107,7 @@ extern "C" HRESULT CacheXcrementPackageRefCount(
         }
 
         hr = RegCreate(hkRoot, szCacheReg, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey);
-        ExitOnFailure(hr, "Failed to create package cache key");
+        ExitOnFailure(hr, "Failed to create package cache key '%ls'", szCacheReg);
     }
     ExitOnFailure(hr, "Failed to open package cache key");
 

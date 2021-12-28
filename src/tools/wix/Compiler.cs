@@ -13479,6 +13479,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             bool secure = false;
             YesNoType suppressModularization = YesNoType.NotSet;
             string value = null;
+            bool hasExtensionChild = false;
 
             foreach (XmlAttribute attrib in node.Attributes)
             {
@@ -13514,6 +13515,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 }
                 else
                 {
+                    hasExtensionChild = true;
                     this.core.ParseExtensionAttribute(sourceLineNumbers, (XmlElement)node, attrib);
                 }
             }
@@ -13571,6 +13573,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 break;
                         }
                     }
+                    else
+                    {
+                        hasExtensionChild = true;
+                    }
                 }
             }
 
@@ -13607,7 +13613,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             {
                 // if the property value is empty and none of the flags are set, print out a warning that we're ignoring
                 // the element
-                if ((null == value || 0 == value.Length) && !admin && !secure && !hidden)
+                if ((null == value || 0 == value.Length) && !admin && !secure && !hidden && !hasExtensionChild)
                 {
                     this.core.OnMessage(WixWarnings.PropertyUseless(sourceLineNumbers, id));
                 }
