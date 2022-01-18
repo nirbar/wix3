@@ -3103,6 +3103,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             variableCache.Add(String.Concat("packageManufacturer.", id), package.Manufacturer);
             variableCache.Add(String.Concat("packageName.", id), package.DisplayName);
             variableCache.Add(String.Concat("packageVersion.", id), package.Version);
+            Version version;
+            if (Version.TryParse(package.Version, out version))
+            {
+                variableCache.Add(String.Concat("packageVersion.Major.", id), version.Major.ToString());
+                variableCache.Add(String.Concat("packageVersion.Minor.", id), version.Minor.ToString());
+                variableCache.Add(String.Concat("packageVersion.Build.", id), version.Build.ToString());
+                variableCache.Add(String.Concat("packageVersion.Revision.", id), version.Revision.ToString());
+            }
         }
 
         private enum TransactionType
