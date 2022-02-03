@@ -3822,7 +3822,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
 
                 if (0 != flags)
                 {
-                    this.Core.OnMessage(WixErrors.IllegalAttributeWithOtherAttributes(sourceLineNumbers, node.Name, "ElementId", "Action", "Node", "On"));
+                    this.Core.OnMessage(WixErrors.IllegalAttributeWithOtherAttributes(sourceLineNumbers, node.Name, "ElementId", "Action", "Node", "On", "PreserveModifiedDate"));
                 }
 
                 this.Core.CreateWixSimpleReferenceRow(sourceLineNumbers, "XmlConfig", elementId);
