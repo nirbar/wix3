@@ -1493,6 +1493,12 @@ static HRESULT ParseCommandLine(
         pCommand->display = BOOTSTRAPPER_DISPLAY_EMBEDDED;
     }
 
+    // If resuming, use the restart flag on the registration key since the RunOnce key doesn't contain this flag
+    if (BURN_MODE_RUNONCE == *pMode)
+    {
+        pCommand->restart = BOOTSTRAPPER_RESTART_NEVER;
+    }
+
     // Set the defaults if nothing was set above.
     if (BOOTSTRAPPER_ACTION_UNKNOWN == pCommand->action)
     {
