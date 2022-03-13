@@ -20,6 +20,7 @@
 - [6348](https://github.com/wixtoolset/issues/issues/6348): Fix .NET chaining response to files-in-use message.
 - [6450](https://github.com/wixtoolset/issues/issues/6450): Support multiple firewall rules with the same name.
 - [6472](https://github.com/wixtoolset/issues/issues/6472): Bundle can install multi-instance MSI packages. See [Authoring Multiple Instances with Instance Transforms](https://docs.microsoft.com/en-us/windows/win32/msi/authoring-multiple-instances-with-instance-transforms).
+- [5220](https://github.com/wixtoolset/issues/issues/5220): Automatically add logging flag for any burn ExePackage and related bundles
 - Add binder variables: !(bind.packageVersion.Major.ID), !(bind.packageVersion.Minor.ID), !(bind.packageVersion.Build.ID), !(bind.packageVersion.Revision.ID)
 - Util extension PermissionEx: Registry permissions are inheritable
 - When using MSBuild HarvestDirectory target, support generating a random preprocessor variable

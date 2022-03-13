@@ -84,6 +84,10 @@ extern "C" HRESULT PseudoBundleInitialize(
     hr = StrAllocString(&pPackage->sczCacheId, wzId, 0);
     ExitOnFailure(hr, "Failed to copy cache id for pseudo bundle.");
 
+    // Log variables - best effort
+    StrAllocFormatted(&pPackage->sczLogPathVariable, L"WixBundleLog_%ls", wzId);
+    StrAllocFormatted(&pPackage->sczRollbackLogPathVariable, L"WixBundleRollbackLog_%ls", wzId);
+
     // If we are a self updating bundle, we don't have to have Install arguments.
     if (wzInstallArguments)
     {

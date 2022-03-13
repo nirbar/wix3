@@ -1012,6 +1012,60 @@ LExit:
     return hr;
 }
 
+HRESULT CoreAppendLogToCommandLine(
+    __deref_inout_z LPWSTR* psczCommandLine,
+    __deref_inout_z_opt LPWSTR* psczObfuscatedCommandLine,
+    __in BOOL fRollback,
+    __in BURN_VARIABLES* pVariables,
+    __in BURN_PACKAGE *pPackage
+)
+{
+    HRESULT hr = S_OK;
+    INT ccArgs = 0;
+    LPWSTR* rgszArgs = nullptr;
+    LPWSTR szLogArg = nullptr;
+    LPWSTR szLogArgFormatted = nullptr;
+
+    hr = AppParseCommandLine(*psczCommandLine, &ccArgs, &rgszArgs);
+    ExitOnFailure(hr, "Failed parsing command line");
+
+    // Log flag already present?
+    for (INT i = 0; i < ccArgs; ++i)
+    {
+        if (rgszArgs[i][0] == L'-' || rgszArgs[i][0] == L'/')
+        {
+            // Now looking for 'log' or 'l'
+            if ((CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"log", -1))
+                || (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"l", -1)))
+            {
+                ExitFunction1(hr = S_FALSE);
+            }
+        }
+    }
+
+    hr = StrAllocFormatted(&szLogArg, L" -log \"[%ls]\"", fRollback ? pPackage->sczRollbackLogPathVariable : pPackage->sczLogPathVariable);
+    ExitOnFailure(hr, "Failed creating log argument");
+
+    hr = VariableFormatString(pVariables, szLogArg, &szLogArgFormatted, NULL);
+    ExitOnFailure(hr, "Failed to format argument string.");
+
+    hr = StrAllocConcat(psczCommandLine, szLogArgFormatted, 0);
+    ExitOnFailure(hr, "Failed concatenating '-log' to command line");
+
+    hr = StrAllocConcat(psczObfuscatedCommandLine, szLogArgFormatted, 0);
+    ExitOnFailure(hr, "Failed concatenating '-log' to obfuscated command line");
+
+LExit:
+    if (rgszArgs)
+    {
+        AppFreeCommandLineArgs(rgszArgs);
+    }
+    ReleaseStr(szLogArg);
+    ReleaseStr(szLogArgFormatted);
+
+    return hr;
+}
+
 extern "C" HRESULT CoreAppendNoRestartToCommandLine(
     __deref_inout_z LPWSTR * psczCommandLine,
     __deref_inout_z_opt LPWSTR * psczObfuscatedCommandLine
