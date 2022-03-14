@@ -149,12 +149,13 @@ extern "C" UINT WINAPI WixRemoveFoldersEx(
         hr = WcaGetProperty(sczProperty, &sczPath);
         ExitOnFailure2(hr, "Failed to resolve remove folder property: %S for row: %S", sczProperty, sczId);
 
-        // fail early if the property isn't set as you probably don't want your installers trying to delete SystemFolder
+        // Skip if the property isn't set as you probably don't want your installers trying to delete SystemFolder
         // StringCchLengthW succeeds only if the string is zero characters plus 1 for the terminating null
         hr = ::StringCchLengthW(sczPath, 1, reinterpret_cast<UINT_PTR*>(&cchLen));
         if (SUCCEEDED(hr))
         {
-            ExitOnFailure2(hr = E_INVALIDARG, "Missing folder property: %S for row: %S", sczProperty, sczId);
+            WcaLog(LOGMSG_STANDARD, "Missing folder property: %S for row: %S", sczProperty, sczId);
+			continue;
         }
 
         hr = PathExpand(&sczExpandedPath, sczPath, PATH_EXPAND_ENVIRONMENT);
