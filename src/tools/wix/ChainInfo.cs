@@ -21,12 +21,26 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.Packages = new List<ChainPackageInfo>();
             this.RollbackBoundaries = new List<RollbackBoundaryInfo>();
             this.SourceLineNumbers = row.SourceLineNumbers;
+
+            if (BundleChainAttributes.NoRestart == (attributes & BundleChainAttributes.NoRestart))
+            {
+                this.Restart = false;
+            }
+            else if (BundleChainAttributes.ForceRestart == (attributes & BundleChainAttributes.ForceRestart))
+            {
+                this.Restart = true;
+            }
+            else
+            {
+                this.Restart = null;
+            }
         }
 
         public bool DisableRollback { get; private set; }
         public bool DisableSystemRestore { get; private set; }
         public bool ParallelCache { get; private set; }
         public bool Transaction { get; private set; }
+        public bool? Restart { get; private set; }
         public List<ChainPackageInfo> Packages { get; private set; }
         public List<RollbackBoundaryInfo> RollbackBoundaries { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }

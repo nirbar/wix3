@@ -586,6 +586,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
+      <xs:attribute name="Restart" type="YesNoDefaultTypeUnion">
+        <xs:annotation>
+          <xs:documentation>
+              Set the default restart mode. Setting to "yes" is equivalent to -forcerestart command line flag. Setting to "no" is equivalent to -norestart command line flag. "default" is equivalent to not specifying any -XXXrestart or to specifying -autorestart command line flag. The default is "default". The value can be overwritten by command line flags -norestart, -forcerestart, or -autorestart
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
     </xs:complexType>
   </xs:element>
   <xs:element name="MsiPackage">

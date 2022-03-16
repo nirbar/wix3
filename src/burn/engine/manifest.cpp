@@ -70,6 +70,20 @@ extern "C" HRESULT ManifestLoadXmlFromBuffer(
         {
             ExitOnFailure(hr, "Failed to get Chain/@ParallelCache");
         }
+
+        // Default restart value, can be overwritten by command line
+        if (pEngineState->command.restart == BOOTSTRAPPER_RESTART::BOOTSTRAPPER_RESTART_UNKNOWN)
+        {
+            BOOL fRestart = FALSE;
+
+            hr = XmlGetYesNoAttribute(pixnChain, L"Restart", &fRestart);
+            if (E_NOTFOUND != hr)
+            {
+                ExitOnFailure(hr, "Failed to get Chain/@Restart");
+
+                pEngineState->command.restart = fRestart ? BOOTSTRAPPER_RESTART::BOOTSTRAPPER_RESTART_ALWAYS : BOOTSTRAPPER_RESTART::BOOTSTRAPPER_RESTART_NEVER;
+            }
+        }
     }
 
     // parse built-in condition 

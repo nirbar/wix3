@@ -4683,6 +4683,15 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     writer.WriteAttributeString("ParallelCache", "yes");
                 }
 
+                if (chain.Restart == true)
+                {
+                    writer.WriteAttributeString("Restart", "yes");
+                }
+                else if (chain.Restart == false)
+                {
+                    writer.WriteAttributeString("Restart", "no");
+                }
+
                 // Build up the list of target codes from all the MSPs in the chain.
                 List<WixBundlePatchTargetCodeRow> targetCodes = new List<WixBundlePatchTargetCodeRow>();
 

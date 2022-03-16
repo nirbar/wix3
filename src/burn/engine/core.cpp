@@ -913,6 +913,9 @@ extern "C" HRESULT CoreRecreateCommandLine(
     case BOOTSTRAPPER_RESTART_NEVER:
         hr = StrAllocConcat(psczCommandLine, L" /norestart", 0);
         break;
+    case BOOTSTRAPPER_RESTART_AUTOMATIC:
+        hr = StrAllocConcat(psczCommandLine, L" /autorestart", 0);
+        break;
     }
     ExitOnFailure(hr, "Failed to append restart state to command-line");
 
@@ -1243,6 +1246,10 @@ static HRESULT ParseCommandLine(
             else if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"promptrestart", -1))
             {
                 pCommand->restart = BOOTSTRAPPER_RESTART_PROMPT;
+            }
+            else if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"autorestart", -1))
+            {
+                pCommand->restart = BOOTSTRAPPER_RESTART_AUTOMATIC;
             }
             else if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"layout", -1))
             {

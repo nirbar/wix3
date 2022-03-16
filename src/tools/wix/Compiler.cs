@@ -21254,6 +21254,17 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 attributes |= BundleChainAttributes.Transaction;
                             }
                             break;
+                        case "Restart":
+                            YesNoDefaultType restart = this.core.GetAttributeYesNoDefaultValue(sourceLineNumbers, attrib);
+                            if (restart == YesNoDefaultType.Yes)
+                            {
+                                attributes |= BundleChainAttributes.ForceRestart;
+                            }
+                            else if (restart == YesNoDefaultType.No)
+                            {
+                                attributes |= BundleChainAttributes.NoRestart;
+                            }
+                            break;
                         default:
                             this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
                             break;

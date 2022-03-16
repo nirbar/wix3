@@ -24,6 +24,9 @@
 - Add binder variables: !(bind.packageVersion.Major.ID), !(bind.packageVersion.Minor.ID), !(bind.packageVersion.Build.ID), !(bind.packageVersion.Revision.ID)
 - Util extension PermissionEx: Registry permissions are inheritable
 - When using MSBuild HarvestDirectory target, support generating a random preprocessor variable
+- Add attribute Chain/@Restart: "yes" to force restart; "no" to disable restart
+- Add command line flag "-autorestart" to restart if needed
+- wixstdba: Specifying "-forcerestart' on the command line forces reboot at the end of the installation
 - Changes by WiX up to git commit 376423b8101f4b59ee865e8a255cfe190fa5a7f1
 - Build for .NET Framework 4.0
 
