@@ -9,6 +9,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
     public sealed class HeatDirectory : HeatTask
     {
         private string directory;
+        private bool recursive = true;
+        private string pattern;
         private bool keepEmptyDirectories;
         private bool suppressCom;
         private bool suppressRootDirectory;
@@ -37,6 +39,18 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
         {
             get { return this.directoryRefId; }
             set { this.directoryRefId = value; }
+        }
+
+        public string Pattern
+        {
+            get { return this.pattern; }
+            set { this.pattern = value; }
+        }
+
+        public bool Recursive
+        {
+            get { return this.recursive; }
+            set { this.recursive = value; }
         }
 
         public bool KeepEmptyDirectories
@@ -106,6 +120,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
 
             commandLineBuilder.AppendSwitchIfNotNull("-cg ", this.ComponentGroupName);
             commandLineBuilder.AppendSwitchIfNotNull("-dr ", this.DirectoryRefId);
+            commandLineBuilder.AppendSwitchIfNotNull("-pat ", this.Pattern);
+            commandLineBuilder.AppendIfTrue("-ssub", !this.Recursive);
             commandLineBuilder.AppendIfTrue("-ke", this.KeepEmptyDirectories);
             commandLineBuilder.AppendIfTrue("-scom", this.SuppressCom);
             commandLineBuilder.AppendIfTrue("-sreg", this.SuppressRegistry);

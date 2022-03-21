@@ -17,6 +17,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
         private string rootedDirectoryRef;
         private bool setUniqueIdentifiers;
         private bool suppressRootDirectory;
+        private bool recursive;
+        private string pattern;
 
         private static readonly string ComponentPrefix = "cmp";
         private static readonly string DirectoryPrefix = "dir";
@@ -32,6 +34,28 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
             this.keepEmptyDirectories = false;
             this.setUniqueIdentifiers = true;
             this.suppressRootDirectory = false;
+            this.recursive = true;
+            this.pattern = "*";
+        }
+
+        /// <summary>
+        /// Gets or sets the option to serach by file pattern.
+        /// </summary>
+        /// <value>The option to serach by file pattern.</value>
+        public string Pattern
+        {
+            get { return this.pattern; }
+            set { this.pattern = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the option to recurse directories.
+        /// </summary>
+        /// <value>The option to recurse directories.</value>
+        public bool Recursive
+        {
+            get { return this.recursive; }
+            set { this.recursive = value; }
         }
 
         /// <summary>
@@ -200,34 +224,37 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
             int fileCount = 0;
 
             // harvest the child directories
-            foreach (string childDirectoryPath in Directory.GetDirectories(path))
+            if (this.Recursive)
             {
-                Wix.Directory childDirectory = new Wix.Directory();
-
-                childDirectory.Name = Path.GetFileName(childDirectoryPath);
-                childDirectory.FileSource = childDirectoryPath;
-
-                if (this.setUniqueIdentifiers)
+                foreach (string childDirectoryPath in Directory.GetDirectories(path))
                 {
-                    childDirectory.Id = this.Core.GenerateIdentifier(DirectoryPrefix, directory.Id, childDirectory.Name);
+                    Wix.Directory childDirectory = new Wix.Directory();
+
+                    childDirectory.Name = Path.GetFileName(childDirectoryPath);
+                    childDirectory.FileSource = childDirectoryPath;
+
+                    if (this.setUniqueIdentifiers)
+                    {
+                        childDirectory.Id = this.Core.GenerateIdentifier(DirectoryPrefix, directory.Id, childDirectory.Name);
+                    }
+
+                    int childFileCount = this.HarvestDirectory(childDirectoryPath, String.Concat(relativePath, childDirectory.Name, "\\"), childDirectory);
+
+                    // keep the directory if it contained any files (or empty directories are being kept)
+                    if (0 < childFileCount || this.keepEmptyDirectories)
+                    {
+                        directory.AddChild(childDirectory);
+                    }
+
+                    fileCount += childFileCount;
                 }
-
-                int childFileCount = this.HarvestDirectory(childDirectoryPath, String.Concat(relativePath, childDirectory.Name, "\\"), childDirectory);
-
-                // keep the directory if it contained any files (or empty directories are being kept)
-                if (0 < childFileCount || this.keepEmptyDirectories)
-                {
-                    directory.AddChild(childDirectory);
-                }
-
-                fileCount += childFileCount;
             }
 
             // harvest the files
-            string[] files = Directory.GetFiles(path);
+            string[] files = Directory.GetFiles(path, this.Pattern);
             if (0 < files.Length)
             {
-                foreach (string filePath in Directory.GetFiles(path))
+                foreach (string filePath in files)
                 {
                     string fileName = Path.GetFileName(filePath);
 

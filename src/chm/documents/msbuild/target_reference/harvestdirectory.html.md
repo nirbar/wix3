@@ -66,6 +66,26 @@ The following items and item metadata are used by the <b>HarvestDirectory</b> ta
   </tr>
   <tr>
     <td>
+      <b>%(HarvestDirectory.Pattern)</b>
+    </td>
+    <td>
+      Optional <b>boolean</b> metadata.<br />
+      <br />
+      File pattern or wildcard. The default is <b>*</b>.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>%(HarvestDirectory.Recursive)</b>
+    </td>
+    <td>
+      Optional <b>boolean</b> metadata.<br />
+      <br />
+      Whether to harvest in subfolders. The default is <b>true</b>.
+    </td>
+  </tr>
+  <tr>
+    <td>
       <b>%(HarvestDirectory.KeepEmptyDirectories)</b>
     </td>
     <td>

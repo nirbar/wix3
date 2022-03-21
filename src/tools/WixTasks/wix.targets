@@ -1768,6 +1768,8 @@
     %(HarvestDirectory.Transforms) - XSL transforms to apply to the harvested WiX.
     %(HarvestDirectory.ComponentGroupName) -  The name of the ComponentGroup to create.
     %(HarvestDirectory.DirectoryRefId) - The ID of the directory to reference instead of TARGETDIR.
+    %(HarvestDirectory.Recursive) - Whether to recurse directories.
+    %(HarvestDirectory.Pattern) - Serach by file pattern.
     %(HarvestDirectory.KeepEmptyDirectories) - Whether to create Directory entries for empty directories.
     %(HarvestDirectory.PreprocessorVariable) - Substitute SourceDir for another variable name (ex: var.Dir).
     %(HarvestDirectory.SuppressCom) - Suppress COM elements.
@@ -1786,6 +1788,8 @@
       <Transforms>$(HarvestDirectoryTransforms)</Transforms>
       <ComponentGroupName>$(HarvestDirectoryComponentGroupName)</ComponentGroupName>
       <DirectoryRefId>$(HarvestDirectoryDirectoryRefId)</DirectoryRefId>
+      <Recursive>$(HarvestDirectoryRecursive)</Recursive>
+      <Pattern>$(HarvestDirectoryPattern)</Pattern>
       <KeepEmptyDirectories>$(HarvestDirectoryKeepEmptyDirectories)</KeepEmptyDirectories>
       <PreprocessorVariable>$(HarvestDirectoryPreprocessorVariable)</PreprocessorVariable>
       <SuppressCom>$(HarvestDirectorySuppressCom)</SuppressCom>
@@ -1838,6 +1842,8 @@
       Directory="@(HarvestDirectory)"
       ComponentGroupName="%(HarvestDirectory.ComponentGroupName)"
       DirectoryRefId="%(HarvestDirectory.DirectoryRefId)"
+      Recursive="%(HarvestDirectory.Recursive)"
+      Pattern="%(HarvestDirectory.Pattern)"
       KeepEmptyDirectories="%(HarvestDirectory.KeepEmptyDirectories)"
       PreprocessorVariable="%(HarvestDirectory.PreprocessorVariable)"
       RunAsSeparateProcess="$(RunWixToolsOutOfProc)"

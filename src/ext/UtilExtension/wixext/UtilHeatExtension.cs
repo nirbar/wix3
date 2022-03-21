@@ -41,6 +41,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                                                       "-var wix.MySource will become File/@Source=\"!(wix.MySource)\\myfile.txt\""),
                     new HeatCommandLineOption("-gg", "generate guids now"),
                     new HeatCommandLineOption("-g1", "generated guids are not in brackets"),
+                    new HeatCommandLineOption("-pat", "file pattern"),
+                    new HeatCommandLineOption("-ssub", "suppress harvesting sub folders"),
                     new HeatCommandLineOption("-ke", "keep empty directories"),
                     new HeatCommandLineOption("-scom", "suppress COM elements"),
                     new HeatCommandLineOption("-sfrag", "suppress fragments"),
@@ -167,6 +169,37 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                     else if ("g1" == truncatedCommandSwitch)
                     {
                         utilMutator.GuidFormat = "D";
+                    }
+                    else if ("pat" == truncatedCommandSwitch)
+                    {
+                        if (harvesterExtension is DirectoryHarvester)
+                        {
+                            string pat = this.GetArgumentParameter(args, i);
+
+                            if (this.Core.EncounteredError)
+                            {
+                                return;
+                            }
+                            if (!string.IsNullOrWhiteSpace(pat))
+                            {
+                                ((DirectoryHarvester)harvesterExtension).Pattern = pat;
+                            }
+                        }
+                        else if (active)
+                        {
+                            // TODO: error message - not applicable to file harvester
+                        }
+                    }
+                    else if ("ssub" == truncatedCommandSwitch)
+                    {
+                        if (harvesterExtension is DirectoryHarvester)
+                        {
+                            ((DirectoryHarvester)harvesterExtension).Recursive = false;
+                        }
+                        else if (active)
+                        {
+                            // TODO: error message - not applicable to file harvester
+                        }
                     }
                     else if ("ke" == truncatedCommandSwitch)
                     {
