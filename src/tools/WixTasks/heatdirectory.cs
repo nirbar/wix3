@@ -10,7 +10,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
     {
         private string directory;
         private bool recursive = true;
-        private string pattern;
+        private string include;
+        private string exclude;
         private bool keepEmptyDirectories;
         private bool suppressCom;
         private bool suppressRootDirectory;
@@ -41,10 +42,16 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             set { this.directoryRefId = value; }
         }
 
-        public string Pattern
+        public string Include
         {
-            get { return this.pattern; }
-            set { this.pattern = value; }
+            get { return this.include; }
+            set { this.include = value; }
+        }
+
+        public string Exclude
+        {
+            get { return this.exclude; }
+            set { this.exclude = value; }
         }
 
         public bool Recursive
@@ -120,7 +127,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
 
             commandLineBuilder.AppendSwitchIfNotNull("-cg ", this.ComponentGroupName);
             commandLineBuilder.AppendSwitchIfNotNull("-dr ", this.DirectoryRefId);
-            commandLineBuilder.AppendSwitchIfNotNull("-pat ", this.Pattern);
+            commandLineBuilder.AppendSwitchIfNotNull("-inc ", this.Include);
+            commandLineBuilder.AppendSwitchIfNotNull("-exc ", this.Exclude);
             commandLineBuilder.AppendIfTrue("-ssub", !this.Recursive);
             commandLineBuilder.AppendIfTrue("-ke", this.KeepEmptyDirectories);
             commandLineBuilder.AppendIfTrue("-scom", this.SuppressCom);

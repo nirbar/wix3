@@ -41,7 +41,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                                                       "-var wix.MySource will become File/@Source=\"!(wix.MySource)\\myfile.txt\""),
                     new HeatCommandLineOption("-gg", "generate guids now"),
                     new HeatCommandLineOption("-g1", "generated guids are not in brackets"),
-                    new HeatCommandLineOption("-pat", "file pattern"),
+                    new HeatCommandLineOption("-inc", "file patterns to include. Seperate patterns by semicolon"),
+                    new HeatCommandLineOption("-exc", "file patterns to exclude. Seperate patterns by semicolon"),
                     new HeatCommandLineOption("-ssub", "suppress harvesting sub folders"),
                     new HeatCommandLineOption("-ke", "keep empty directories"),
                     new HeatCommandLineOption("-scom", "suppress COM elements"),
@@ -170,7 +171,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                     {
                         utilMutator.GuidFormat = "D";
                     }
-                    else if ("pat" == truncatedCommandSwitch)
+                    else if ("inc" == truncatedCommandSwitch)
                     {
                         if (harvesterExtension is DirectoryHarvester)
                         {
@@ -182,7 +183,27 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                             }
                             if (!string.IsNullOrWhiteSpace(pat))
                             {
-                                ((DirectoryHarvester)harvesterExtension).Pattern = pat;
+                                ((DirectoryHarvester)harvesterExtension).Include = pat;
+                            }
+                        }
+                        else if (active)
+                        {
+                            // TODO: error message - not applicable to file harvester
+                        }
+                    }
+                    else if ("exc" == truncatedCommandSwitch)
+                    {
+                        if (harvesterExtension is DirectoryHarvester)
+                        {
+                            string pat = this.GetArgumentParameter(args, i);
+
+                            if (this.Core.EncounteredError)
+                            {
+                                return;
+                            }
+                            if (!string.IsNullOrWhiteSpace(pat))
+                            {
+                                ((DirectoryHarvester)harvesterExtension).Exclude = pat;
                             }
                         }
                         else if (active)

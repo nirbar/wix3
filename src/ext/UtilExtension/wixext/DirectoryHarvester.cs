@@ -3,8 +3,9 @@
 namespace Microsoft.Tools.WindowsInstallerXml.Extensions
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
-
+    using System.Linq;
     using Wix = Microsoft.Tools.WindowsInstallerXml.Serialize;
 
     /// <summary>
@@ -18,7 +19,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
         private bool setUniqueIdentifiers;
         private bool suppressRootDirectory;
         private bool recursive;
-        private string pattern;
+        private string include;
+        private string exclude;
 
         private static readonly string ComponentPrefix = "cmp";
         private static readonly string DirectoryPrefix = "dir";
@@ -35,17 +37,28 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
             this.setUniqueIdentifiers = true;
             this.suppressRootDirectory = false;
             this.recursive = true;
-            this.pattern = "*";
+            this.include = null;
+            this.exclude = null;
         }
 
         /// <summary>
-        /// Gets or sets the option to serach by file pattern.
+        /// Gets or sets the option to serach by file patterns. Separate patterns by ';'
         /// </summary>
         /// <value>The option to serach by file pattern.</value>
-        public string Pattern
+        public string Include
         {
-            get { return this.pattern; }
-            set { this.pattern = value; }
+            get { return this.include; }
+            set { this.include = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the option to exclude by file patterns. Separate patterns by ';'
+        /// </summary>
+        /// <value>The option to serach by file pattern.</value>
+        public string Exclude
+        {
+            get { return this.exclude; }
+            set { this.exclude = value; }
         }
 
         /// <summary>
@@ -250,9 +263,40 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                 }
             }
 
-            // harvest the files
-            string[] files = Directory.GetFiles(path, this.Pattern);
-            if (0 < files.Length)
+            // Add files by patterns
+            List<string> files = new List<string>();
+            bool getAllFiles = true;
+            if (!string.IsNullOrEmpty(Include))
+            {
+                string[] incPatts = this.Include.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                if ((incPatts != null) && (incPatts.Length > 0))
+                {
+                    getAllFiles = false;
+                    foreach (string pat in incPatts)
+                    {
+                        files = new List<string>(files.Union(Directory.GetFiles(path, pat)));
+                    }
+                }
+            }
+            if (getAllFiles)
+            {
+                files.AddRange(Directory.GetFiles(path));
+            }
+
+            // Exclude files by patterns
+            if (!string.IsNullOrEmpty(this.Exclude))
+            {
+                string[] excPatts = this.Exclude.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                if ((excPatts != null) && (excPatts.Length > 0))
+                {
+                    foreach (string pat in excPatts)
+                    {
+                        files = new List<string>(files.Except(Directory.GetFiles(path, pat)));
+                    }
+                }
+            }
+
+            if (0 < files.Count)
             {
                 foreach (string filePath in files)
                 {
@@ -290,7 +334,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                 directory.AddChild(component);
             }
 
-            return fileCount + files.Length;
+            return fileCount + files.Count;
         }
     }
 }

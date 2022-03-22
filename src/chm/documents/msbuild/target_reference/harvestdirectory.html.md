@@ -66,12 +66,22 @@ The following items and item metadata are used by the <b>HarvestDirectory</b> ta
   </tr>
   <tr>
     <td>
-      <b>%(HarvestDirectory.Pattern)</b>
+      <b>%(HarvestDirectory.Include)</b>
     </td>
     <td>
       Optional <b>boolean</b> metadata.<br />
       <br />
-      File pattern or wildcard. The default is <b>*</b>.
+      Wildcard file patterns to include. The default is empty.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>%(HarvestDirectory.Exclude)</b>
+    </td>
+    <td>
+      Optional <b>boolean</b> metadata.<br />
+      <br />
+      Wildcard file patterns to exclude. The default is empty.
     </td>
   </tr>
   <tr>

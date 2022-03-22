@@ -1769,7 +1769,8 @@
     %(HarvestDirectory.ComponentGroupName) -  The name of the ComponentGroup to create.
     %(HarvestDirectory.DirectoryRefId) - The ID of the directory to reference instead of TARGETDIR.
     %(HarvestDirectory.Recursive) - Whether to recurse directories.
-    %(HarvestDirectory.Pattern) - Serach by file pattern.
+    %(HarvestDirectory.Include) - Include files by wildcard semicolon-separated patterns.
+    %(HarvestDirectory.Exclude) - Exclude files by wildcard semicolon-separated patterns.
     %(HarvestDirectory.KeepEmptyDirectories) - Whether to create Directory entries for empty directories.
     %(HarvestDirectory.PreprocessorVariable) - Substitute SourceDir for another variable name (ex: var.Dir).
     %(HarvestDirectory.SuppressCom) - Suppress COM elements.
@@ -1789,7 +1790,8 @@
       <ComponentGroupName>$(HarvestDirectoryComponentGroupName)</ComponentGroupName>
       <DirectoryRefId>$(HarvestDirectoryDirectoryRefId)</DirectoryRefId>
       <Recursive>$(HarvestDirectoryRecursive)</Recursive>
-      <Pattern>$(HarvestDirectoryPattern)</Pattern>
+      <Include>$(HarvestDirectoryIncludePatterns)</Include>
+      <Exclude>$(HarvestDirectoryExcludePatterns)</Exclude>
       <KeepEmptyDirectories>$(HarvestDirectoryKeepEmptyDirectories)</KeepEmptyDirectories>
       <PreprocessorVariable>$(HarvestDirectoryPreprocessorVariable)</PreprocessorVariable>
       <SuppressCom>$(HarvestDirectorySuppressCom)</SuppressCom>
@@ -1843,7 +1845,8 @@
       ComponentGroupName="%(HarvestDirectory.ComponentGroupName)"
       DirectoryRefId="%(HarvestDirectory.DirectoryRefId)"
       Recursive="%(HarvestDirectory.Recursive)"
-      Pattern="%(HarvestDirectory.Pattern)"
+      Include="%(HarvestDirectory.Include)"
+      Exclude="%(HarvestDirectory.Exclude)"
       KeepEmptyDirectories="%(HarvestDirectory.KeepEmptyDirectories)"
       PreprocessorVariable="%(HarvestDirectory.PreprocessorVariable)"
       RunAsSeparateProcess="$(RunWixToolsOutOfProc)"
