@@ -2448,7 +2448,8 @@
         </Message>
         <Message Id="InvalidStringForCodepage" Number="311">
             <Instance>
-                A string was provided with characters that are not available in the specified database code page '{0}'. Either change these characters to ones that exist in the database's code page, or update the database's code page by modifying one of the following attributes: Product/@Codepage, Module/@Codepage, Patch/@Codepage, PatchCreation/@Codepage, or WixLocalization/@Codepage.
+                The string '{0}' contains characters that are not available in the specified database code page '{1}'. Either change these characters to ones that exist in the database's code page, or update the database's code page by modifying one of the following attributes: Product/@Codepage, Module/@Codepage, Patch/@Codepage, PatchCreation/@Codepage, or WixLocalization/@Codepage.
+                <Parameter Type="System.String" Name="text" />
                 <Parameter Type="System.String" Name="codepage" />
             </Instance>
         </Message>

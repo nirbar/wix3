@@ -11,7 +11,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
-
+    using System.Xml;
     using Wix = Microsoft.Tools.WindowsInstallerXml.Serialize;
 
     /// <summary>
@@ -103,6 +103,44 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
 
             // must occur after all the registry values have been formatted
             this.MutateComponents();
+        }
+
+        public override string Mutate(string wixString)
+        {
+            if (!string.IsNullOrEmpty(this.PreprocessorVariable) && this.PreprocessorVariable.StartsWith("var."))
+            {
+                XmlDocument xDoc = new XmlDocument();
+                xDoc.LoadXml(wixString);
+
+                string varName = preprocessorVariable.Substring(4);
+                string varValue = this.Core.RootDirectory;
+                if (!Path.IsPathRooted(varValue))
+                {
+                    varValue = Path.Combine(Environment.CurrentDirectory, varValue);
+                }
+                XmlProcessingInstruction pi1 = xDoc.CreateProcessingInstruction("ifndef", varName);
+                XmlProcessingInstruction pi2 = xDoc.CreateProcessingInstruction("define", string.Format("{0}={1}", varName, varValue));
+                XmlProcessingInstruction pi3 = xDoc.CreateProcessingInstruction("endif", "");
+
+                xDoc.InsertBefore(pi3, xDoc.DocumentElement);
+                xDoc.InsertBefore(pi2, pi3);
+                xDoc.InsertBefore(pi1, pi2);
+
+                XmlWriterSettings xmlSettings = new XmlWriterSettings();
+                xmlSettings.Indent = true;
+                xmlSettings.IndentChars = "  ";
+                xmlSettings.OmitXmlDeclaration = true;
+
+                using (StringWriter stringWriter = new StringWriter())
+                {
+                    using (XmlWriter xmlWriter = XmlWriter.Create(stringWriter, xmlSettings))
+                    {
+                        xDoc.WriteTo(xmlWriter);
+                    }
+                    wixString = stringWriter.ToString();
+                }
+            }
+            return base.Mutate(wixString);
         }
 
         /// <summary>
@@ -979,7 +1017,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
             if (sourceDirSubstitution != null)
             {
                 string prefix = "$(";
-                if (sourceDirSubstitution.StartsWith("wix.", StringComparison.Ordinal))
+                if (sourceDirSubstitution.StartsWith("wix.", StringComparison.Ordinal) || sourceDirSubstitution.StartsWith("bindpath.", StringComparison.Ordinal))
                 {
                     prefix = "!(";
                 }

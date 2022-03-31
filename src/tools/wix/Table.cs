@@ -404,7 +404,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     rowBytes = convertEncoding.GetBytes(rowString);
 
-                    messageHandler.OnMessage(WixErrors.InvalidStringForCodepage(row.SourceLineNumbers, Convert.ToString(writer.Encoding.WindowsCodePage, CultureInfo.InvariantCulture)));
+                    messageHandler.OnMessage(WixErrors.InvalidStringForCodepage(row.SourceLineNumbers, rowString, Convert.ToString(writer.Encoding.WindowsCodePage, CultureInfo.InvariantCulture)));
                 }
 
                 buffStream.Write(rowBytes, 0, rowBytes.Length);

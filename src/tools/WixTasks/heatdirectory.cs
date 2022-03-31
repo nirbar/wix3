@@ -21,7 +21,6 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
         private string directoryRefId;
         private string preprocessorVariable;
         private bool assignPreprocessorVariable;
-        private ITaskItem defineConstants;
 
         public string ComponentGroupName
         {
@@ -107,13 +106,6 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             set { assignPreprocessorVariable = value; }
         }
 
-        [Output]
-        public ITaskItem DefineConstants
-        {
-            get { return this.defineConstants; }
-            set { this.defineConstants = value; }
-        }
-
         /// <summary>
         /// Generate the command line arguments to write to the response file from the properties.
         /// </summary>
@@ -140,7 +132,6 @@ namespace Microsoft.Tools.WindowsInstallerXml.Build.Tasks
             if (this.AssignPreprocessorVariable && string.IsNullOrWhiteSpace(this.PreprocessorVariable))
             {
                 this.PreprocessorVariable = "rnd" + Guid.NewGuid().ToString("N");
-                this.DefineConstants = new TaskItem(string.Format("{0}={1}", this.PreprocessorVariable, this.Directory));
                 commandLineBuilder.AppendSwitch("-var var." + this.PreprocessorVariable);
             }
             else
