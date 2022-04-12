@@ -557,7 +557,7 @@ DAPI_(HRESULT) PathCreateTempFile(
             {
                 // if the file already exists, just try again
                 hr = HRESULT_FROM_WIN32(::GetLastError());
-                if (HRESULT_FROM_WIN32(ERROR_FILE_EXISTS) == hr)
+                if ((HRESULT_FROM_WIN32(ERROR_FILE_EXISTS) == hr) || (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hr))
                 {
                     hr = S_OK;
                 }
