@@ -175,7 +175,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                     {
                         if (harvesterExtension is DirectoryHarvester)
                         {
-                            string pat = this.GetArgumentParameter(args, i);
+                            string pat = this.GetArgumentParameter(args, i, true);
 
                             if (this.Core.EncounteredError)
                             {
@@ -195,7 +195,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Extensions
                     {
                         if (harvesterExtension is DirectoryHarvester)
                         {
-                            string pat = this.GetArgumentParameter(args, i);
+                            string pat = this.GetArgumentParameter(args, i, true);
 
                             if (this.Core.EncounteredError)
                             {
