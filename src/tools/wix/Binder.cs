@@ -3103,6 +3103,15 @@ namespace Microsoft.Tools.WindowsInstallerXml
             variableCache.Add(String.Concat("packageManufacturer.", id), package.Manufacturer);
             variableCache.Add(String.Concat("packageName.", id), package.DisplayName);
             variableCache.Add(String.Concat("packageVersion.", id), package.Version);
+            if (!string.IsNullOrEmpty(package.ProductCode))
+            {
+                variableCache.Add(String.Concat("productCode.", id), package.ProductCode);
+            }
+            if (!string.IsNullOrEmpty(package.UpgradeCode))
+            {
+                variableCache.Add(String.Concat("upgradeCode.", id), package.UpgradeCode);
+            }
+
             Version version;
             if (Version.TryParse(package.Version, out version))
             {
