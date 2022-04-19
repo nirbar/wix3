@@ -45,8 +45,8 @@ typedef HRESULT (__stdcall *MQPathNameToFormatNameFunc)(LPCWSTR, LPWSTR, LPDWORD
 
 // private variables
 
-static HMODULE ghMQRT;
-static MQPathNameToFormatNameFunc gpfnMQPathNameToFormatName;
+static HMODULE ghMQRT = NULL;
+static MQPathNameToFormatNameFunc gpfnMQPathNameToFormatName = nullptr;
 
 
 // function definitions
@@ -57,14 +57,11 @@ HRESULT MqiInitialize()
 
     // load mqrt.dll
     ghMQRT = ::LoadLibraryW(L"mqrt.dll");
-    if (!ghMQRT)
-    {
-        ExitFunction1(hr = S_FALSE);
-    }
+    ExitOnNullWithLastError(ghMQRT, hr, "Failed to load mqrt");
 
     // get MQPathNameToFormatName function address
     gpfnMQPathNameToFormatName = (MQPathNameToFormatNameFunc)::GetProcAddress(ghMQRT, "MQPathNameToFormatName");
-    ExitOnNullWithLastError(gpfnMQPathNameToFormatName, hr, "Failed get address for MQPathNameToFormatName() function");
+    ExitOnNullWithLastError(gpfnMQPathNameToFormatName, hr, "Failed to get address for MQPathNameToFormatName() function");
 
     hr = S_OK;
 
@@ -77,7 +74,9 @@ void MqiUninitialize()
     if (ghMQRT)
     {
         ::FreeLibrary(ghMQRT);
+        ghMQRT = NULL;
     }
+    gpfnMQPathNameToFormatName = nullptr;
 }
 
 HRESULT MqiMessageQueueRead(

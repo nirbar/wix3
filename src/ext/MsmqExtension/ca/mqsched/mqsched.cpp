@@ -34,6 +34,7 @@ extern "C" UINT __stdcall MessageQueuingInstall(MSIHANDLE hInstall)
 {
     HRESULT hr = S_OK;
     UINT er = ERROR_SUCCESS;
+    BOOL fHasMsmq = TRUE;
 
     MQI_MESSAGE_QUEUE_LIST lstMessageQueues;
     MQI_MESSAGE_QUEUE_PERMISSION_LIST lstMessageQueuePermissions;
@@ -49,26 +50,14 @@ extern "C" UINT __stdcall MessageQueuingInstall(MSIHANDLE hInstall)
     hr = WcaInitialize(hInstall, "MessageQueuingInstall");
     ExitOnFailure(hr, "Failed to initialize");
 
-    do
+    hr = MqiInitialize();
+    if (E_MODNOTFOUND == hr)
     {
-        hr = MqiInitialize();
-        if (S_FALSE == hr)
-        {
-            WcaLog(LOGMSG_STANDARD, "Failed to load mqrt.dll.");
-            er = WcaErrorMessage(msierrMsmqCannotConnect, hr, INSTALLMESSAGE_ERROR | MB_ABORTRETRYIGNORE, 0);
-            switch (er)
-            {
-            case IDABORT:
-                ExitFunction1(hr = E_FAIL);   // bail with error
-            case IDRETRY:
-                break; // retry
-            case IDIGNORE: __fallthrough;
-            default:
-                ExitFunction1(hr = S_OK);  // pretend everything is okay and bail
-            }
-        }
-        ExitOnFailure(hr, "Failed to initialize MSMQ.");
-    } while (S_FALSE == hr);
+        WcaLog(LOGMSG_STANDARD, "MSMQ Windows Feature is not currently enabled. Assuming it will be during the installation if needed");
+        hr = S_OK;
+        fHasMsmq = FALSE;
+    }
+    ExitOnFailure(hr, "Failed to initialize MSMQ.");
 
     // read message queues
     hr = MqiMessageQueueRead(&lstMessageQueues);
@@ -79,8 +68,11 @@ extern "C" UINT __stdcall MessageQueuingInstall(MSIHANDLE hInstall)
     ExitOnFailure(hr, "Failed to read message queue permissions");
 
     // verify message queue elementes
-    hr = MqiMessageQueueVerify(&lstMessageQueues);
-    ExitOnFailure(hr, "Failed to verify message queue elements.");
+    if (fHasMsmq)
+    {
+        hr = MqiMessageQueueVerify(&lstMessageQueues);
+        ExitOnFailure(hr, "Failed to verify message queue elements.");
+    }
 
     if (lstMessageQueues.iInstallCount || lstMessageQueuePermissions.iInstallCount)
     {
@@ -148,26 +140,13 @@ extern "C" UINT __stdcall MessageQueuingUninstall(MSIHANDLE hInstall)
     hr = WcaInitialize(hInstall, "MessageQueuingUninstall");
     ExitOnFailure(hr, "Failed to initialize");
 
-    do
+    hr = MqiInitialize();
+    if (E_MODNOTFOUND == hr)
     {
-        hr = MqiInitialize();
-        if (S_FALSE == hr)
-        {
-            WcaLog(LOGMSG_STANDARD, "Failed to load mqrt.dll.");
-            er = WcaErrorMessage(msierrMsmqCannotConnect, hr, INSTALLMESSAGE_ERROR | MB_ABORTRETRYIGNORE, 0);
-            switch (er)
-            {
-            case IDABORT:
-                ExitFunction1(hr = E_FAIL);   // bail with error
-            case IDRETRY:
-                break; // retry
-            case IDIGNORE: __fallthrough;
-            default:
-                ExitFunction1(hr = S_OK);  // pretend everything is okay and bail
-            }
-        }
-        ExitOnFailure(hr, "Failed to initialize MSMQ.");
-    } while (S_FALSE == hr);
+        WcaLog(LOGMSG_STANDARD, "Ignoring failure to load mqrt.dll.");
+        ExitFunction1(hr = S_FALSE);
+    }
+    ExitOnFailure(hr, "Failed to initialize MSMQ.");
 
     // read message queues
     hr = MqiMessageQueueRead(&lstMessageQueues);

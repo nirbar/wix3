@@ -125,7 +125,7 @@ HRESULT MqiInitialize()
 
     // load mqrt.dll
     ghMQRT = ::LoadLibraryW(L"mqrt.dll");
-    ExitOnNull(ghMQRT, hr, E_FAIL, "Failed to load mqrt.dll");
+    ExitOnNullWithLastError(ghMQRT, hr, "Failed to load mqrt");
 
     // get MQCreateQueue function address
     gpfnMQCreateQueue = (MQCreateQueueFunc)::GetProcAddress(ghMQRT, "MQCreateQueue");
@@ -427,6 +427,12 @@ HRESULT MqiRemoveMessageQueuePermissions(
 
         // add message queue permission
         hr = SetMessageQueuePermissions(&attrs, TRUE);
+        if (MQ_ERROR_QUEUE_NOT_FOUND == hr)
+        {
+            WcaLog(LOGMSG_STANDARD, "Queue '%ls' does not exist", attrs.pwzPathName);
+            hr = S_FALSE;
+            continue;
+        }
         ExitOnFailure(hr, "Failed to remove message queue permission");
 
         // progress tics
@@ -706,7 +712,7 @@ static HRESULT CreateMessageQueue(
     ExitOnFailure(hr, "Failed to create message queue");
 
     // log
-    WcaLog(LOGMSG_VERBOSE, "Message queue created, key: %S, PathName: '%S'", pAttrs->pwzKey, pAttrs->pwzPathName);
+    WcaLog(LOGMSG_STANDARD, "Message queue '%ls' created", pAttrs->pwzPathName);
 
     hr = S_OK;
 
@@ -754,7 +760,7 @@ static HRESULT DeleteMessageQueue(
     ExitOnFailure(hr, "Failed to delete queue");
 
     // log
-    WcaLog(LOGMSG_VERBOSE, "Message queue deleted, key: %S, PathName: '%S'", pAttrs->pwzKey, pAttrs->pwzPathName);
+    WcaLog(LOGMSG_STANDARD, "Message queue '%ls' deleted", pAttrs->pwzPathName);
 
     hr = S_OK;
 

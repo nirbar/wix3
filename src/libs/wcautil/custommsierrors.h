@@ -126,5 +126,3 @@
 #define msierrComPlusSubscriptionIdConflict          28023
 #define msierrComPlusSubscriptionNameConflict        28024
 #define msierrComPlusFailedLookupNames               28025
-
-#define msierrMsmqCannotConnect                      28101

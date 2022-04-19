@@ -91,6 +91,11 @@ extern "C" UINT __stdcall MessageQueuingRollbackInstall(MSIHANDLE hInstall)
     ExitOnFailure(hr, "Failed to initialize MessageQueuingRollbackInstall");
 
     hr = MqiInitialize();
+    if (E_MODNOTFOUND == hr)
+    {
+        WcaLog(LOGMSG_STANDARD, "Ignoring failure to load mqrt.dll.");
+        ExitFunction1(hr = S_FALSE);
+    }
     ExitOnFailure(hr, "Failed to initialize");
 
     // get custom action data
@@ -137,6 +142,11 @@ extern "C" UINT __stdcall MessageQueuingExecuteUninstall(MSIHANDLE hInstall)
     ExitOnFailure(hr, "Failed to initialize MessageQueuingExecuteUninstall");
 
     hr = MqiInitialize();
+    if (E_MODNOTFOUND == hr)
+    {
+        WcaLog(LOGMSG_STANDARD, "Ignoring failure to load mqrt.dll.");
+        ExitFunction1(hr = S_FALSE);
+    }
     ExitOnFailure(hr, "Failed to initialize");
 
     // get custom action data
