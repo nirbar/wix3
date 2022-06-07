@@ -140,7 +140,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// <returns>True if bundle was updated.</returns>
         public bool InscribeBundle(string bundleFile, string signedEngineFile, string outputFile)
         {
-            bool inscribed = false;
             string tempFile = Path.Combine(this.TempFilesLocation, "bundle_engine_signed.exe");
 
             using (BurnReader reader = BurnReader.Open(bundleFile, this))
@@ -164,7 +163,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         {
                             reader.Stream.Seek(cntnr.Address, SeekOrigin.Begin);
                             writer.AppendContainer(reader.Stream, cntnr.Size, BurnCommon.Container.Attached);
-                            inscribed = true;
                         }
                     }
                 }
@@ -178,7 +176,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             File.Move(tempFile, outputFile);
             Microsoft.Tools.WindowsInstallerXml.Cab.Interop.NativeMethods.ResetAcls(new string[] { outputFile }, 1);
 
-            return inscribed;
+            return true;
         }
 
         /// <summary>
