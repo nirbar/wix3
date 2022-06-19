@@ -1094,7 +1094,8 @@ extern "C" HRESULT CoreAppendNoRestartToCommandLine(
         {
             // Not looking for 'promptrestart' because that isn't supported in embedded UI
             if ((CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"norestart", -1))
-                || (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"forcerestart", -1)))
+                || (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"forcerestart", -1))
+                || (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &rgszArgs[i][1], -1, L"autorestart", -1)))
             {
                 fHasRestartFlag = TRUE;
                 break;

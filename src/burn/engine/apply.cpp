@@ -1977,7 +1977,6 @@ static HRESULT DoRollbackActions(
         LogId(REPORT_STANDARD, MSG_ROLLBACK_MSI_TRANSACTION, pRollbackBoundary->sczId);
         hr = DoMsiRollbackTransaction(pContext, pEngineState, pRollbackBoundary->sczId, pRollbackBoundary->sczLogPath, pRestart);
 		ExitOnFailure(hr, "Failed rolling back transaction");
-        ExitFunction();
 	}
 
     // scan to last checkpoint
