@@ -38,6 +38,10 @@
             </Component>
 
             <Component>
+                <File Source="libs\balutil\inc\BalBaseBaFunctions.h" />
+            </Component>
+
+            <Component>
                 <File Source="IBootstrapperApplication.h" />
             </Component>
 

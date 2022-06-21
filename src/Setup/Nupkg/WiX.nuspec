@@ -138,6 +138,7 @@
     <file src="src\libs\dutil\inc\gdiputil.h" target="tools\sdk\inc\gdiputil.h" />
     <file src="src\burn\inc\IBootstrapperApplication.h" target="tools\sdk\inc\IBootstrapperApplication.h" />
     <file src="src\libs\balutil\inc\IBootstrapperBAFunction.h" target="tools\sdk\inc\IBootstrapperBAFunction.h" />
+    <file src="src\libs\balutil\inc\BalBaseBaFunctions.h" target="tools\sdk\inc\BalBaseBaFunctions.h" />
     <file src="src\burn\inc\IBootstrapperEngine.h" target="tools\sdk\inc\IBootstrapperEngine.h" />
     <file src="src\libs\dutil\inc\iis7util.h" target="tools\sdk\inc\iis7util.h" />
     <file src="src\libs\dutil\inc\inetutil.h" target="tools\sdk\inc\inetutil.h" />

@@ -1,124 +1,51 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information.
 
 #include "precomp.h"
+#include "BalBaseBaFunctions.h"
 
-class CWixBootstrapperBAFunction : IBootstrapperBAFunction
+class CWixBootstrapperBAFunction : public BalBaseBaFunctions
 {
 public:
-    STDMETHODIMP OnDetect()
-    {
-        HRESULT hr = S_OK;
 
-        BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect BA function");
-
-        //-------------------------------------------------------------------------------------------------
-        // YOUR CODE GOES HERE
-        BalExitOnFailure(hr, "Change this message to represent real error handling.");
-        //-------------------------------------------------------------------------------------------------
-
-    LExit:
-        return hr;
-    }
-
-
-    STDMETHODIMP OnDetectComplete() { return S_OK; }
-    STDMETHODIMP OnPlan() { return S_OK; }
-    STDMETHODIMP OnPlanComplete() { return S_OK; }
-
-/*
-    STDMETHODIMP OnDetectComplete()
-    {
-        HRESULT hr = S_OK;
-
-        BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect complete BA function");
-
-        //-------------------------------------------------------------------------------------------------
-        // YOUR CODE GOES HERE
-        BalExitOnFailure(hr, "Change this message to represent real error handling.");
-        //-------------------------------------------------------------------------------------------------
-
-    LExit:
-        return hr;
-    }
-
-
-    STDMETHODIMP OnPlan()
-    {
-        HRESULT hr = S_OK;
-
-        BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan BA function");
-
-        //-------------------------------------------------------------------------------------------------
-        // YOUR CODE GOES HERE
-        BalExitOnFailure(hr, "Change this message to represent real error handling.");
-        //-------------------------------------------------------------------------------------------------
-
-    LExit:
-        return hr;
-    }
-
-    
-    STDMETHODIMP OnPlanComplete()
-    {
-        HRESULT hr = S_OK;
-
-        BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan complete BA function");
-
-        //-------------------------------------------------------------------------------------------------
-        // YOUR CODE GOES HERE
-        BalExitOnFailure(hr, "Change this message to represent real error handling.");
-        //-------------------------------------------------------------------------------------------------
-
-    LExit:
-        return hr;
-    }
-*/
-
-
-private:
-    HMODULE m_hModule;
-    IBootstrapperEngine* m_pEngine;
-
-
-public:
-    //
-    // Constructor - initialize member variables.
-    //
     CWixBootstrapperBAFunction(
-        __in IBootstrapperEngine* pEngine,
-        __in HMODULE hModule
+		__in IBootstrapperApplication* pMainBA
+        , __in IBootstrapperEngine* pEngine
         )
     {
-        m_hModule = hModule;
+		m_pMainBA = pMainBA;
         m_pEngine = pEngine;
     }
 
-    //
-    // Destructor - release member variables.
-    //
     ~CWixBootstrapperBAFunction()
     {
+        m_pEngine = nullptr;
+        m_pMainBA = nullptr;
     }
+
+protected:
+	IBootstrapperEngine* m_pEngine = nullptr;
+    IBootstrapperApplication* m_pMainBA = nullptr;
 };
 
 
-extern "C" HRESULT WINAPI CreateBootstrapperBAFunction(
-    __in IBootstrapperEngine* pEngine,
-    __in HMODULE hModule,
-    __out CWixBootstrapperBAFunction** ppBAFunction
+extern "C" HRESULT WINAPI CreateBaFunctions(
+	__in IBootstrapperEngine* pEngine,
+	__in const BOOTSTRAPPER_COMMAND* pCommand,
+	__in IBootstrapperApplication* pMainBA,
+	__out IBootstrapperApplication** ppApplication
     )
 {
     HRESULT hr = S_OK;
-    CWixBootstrapperBAFunction* pBAFunction = NULL;
+    CWixBootstrapperBAFunction* pBAFunction = nullptr;
 
     // This is required to enable logging functions
     BalInitialize(pEngine);
 
-    pBAFunction = new CWixBootstrapperBAFunction(pEngine, hModule);
+    pBAFunction = new CWixBootstrapperBAFunction(pMainBA, pEngine);
     ExitOnNull(pBAFunction, hr, E_OUTOFMEMORY, "Failed to create new bootstrapper BA function object.");
 
-    *ppBAFunction = pBAFunction;
-    pBAFunction = NULL;
+    *ppApplication = pBAFunction;
+    pBAFunction = nullptr;
 
 LExit:
     delete pBAFunction;

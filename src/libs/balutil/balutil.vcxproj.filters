@@ -43,6 +43,12 @@
     <ClInclude Include="inc\balinfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\BalBaseBaFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\IBootstrapperBAFunction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="balutil.build" />

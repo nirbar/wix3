@@ -45,4 +45,5 @@ HRESULT CreateBootstrapperApplication(
     );
 
 #include "IBootstrapperBAFunction.h"
+#include "BalBaseBaFunctions.h"
 

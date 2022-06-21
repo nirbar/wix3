@@ -242,12 +242,20 @@ public: // IBootstrapperApplication
         HRESULT hr = S_OK;
         DWORD dwUIThreadId = 0;
 
+        hr = __super::OnStartup();
+        ExitOnFailure(hr, "Failure on startup");
+
         // create UI thread
         m_hUiThread = ::CreateThread(NULL, 0, UiThreadProc, this, 0, &dwUIThreadId);
         if (!m_hUiThread)
         {
             ExitWithLastError(hr, "Failed to create UI thread.");
         }
+
+		if (m_pBAFunction)
+		{
+			hr = m_pBAFunction->OnStartup();
+		}
 
     LExit:
         return hr;
@@ -256,7 +264,8 @@ public: // IBootstrapperApplication
 
     virtual STDMETHODIMP_(int) OnShutdown()
     {
-        int nResult = IDNOACTION;
+        int nResult = __super::OnShutdown();
+		int nBafResult = IDNOACTION;
 
         // wait for UI thread to terminate
         if (m_hUiThread)
@@ -293,19 +302,25 @@ public: // IBootstrapperApplication
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "The prerequisites were not successfully installed, error: 0x%x. The bootstrapper application will be not reloaded.", m_hrFinal);
         }
 
-        return nResult;
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnShutdown();
+		}
 
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
 
     virtual STDMETHODIMP_(int) OnDetectRelatedBundle(
         __in LPCWSTR wzBundleId,
         __in BOOTSTRAPPER_RELATION_TYPE relationType,
-        __in LPCWSTR /*wzBundleTag*/,
+        __in LPCWSTR wzBundleTag,
         __in BOOL fPerMachine,
-        __in DWORD64 /*dw64Version*/,
+        __in DWORD64 dw64Version,
         __in BOOTSTRAPPER_RELATED_OPERATION operation
         )
     {
+        int nResult = __super::OnDetectRelatedBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, operation);
+        int nBafResult = IDOK;
         BalInfoAddRelatedBundleAsPackage(&m_Bundle.packages, wzBundleId, relationType, fPerMachine);
 
         // If we're not doing a prerequisite install, remember when our bundle would cause a downgrade.
@@ -314,16 +329,21 @@ public: // IBootstrapperApplication
             m_fDowngrading = TRUE;
         }
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnDetectRelatedBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, operation);
+		}
 
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
 
     virtual STDMETHODIMP_(void) OnDetectPackageComplete(
         __in LPCWSTR wzPackageId,
-        __in HRESULT /*hrStatus*/,
+        __in HRESULT hrStatus,
         __in BOOTSTRAPPER_PACKAGE_STATE state
         )
     {
+        __super::OnDetectPackageComplete(wzPackageId, hrStatus, state);
         WIXSTDBA_PREREQ_PACKAGE* pPrereqPackage = NULL;
         BAL_INFO_PACKAGE* pPackage = NULL;
         HRESULT hr = GetPrereqPackage(wzPackageId, &pPrereqPackage, &pPackage);
@@ -332,17 +352,23 @@ public: // IBootstrapperApplication
             // If the prerequisite package is already installed, remember that.
             pPrereqPackage->fWasAlreadyInstalled = TRUE;
         }
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectPackageComplete(wzPackageId, hrStatus, state);
+		}
+	}
 
 
     virtual STDMETHODIMP_(void) OnDetectComplete(
         __in HRESULT hrStatus
         )
     {
-        if (SUCCEEDED(hrStatus) && m_pBAFunction)
+        __super::OnDetectComplete(hrStatus);
+        if (SUCCEEDED(hrStatus) && m_pBAFunctionOld)
         {
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect complete BA function");
-            m_pBAFunction->OnDetectComplete();
+            m_pBAFunctionOld->OnDetectComplete();
         }
 
         if (SUCCEEDED(hrStatus))
@@ -394,23 +420,33 @@ public: // IBootstrapperApplication
                 ::PostMessageW(m_hWnd, WM_WIXSTDBA_PLAN_PACKAGES, 0, m_command.action);
             }
         }
-    }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnDetectComplete(hrStatus);
+		}
+	}
 
     virtual STDMETHODIMP_(int) OnPlanRelatedBundle(
-        __in_z LPCWSTR /*wzBundleId*/,
+        __in_z LPCWSTR wzBundleId,
         __inout_z BOOTSTRAPPER_REQUEST_STATE* pRequestedState
         )
     {
+		int nResult = __super::OnPlanRelatedBundle(wzBundleId, pRequestedState);
+		int nBafResult = IDOK;
         // If we're only installing prerequisites, do not touch related bundles.
         if (m_fPrereq)
         {
             *pRequestedState = BOOTSTRAPPER_REQUEST_STATE_NONE;
         }
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnPlanRelatedBundle(wzBundleId, pRequestedState);
+		}
 
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
 
     virtual STDMETHODIMP_(int) OnPlanPackageBegin(
         __in_z LPCWSTR wzPackageId,
@@ -420,6 +456,8 @@ public: // IBootstrapperApplication
         HRESULT hr = S_OK;
         WIXSTDBA_PREREQ_PACKAGE* pPrereqPackage = NULL;
         BAL_INFO_PACKAGE* pPackage = NULL;
+		int nBafResult = IDOK;
+        int nResult = __super::OnPlanPackageBegin(wzPackageId, pRequestState);
 
         // If we're planning to install a prerequisite, install it. The prerequisite needs to be installed
         // in all cases (even uninstall!) so the BA can load next.
@@ -482,7 +520,12 @@ public: // IBootstrapperApplication
             }
         }
 
-        return CheckCanceled() ? IDCANCEL : IDOK;
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnPlanPackageBegin(wzPackageId, pRequestState);
+		}
+
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
     virtual STDMETHODIMP_(void) OnPlanPackageComplete(
@@ -495,6 +538,11 @@ public: // IBootstrapperApplication
         )
     {
         __super::OnPlanPackageComplete(wzPackageId, hrStatus, state, requested, execute, rollback);
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanPackageComplete(wzPackageId, hrStatus, state, requested, execute, rollback);
+		}
 
         if (wzPackageId && *wzPackageId)
         {
@@ -513,10 +561,11 @@ public: // IBootstrapperApplication
         __in HRESULT hrStatus
         )
     {
-        if (SUCCEEDED(hrStatus) && m_pBAFunction)
+        __super::OnPlanComplete(hrStatus);
+        if (SUCCEEDED(hrStatus) && m_pBAFunctionOld)
         {
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan complete BA function");
-            m_pBAFunction->OnPlanComplete();
+            m_pBAFunctionOld->OnPlanComplete();
         }
 
         if (m_fPrereq)
@@ -544,7 +593,12 @@ public: // IBootstrapperApplication
         m_fStartedExecution = FALSE;
         m_dwCalculatedCacheProgress = 0;
         m_dwCalculatedExecuteProgress = 0;
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnPlanComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnCachePackageBegin(
@@ -553,6 +607,9 @@ public: // IBootstrapperApplication
         __in DWORD64 dw64PackageCacheSize
         )
     {
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+
         if (wzPackageId && *wzPackageId)
         {
             BAL_INFO_PACKAGE* pPackage = NULL;
@@ -568,9 +625,14 @@ public: // IBootstrapperApplication
             }
         }
 
-        return __super::OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+		}
 
+		nResult = __super::OnCachePackageBegin(wzPackageId, cCachePayloads, dw64PackageCacheSize);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
 
     virtual STDMETHODIMP_(int) OnCacheAcquireProgress(
         __in_z LPCWSTR wzPackageOrContainerId,
@@ -581,6 +643,8 @@ public: // IBootstrapperApplication
         )
     {
         WCHAR wzProgress[5] = { };
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
 
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnCacheAcquireProgress() - container/package: %ls, payload: %ls, progress: %I64u, total: %I64u, overall progress: %u%%", wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
@@ -596,9 +660,14 @@ public: // IBootstrapperApplication
 
         SetTaskbarButtonProgress(m_dwCalculatedCacheProgress + m_dwCalculatedExecuteProgress);
 
-        return __super::OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
+		}
 
+		nResult = __super::OnCacheAcquireProgress(wzPackageOrContainerId, wzPayloadId, dw64Progress, dw64Total, dwOverallPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnCacheAcquireComplete(
         __in_z LPCWSTR wzPackageOrContainerId,
@@ -607,10 +676,19 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
+		int nBafResult = nRecommendation;
+		int nResult = IDNOACTION;
+		
         SetProgressState(hrStatus);
-        return __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
-    }
 
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+		}
+
+		nResult = __super::OnCacheAcquireComplete(wzPackageOrContainerId, wzPayloadId, hrStatus, nRecommendation);
+		return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnCacheVerifyComplete(
         __in_z LPCWSTR wzPackageId,
@@ -619,19 +697,32 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
+		int nBafResult = nRecommendation;
+		int nResult = IDNOACTION;
+		
         SetProgressState(hrStatus);
-        return __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
-    }
 
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+		}
+
+		nResult = __super::OnCacheVerifyComplete(wzPackageId, wzPayloadId, hrStatus, nRecommendation);
+		return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(void) OnCacheComplete(
-        __in HRESULT /*hrStatus*/
+        __in HRESULT hrStatus
         )
     {
         ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_CACHE_PROGRESS_PACKAGE_TEXT, L"");
         SetState(WIXSTDBA_STATE_CACHED, S_OK); // we always return success here and let OnApplyComplete() deal with the error.
-    }
 
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnCacheComplete(hrStatus);
+		}
+	}
 
     virtual STDMETHODIMP_(int) OnError(
         __in BOOTSTRAPPER_ERROR_TYPE errorType,
@@ -639,12 +730,13 @@ public: // IBootstrapperApplication
         __in DWORD dwCode,
         __in_z LPCWSTR wzError,
         __in DWORD dwUIHint,
-        __in DWORD /*cData*/,
-        __in_ecount_z_opt(cData) LPCWSTR* /*rgwzData*/,
+        __in DWORD cData,
+        __in_ecount_z_opt(cData) LPCWSTR* rgwzData,
         __in int nRecommendation
         )
     {
-        int nResult = nRecommendation;
+        int nResult = __super::OnError(errorType, wzPackageId, dwCode, wzError, dwUIHint, cData, rgwzData, nRecommendation);
+		int nBafResult = nRecommendation;
         LPWSTR sczError = NULL;
 
         if (BOOTSTRAPPER_DISPLAY_EMBEDDED == m_command.display)
@@ -706,8 +798,13 @@ public: // IBootstrapperApplication
             BalRetryErrorOccurred(wzPackageId, dwCode);
         }
 
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnError(errorType, wzPackageId, dwCode, wzError, dwUIHint, cData, rgwzData, nRecommendation);
+		}
+
         ReleaseStr(sczError);
-        return nResult;
+		return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
     }
 
 
@@ -721,6 +818,9 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
+		int nResult = nRecommendation;
+		int nBafResult = nRecommendation;
+
 #ifdef DEBUG
         BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "WIXSTDBA: OnExecuteMsiMessage() - package: %ls, message: %ls", wzPackageId, wzMessage);
 #endif
@@ -728,8 +828,7 @@ public: // IBootstrapperApplication
         {
             if (!m_fShowingInternalUiThisPackage)
             {
-                int nResult = ::MessageBoxW(m_hWnd, wzMessage, m_pTheme->sczCaption, uiFlags);
-                return nResult;
+                nResult = ::MessageBoxW(m_hWnd, wzMessage, m_pTheme->sczCaption, uiFlags);
             }
         }
 
@@ -738,15 +837,25 @@ public: // IBootstrapperApplication
             ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_EXECUTE_PROGRESS_ACTIONDATA_TEXT, wzMessage);
         }
 
-        return __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
+		}
 
+		if (nResult == IDNOACTION)
+		{
+			nResult = __super::OnExecuteMsiMessage(wzPackageId, mt, uiFlags, wzMessage, cData, rgwzData, nRecommendation);
+		}
+		return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnProgress(
         __in DWORD dwProgressPercentage,
         __in DWORD dwOverallProgressPercentage
         )
     {
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
         WCHAR wzProgress[5] = { };
 
 #ifdef DEBUG
@@ -759,16 +868,22 @@ public: // IBootstrapperApplication
         ThemeSetProgressControl(m_pTheme, WIXSTDBA_CONTROL_OVERALL_PROGRESS_BAR, dwOverallProgressPercentage);
         SetTaskbarButtonProgress(dwOverallProgressPercentage);
 
-        return __super::OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
+		}
 
+		nResult = __super::OnProgress(dwProgressPercentage, dwOverallProgressPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnExecutePackageBegin(
         __in_z LPCWSTR wzPackageId,
         __in BOOL fExecute
         )
     {
-        HRESULT hr = S_OK;
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
         LPWSTR sczFormattedString = NULL;
         BOOL fShowingInternalUiThisPackage = FALSE;
 
@@ -823,11 +938,16 @@ public: // IBootstrapperApplication
 
         ::EnterCriticalSection(&m_csShowingInternalUiThisPackage);
         m_fShowingInternalUiThisPackage = fShowingInternalUiThisPackage;
-        hr = __super::OnExecutePackageBegin(wzPackageId, fExecute);
+        nResult = __super::OnExecutePackageBegin(wzPackageId, fExecute);
         ::LeaveCriticalSection(&m_csShowingInternalUiThisPackage);
 
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnExecutePackageBegin(wzPackageId, fExecute);
+		}
+
         ReleaseStr(sczFormattedString);
-        return hr;
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
 
@@ -837,6 +957,8 @@ public: // IBootstrapperApplication
         __in DWORD dwOverallProgressPercentage
         )
     {
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
         WCHAR wzProgress[5] = { };
 
 #ifdef DEBUG
@@ -853,9 +975,14 @@ public: // IBootstrapperApplication
 
         SetTaskbarButtonProgress(m_dwCalculatedCacheProgress + m_dwCalculatedExecuteProgress);
 
-        return __super::OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
+		}
 
+		nResult = __super::OnExecuteProgress(wzPackageId, dwProgressPercentage, dwOverallProgressPercentage);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(int) OnExecutePackageComplete(
         __in_z LPCWSTR wzPackageId,
@@ -864,9 +991,11 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
+		int nResult = IDNOACTION;
+		int nBafResult = IDNOACTION;
         SetProgressState(hrExitCode);
 
-        int nResult = __super::OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
+        nResult = __super::OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
 
         WIXSTDBA_PREREQ_PACKAGE* pPrereqPackage = NULL;
         BAL_INFO_PACKAGE* pPackage;
@@ -883,14 +1012,20 @@ public: // IBootstrapperApplication
             }
         }
 
-        return nResult;
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnExecutePackageComplete(wzPackageId, hrExitCode, restart, nRecommendation);
+		}
 
+		return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+	}
 
     virtual STDMETHODIMP_(void) OnExecuteComplete(
         __in HRESULT hrStatus
         )
     {
+        __super::OnExecuteComplete(hrStatus);
+
         ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_EXECUTE_PROGRESS_PACKAGE_TEXT, L"");
         ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_EXECUTE_PROGRESS_ACTIONDATA_TEXT, L"");
         ThemeSetTextControl(m_pTheme, WIXSTDBA_CONTROL_OVERALL_PROGRESS_PACKAGE_TEXT, L"");
@@ -899,7 +1034,12 @@ public: // IBootstrapperApplication
 
         SetState(WIXSTDBA_STATE_EXECUTED, S_OK); // we always return success here and let OnApplyComplete() deal with the error.
         SetProgressState(hrStatus);
-    }
+
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnExecuteComplete(hrStatus);
+		}
+	}
 
 
     virtual STDMETHODIMP_(int) OnResolveSource(
@@ -909,7 +1049,14 @@ public: // IBootstrapperApplication
         __in_z_opt LPCWSTR wzDownloadSource
         )
     {
-        int nResult = IDERROR; // assume we won't resolve source and that is unexpected.
+		int nBafResult = IDNOACTION;
+        int nResult = __super::OnResolveSource(wzPackageOrContainerId, wzPayloadId, wzLocalSource, wzDownloadSource);
+        
+        // assume we won't resolve source and that is unexpected.
+        if (nResult == IDNOACTION)
+        {
+            nResult = IDERROR;
+        }        
 
         if (BOOTSTRAPPER_DISPLAY_FULL == m_command.display)
         {
@@ -951,7 +1098,14 @@ public: // IBootstrapperApplication
         }
         // else there's nothing more we can do in non-interactive mode
 
-        return CheckCanceled() ? IDCANCEL : nResult;
+
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnResolveSource(wzPackageOrContainerId, wzPayloadId, wzLocalSource, wzDownloadSource);
+		}
+
+		// Give BAF priority over local result.
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
 
@@ -960,6 +1114,9 @@ public: // IBootstrapperApplication
         __in BOOTSTRAPPER_APPLY_RESTART restart
         )
     {
+        int nResult = __super::OnApplyComplete(hrStatus, restart);
+        int nBafResult = IDNOACTION;
+		
         m_restartResult = restart; // remember the restart result so we return the correct error code no matter what the user chooses to do in the UI.
 
         // If a restart was encountered and we are not suppressing restarts, then restart is required.
@@ -1000,14 +1157,25 @@ public: // IBootstrapperApplication
         SetState(WIXSTDBA_STATE_APPLIED, hrStatus);
         SetTaskbarButtonProgress(100); // show full progress bar, green, yellow, or red
 
-        return IDNOACTION;
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnApplyComplete(hrStatus, restart);
+		}
+
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
     virtual STDMETHODIMP_(void) OnLaunchApprovedExeComplete(
         __in HRESULT hrStatus,
-        __in DWORD /*processId*/
+        __in DWORD processId
         )
     {
+        __super::OnLaunchApprovedExeComplete(hrStatus, processId);
+		if (m_pBAFunction)
+		{
+			m_pBAFunction->OnLaunchApprovedExeComplete(hrStatus, processId);
+		}
+
         if (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hrStatus)
         {
             //try with ShelExec next time
@@ -1025,6 +1193,9 @@ public: // IBootstrapperApplication
         __in_ecount_z(cFiles) LPCWSTR* rgwzFiles
         )
     {
+		int nBafResult = IDNOACTION;
+		int nResult = IDNOACTION;
+		
         if (m_fShowFilesInUse && !m_fShowingInternalUiThisPackage && !m_fPrereq && wzPackageId && *wzPackageId)
         {
             //If this is an MSI package, display the files in use page.
@@ -1037,9 +1208,14 @@ public: // IBootstrapperApplication
             }
         }
 
-        return __super::OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
-    }
+		if (m_pBAFunction)
+		{
+			nBafResult = m_pBAFunction->OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+		}
 
+		nResult = __super::OnExecuteFilesInUse(wzPackageId, cFiles, rgwzFiles);
+		return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
 
 protected: // internals
     //
@@ -2328,10 +2504,10 @@ private: // privates
     {
         HRESULT hr = S_OK;
 
-        if (m_pBAFunction)
+        if (m_pBAFunctionOld)
         {
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running detect BA function");
-            hr = m_pBAFunction->OnDetect();
+            hr = m_pBAFunctionOld->OnDetect();
             BalExitOnFailure(hr, "Failed calling detect BA function.");
         }
 
@@ -2386,10 +2562,10 @@ private: // privates
 
         SetState(WIXSTDBA_STATE_PLANNING, hr);
 
-        if (m_pBAFunction)
+        if (m_pBAFunctionOld)
         {
             BalLog(BOOTSTRAPPER_LOG_LEVEL_STANDARD, "Running plan BA function");
-            m_pBAFunction->OnPlan();
+            m_pBAFunctionOld->OnPlan();
         }
 
         hr = m_pEngine->Plan(action);
@@ -3366,11 +3542,21 @@ private: // privates
         m_hBAFModule = ::LoadLibraryExW(sczBafPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
         if (m_hBAFModule)
         {
-            PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBootstrapperBAFunction"));
-            BalExitOnNullWithLastError1(pfnBAFunctionCreate, hr, "Failed to get CreateBootstrapperBAFunction entry-point from: %ls", sczBafPath);
+            PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE pfnBAFunctionCreateOld = reinterpret_cast<PFN_BOOTSTRAPPER_BA_FUNCTION_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBootstrapperBAFunction"));
+            if (pfnBAFunctionCreateOld)
+            {
+                hr = pfnBAFunctionCreateOld(m_pEngine, m_hBAFModule, &m_pBAFunctionOld);
+                BalExitOnFailure(hr, "Failed to create BA function.");
+            }
 
-            hr = pfnBAFunctionCreate(m_pEngine, m_hBAFModule, &m_pBAFunction);
-            BalExitOnFailure(hr, "Failed to create BA function.");
+			PFN_BAFUNCTIONS_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BAFUNCTIONS_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBaFunctions"));
+            if (pfnBAFunctionCreate)
+            {
+                hr = pfnBAFunctionCreate(m_pEngine, &m_command, this, &m_pBAFunction);
+                BalExitOnFailure(hr, "Failed to create BA function.");
+            }
+
+            BalExitOnNullWithLastError1((pfnBAFunctionCreate || pfnBAFunctionCreateOld), hr, "Failed to get CreateBootstrapperBAFunction or CreateBaFunctions entry-point from: '%ls'", sczBafPath);
         }
 #ifdef DEBUG
         else
@@ -3380,7 +3566,7 @@ private: // privates
 #endif
 
     LExit:
-        if (m_hBAFModule && !m_pBAFunction)
+        if (m_hBAFModule)
         {
             ::FreeLibrary(m_hBAFModule);
             m_hBAFModule = NULL;
@@ -3623,10 +3809,361 @@ public:
 
         m_hBAFModule = NULL;
         m_pBAFunction = NULL;
+        m_pBAFunctionOld = NULL;
 
         m_fUseUILanguages = FALSE;
     }
 
+#pragma region Methods only used to explictly call BAFunctions
+
+    STDMETHODIMP_(int) OnSystemShutdown(__in DWORD dwEndSession, __in int nRecommendation) override
+    {
+        int nResult = __super::OnSystemShutdown(dwEndSession, nRecommendation);
+        int nBafResult = nRecommendation;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnSystemShutdown(dwEndSession, nRecommendation);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectBegin(__in BOOL fInstalled, __in DWORD cPackages) override
+    {
+        int nResult = __super::OnDetectBegin(fInstalled, cPackages);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectBegin(fInstalled, cPackages);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectPackageBegin(__in_z LPCWSTR wzPackageId) override
+    {
+        int nResult = __super::OnDetectPackageBegin(wzPackageId);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectPackageBegin(wzPackageId);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectCompatiblePackage(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzCompatiblePackageId) override
+    {
+        int nResult = __super::OnDetectCompatiblePackage(wzPackageId, wzCompatiblePackageId);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectCompatiblePackage(wzPackageId, wzCompatiblePackageId);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectRelatedMsiPackage(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzProductCode, __in BOOL fPerMachine, __in DWORD64 dw64Version, __in BOOTSTRAPPER_RELATED_OPERATION operation) override
+    {
+        int nResult = __super::OnDetectRelatedMsiPackage(wzPackageId, wzProductCode, fPerMachine, dw64Version, operation);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectRelatedMsiPackage(wzPackageId, wzProductCode, fPerMachine, dw64Version, operation);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectTargetMsiPackage(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzProductCode, __in BOOTSTRAPPER_PACKAGE_STATE patchState) override
+    {
+        int nResult = __super::OnDetectTargetMsiPackage(wzPackageId, wzProductCode, patchState);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectTargetMsiPackage(wzPackageId, wzProductCode, patchState);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectForwardCompatibleBundle(__in_z LPCWSTR wzBundleId, __in BOOTSTRAPPER_RELATION_TYPE relationType, __in_z LPCWSTR wzBundleTag, __in BOOL fPerMachine, __in DWORD64 dw64Version, __in int nRecommendation) override
+    {
+        int nResult = __super::OnDetectForwardCompatibleBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, nRecommendation);
+        int nBafResult = nRecommendation;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectForwardCompatibleBundle(wzBundleId, relationType, wzBundleTag, fPerMachine, dw64Version, nRecommendation);
+        }
+        return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectUpdateBegin(__in_z LPCWSTR wzUpdateLocation, __in int nRecommendation) override
+    {
+        int nResult = __super::OnDetectUpdateBegin(wzUpdateLocation, nRecommendation);
+        int nBafResult = nRecommendation;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectUpdateBegin(wzUpdateLocation, nRecommendation);
+        }
+        return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnDetectUpdate(__in_z_opt LPCWSTR wzUpdateLocation, __in DWORD64 dw64Size, __in DWORD64 dw64Version, __in_z_opt LPCWSTR wzTitle, __in_z_opt LPCWSTR wzSummary, __in_z_opt LPCWSTR wzContentType, __in_z_opt LPCWSTR wzContent, __in int nRecommendation) override
+    {
+        int nResult = __super::OnDetectUpdate(wzUpdateLocation, dw64Size, dw64Version, wzTitle, wzSummary, wzContentType, wzContent, nRecommendation);
+        int nBafResult = nRecommendation;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectUpdate(wzUpdateLocation, dw64Size, dw64Version, wzTitle, wzSummary, wzContentType, wzContent, nRecommendation);
+        }
+        return ((nResult == IDNOACTION) || (nResult == nRecommendation)) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(void) OnDetectUpdateComplete(__in HRESULT hrStatus, __in_z_opt LPCWSTR wzUpdateLocation) override
+    {
+        __super::OnDetectUpdateComplete(hrStatus, wzUpdateLocation);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnDetectUpdateComplete(hrStatus, wzUpdateLocation);
+        }
+    }
+
+    STDMETHODIMP_(int) OnDetectMsiFeature(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzFeatureId, __in BOOTSTRAPPER_FEATURE_STATE state) override 
+    { 
+        int nResult = __super::OnDetectMsiFeature(wzPackageId, wzFeatureId, state);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnDetectMsiFeature(wzPackageId, wzFeatureId, state);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    int STDMETHODCALLTYPE OnPlanBegin(__in DWORD cPackages) override
+    {
+        int nResult = __super::OnPlanBegin(cPackages);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanBegin(cPackages);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnPlanCompatiblePackage(__in_z LPCWSTR wzPackageId, __inout BOOTSTRAPPER_REQUEST_STATE* pRequestedState) override 
+    { 
+        int nResult = __super::OnPlanCompatiblePackage(wzPackageId, pRequestedState);
+        int nBafResult = IDNOACTION;        
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanCompatiblePackage(wzPackageId, pRequestedState);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnPlanTargetMsiPackage(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzProductCode, __inout BOOTSTRAPPER_REQUEST_STATE* pRequestedState) override 
+    { 
+        int nResult = __super::OnPlanTargetMsiPackage(wzPackageId, wzProductCode, pRequestedState);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanTargetMsiPackage(wzPackageId, wzProductCode, pRequestedState);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnPlanMsiFeature(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzFeatureId, __inout BOOTSTRAPPER_FEATURE_STATE* pRequestedState) override 
+    { 
+        int nResult = __super::OnPlanMsiFeature(wzPackageId, wzFeatureId, pRequestedState);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanMsiFeature(wzPackageId, wzFeatureId, pRequestedState);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnPlanMsiTransaction(__in_z LPCWSTR wzRollbackId, __inout BOOL* pfTransaction) override 
+    { 
+        int nResult = __super::OnPlanMsiTransaction(wzRollbackId, pfTransaction);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanMsiTransaction(wzRollbackId, pfTransaction);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(int) OnApplyBegin() override
+    {
+        int nResult = __super::OnApplyBegin();
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnApplyBegin();
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+    STDMETHODIMP_(void) OnApplyPhaseCount(__in DWORD dwPhaseCount) override
+    {
+        __super::OnApplyPhaseCount(dwPhaseCount);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnApplyPhaseCount(dwPhaseCount);
+        }
+    }
+
+    STDMETHODIMP_(void) OnMsiTransactionBegin(__in_z LPCWSTR wzTransactionId) override
+    {
+        __super::OnMsiTransactionBegin(wzTransactionId);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnMsiTransactionBegin(wzTransactionId);
+        }
+    }
+
+    STDMETHODIMP_(void) OnMsiTransactionCommit(__in_z LPCWSTR wzTransactionId, __inout BOOTSTRAPPER_APPLY_RESTART* pRestart) override
+    {
+        __super::OnMsiTransactionCommit(wzTransactionId, pRestart);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnMsiTransactionCommit(wzTransactionId, pRestart);
+        }
+    }
+
+    STDMETHODIMP_(void) OnMsiTransactionRollback(__in_z LPCWSTR wzTransactionId, __inout BOOTSTRAPPER_APPLY_RESTART* pRestart) override
+    {
+        __super::OnMsiTransactionRollback(wzTransactionId, pRestart);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnMsiTransactionRollback(wzTransactionId, pRestart);
+        }
+    }
+
+    STDMETHODIMP_(int) OnElevate() override 
+    { 
+        int nResult = __super::OnElevate();
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnElevate();
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnRegisterBegin() override 
+    { 
+        int nResult = __super::OnRegisterBegin();
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnRegisterBegin();
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(void) OnRegisterComplete(__in HRESULT hrStatus) override
+    {
+        __super::OnRegisterComplete(hrStatus);        
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnRegisterComplete(hrStatus);
+        }
+    }
+    
+    STDMETHODIMP_(int) OnCacheBegin() override 
+    { 
+        int nResult = __super::OnCacheBegin();
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnCacheBegin();
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnCacheAcquireBegin(__in_z_opt LPCWSTR wzPackageOrContainerId, __in_z_opt LPCWSTR wzPayloadId, __in BOOTSTRAPPER_CACHE_OPERATION operation, __in_z LPCWSTR wzSource) override 
+    { 
+        int nResult = __super::OnCacheAcquireBegin(wzPackageOrContainerId, wzPayloadId, operation, wzSource);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnCacheAcquireBegin(wzPackageOrContainerId, wzPayloadId, operation, wzSource);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnCacheVerifyBegin(__in_z_opt LPCWSTR wzPackageOrContainerId, __in_z_opt LPCWSTR wzPayloadId) override 
+    { 
+        int nResult = __super::OnCacheVerifyBegin(wzPackageOrContainerId, wzPayloadId);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnCacheVerifyBegin(wzPackageOrContainerId, wzPayloadId);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnCachePackageComplete(__in_z LPCWSTR wzPackageId, __in HRESULT hrStatus, __in int nRecommendation) override 
+    {
+        int nResult = __super::OnCachePackageComplete(wzPackageId, hrStatus, nRecommendation);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnCachePackageComplete(wzPackageId, hrStatus, nRecommendation);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnExecuteBegin(__in DWORD cExecutingPackages) override 
+    { 
+        int nResult = __super::OnExecuteBegin(cExecutingPackages);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnExecuteBegin(cExecutingPackages);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnExecutePatchTarget(__in_z LPCWSTR wzPackageId, __in_z LPCWSTR wzTargetProductCode) override 
+    { 
+        int nResult = __super::OnExecutePatchTarget(wzPackageId, wzTargetProductCode);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnExecutePatchTarget(wzPackageId, wzTargetProductCode);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(void) OnUnregisterBegin() override
+    {
+        __super::OnUnregisterBegin();
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnUnregisterBegin();
+        }
+    }
+    
+    STDMETHODIMP_(void) OnUnregisterComplete(__in HRESULT hrStatus) override
+    {
+        __super::OnUnregisterComplete(hrStatus);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnUnregisterComplete(hrStatus);
+        }
+    }
+    
+    STDMETHODIMP_(int) OnLaunchApprovedExeBegin() override 
+    {
+        int nResult = __super::OnLaunchApprovedExeBegin();
+        int nBafResult = IDNOACTION;      
+        if (m_pBAFunction)
+        {
+            return m_pBAFunction->OnLaunchApprovedExeBegin();
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+
+#pragma endregion
 
     //
     // Destructor - release member variables.
@@ -3726,7 +4263,8 @@ private:
     int m_nLastFilesInUseResult;
 
     HMODULE m_hBAFModule;
-    IBootstrapperBAFunction* m_pBAFunction;
+    IBootstrapperBAFunction* m_pBAFunctionOld;
+	IBootstrapperApplication* m_pBAFunction;
 
     BOOL m_fUseUILanguages;
 };
