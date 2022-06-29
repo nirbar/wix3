@@ -434,6 +434,15 @@ public: // IBootstrapperApplication
         return;
     }
 
+    STDMETHODIMP_(void) OnMsiTransactionComplete(
+        __in_z LPCWSTR /*wzTransactionId*/,
+        __in MSITRANSACTIONSTATE /*eState*/,
+        __in HRESULT /*hrStatus*/
+    ) override
+    {
+        return;
+    }
+
     virtual STDMETHODIMP_(int) OnExecutePackageBegin(
         __in_z LPCWSTR /*wzPackageId*/,
         __in BOOL /*fExecute*/

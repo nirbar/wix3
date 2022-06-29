@@ -331,6 +331,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             [MarshalAs(UnmanagedType.U4)] ref ApplyRestart restart
             );
 
+        void OnMsiTransactionComplete(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
+            [MarshalAs(UnmanagedType.U4)] MsiTransactionState state,
+            [MarshalAs(UnmanagedType.I4)] int result
+            );
+
         [PreserveSig]
         [return: MarshalAs(UnmanagedType.I4)]
         Result OnExecutePackageBegin(
@@ -629,6 +635,22 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// Package or chain has already initiated the restart.
         /// </summary>
         RestartInitiated
+    }
+
+    /// <summary>
+    /// MSI transaction state - rollback or commit
+    /// </summary>
+    public enum MsiTransactionState
+    {
+        /// <summary>
+        /// Transaction rollback
+        /// </summary>
+        Rollback = 0,
+
+        /// <summary>
+        /// Transaction commit
+        /// </summary>
+        Commit = 1
     }
 
     /// <summary>

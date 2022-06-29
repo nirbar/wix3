@@ -1697,7 +1697,7 @@ static HRESULT ExecuteMsiBeginTransaction(
 	else
 	{
         hr = WiuBeginTransaction(szTransactionId, 0, &hMsiTrns, &hMsiTrnsEvent, szLogPath);
-		ExitOnFailure(hr, "Failed beginning an MSI transaction");
+		ExitOnFailure(hr, "Failed to begin an MSI transaction.");
 	}
 
 LExit:
@@ -1722,13 +1722,14 @@ static HRESULT ExecuteMsiCommitTransaction(
 	if (pEngineState->plan.fPerMachine)
 	{
 		hr = ElevationMsiCommitTransaction(pEngineState->companionConnection.hPipe, pEngineState->userExperience.hwndApply, pContext, szLogPath);
-		ExitOnFailure(hr, "Failed to commit an MSI transaction.");
 	}
 	else
 	{
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
-		ExitOnFailure(hr, "Failed beginning an MSI transaction");
     }
+
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_COMMIT, hr);
+    ExitOnFailure(hr, "Failed to commit an MSI transaction."); // Fail after notifying UX
 
 LExit:
 	return hr;
@@ -1751,13 +1752,14 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	if (pEngineState->plan.fPerMachine)
 	{
 		hr = ElevationMsiRollbackTransaction(pEngineState->companionConnection.hPipe, pEngineState->userExperience.hwndApply, pContext, szLogPath);
-		ExitOnFailure(hr, "Failed to rollback an MSI transaction.");
 	}
 	else
 	{
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
-		ExitOnFailure(hr, "Failed beginning an MSI transaction");
     }
+
+    pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_ROLLBACK, hr);
+    ExitOnFailure(hr, "Failed to rollback an MSI transaction."); // Fail after notifying UX
 
 LExit:
 	return hr;

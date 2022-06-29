@@ -276,6 +276,11 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<MsiTransactionEndEventArgs> MsiTransactionRollback;
 
         /// <summary>
+        /// Fired when the engine has completed to roll back or commit an MSI transactions.
+        /// </summary>
+        public event EventHandler<MsiTransactionCompleteEventArgs> MsiTransactionComplete;
+
+        /// <summary>
         /// Fired when the engine has begun installing a specific package.
         /// </summary>
         public event EventHandler<ExecutePackageBeginEventArgs> ExecutePackageBegin;
@@ -1020,6 +1025,18 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         }
 
         /// <summary>
+        /// Called when the engine has completed MSI transaction commit or rollback.
+        /// </summary>
+        protected virtual void OnMsiTransactionComplete(MsiTransactionCompleteEventArgs args)
+        {
+            EventHandler<MsiTransactionCompleteEventArgs> handler = this.MsiTransactionComplete;
+            if (null != handler)
+            {
+                handler(this, args);
+            }
+        }
+
+        /// <summary>
         /// Called when the engine has begun installing a specific package.
         /// </summary>
         /// <param name="args">Additional arguments for this event.</param>
@@ -1528,6 +1545,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             MsiTransactionEndEventArgs args = new MsiTransactionEndEventArgs(wzTransactionId, pRestart);
             this.OnMsiTransactionRollback(args);
             pRestart = args.Restart;
+        }
+
+        void IBootstrapperApplication.OnMsiTransactionComplete(string wzTransactionId, MsiTransactionState state, int result)
+        {
+            MsiTransactionCompleteEventArgs args = new MsiTransactionCompleteEventArgs(wzTransactionId, state, result);
+            this.OnMsiTransactionComplete(args);
         }
 
         Result IBootstrapperApplication.OnExecutePackageBegin(string wzPackageId, bool fExecute)

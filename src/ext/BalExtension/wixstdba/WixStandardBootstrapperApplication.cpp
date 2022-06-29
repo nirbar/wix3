@@ -4037,6 +4037,15 @@ public:
         }
     }
 
+    STDMETHODIMP_(void) OnMsiTransactionComplete(__in_z LPCWSTR wzTransactionId, __in MSITRANSACTIONSTATE eState, __in HRESULT hrStatus) override
+    {
+        __super::OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
+        if (m_pBAFunction)
+        {
+            m_pBAFunction->OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
+        }
+    }
+
     STDMETHODIMP_(int) OnElevate() override 
     { 
         int nResult = __super::OnElevate();

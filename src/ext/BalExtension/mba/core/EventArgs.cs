@@ -1195,6 +1195,37 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
     }
 
     /// <summary>
+    /// Additional arguments used when the engine commits or rolls back an MSI transaction.
+    /// </summary>
+    [Serializable]
+    public class MsiTransactionCompleteEventArgs : MsiTransactionEventArgs
+    {
+        /// <summary>
+        /// Creates a new instance of the <see cref="MsiTransactionCompleteEventArgs"/> class.
+        /// </summary>
+        /// <param name="id">Rollback Id.</param>
+        /// <param name="state">Transaction state.</param>
+        /// <param name="result">Transaction rollback or commit status.</param>
+        public MsiTransactionCompleteEventArgs(string id, MsiTransactionState state, int result)
+            : base(id)
+        {
+            State = state;
+            Result = result;
+        }
+
+        /// <summary>
+        /// Gets transaction state.
+        /// Set to <see cref="ApplyRestart.RestartInitiated"/> to reboot the system now.
+        /// </summary>
+        public MsiTransactionState State { get; private set; }
+
+        /// <summary>
+        /// Transaction rollback or commit status
+        /// </summary>
+        public int Result { get; private set; }
+    }
+
+    /// <summary>
     /// Additional arguments used when the engine has completed planning the installation.
     /// </summary>
     [Serializable]
