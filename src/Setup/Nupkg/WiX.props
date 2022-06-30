@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
-		<WixToolPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\bin\'))</WixToolPath>
-		<WixSdkPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\sdk\'))</WixSdkPath>
-		<WixTargetsPath>$(WixToolPath)Wix.targets</WixTargetsPath>
-		<WixCATargetsPath>$(WixSdkPath)Wix.CA.targets</WixCATargetsPath>
-		<WixNativeCATargetsPath>$(WixSdkPath)Wix.NativeCA.targets</WixNativeCATargetsPath>
-		<WixTasksPath>$(WixToolPath)wixtasks.dll</WixTasksPath>
-		<WixInstallPath>$(WixToolPath)</WixInstallPath>
-		<WixExtDir>$(WixToolPath)</WixExtDir>
-		<LuxTargetsPath>$(WixToolPath)lux.targets</LuxTargetsPath>
+		<WixToolPath Condition="'$(WixToolPath)'==''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\bin\'))</WixToolPath>
+		<WixSdkPath Condition="'$(WixSdkPath)'==''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\sdk\'))</WixSdkPath>
+		<WixTargetsPath Condition="'$(WixTargetsPath)'==''">$(WixToolPath)Wix.targets</WixTargetsPath>
+		<WixCATargetsPath Condition="'$(WixCATargetsPath)'==''">$(WixSdkPath)Wix.CA.targets</WixCATargetsPath>
+		<WixNativeCATargetsPath Condition="'$(WixNativeCATargetsPath)'==''">$(WixSdkPath)Wix.NativeCA.targets</WixNativeCATargetsPath>
+		<WixTasksPath Condition="'$(WixTasksPath)'==''">$(WixToolPath)wixtasks.dll</WixTasksPath>
+		<WixInstallPath Condition="'$(WixInstallPath)'==''">$(WixToolPath)</WixInstallPath>
+		<WixExtDir Condition="'$(WixExtDir)'==''">$(WixToolPath)</WixExtDir>
+		<LuxTargetsPath Condition="'$(LuxTargetsPath)'==''">$(WixToolPath)lux.targets</LuxTargetsPath>
 	</PropertyGroup> 
 </Project>

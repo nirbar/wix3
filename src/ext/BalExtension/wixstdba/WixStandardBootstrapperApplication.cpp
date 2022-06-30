@@ -241,16 +241,23 @@ public: // IBootstrapperApplication
     {
         HRESULT hr = S_OK;
         DWORD dwUIThreadId = 0;
+        DWORD dwRes = ERROR_SUCCESS;
+        HANDLE rghThreadHandles[2];
 
         hr = __super::OnStartup();
-        ExitOnFailure(hr, "Failure on startup");
+        BalExitOnFailure(hr, "Failure on startup");
+
+        m_hUiReadyEvt = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        BalExitOnNullWithLastError(m_hUiReadyEvt, hr, "Failed to create UI-ready event");
 
         // create UI thread
         m_hUiThread = ::CreateThread(NULL, 0, UiThreadProc, this, 0, &dwUIThreadId);
-        if (!m_hUiThread)
-        {
-            ExitWithLastError(hr, "Failed to create UI thread.");
-        }
+        BalExitOnNullWithLastError(m_hUiReadyEvt, hr, "Failed to create UI thread");
+
+        rghThreadHandles[0] = m_hUiReadyEvt;
+        rghThreadHandles[1] = m_hUiThread;
+        dwRes = ::WaitForMultipleObjects(countof(rghThreadHandles), rghThreadHandles, FALSE, INFINITE);
+        BalExitOnNullWithLastError((dwRes == WAIT_OBJECT_0), hr, "Failed to wait for UI to be ready");
 
 		if (m_pBAFunction)
 		{
@@ -1338,6 +1345,7 @@ private: // privates
         HRESULT hr = S_OK;
         LPWSTR sczModulePath = NULL;
         IXMLDOMDocument *pixdManifest = NULL;
+        BOOL bRes = TRUE;
 
         hr = BalManifestLoad(m_hModule, &pixdManifest);
         BalExitOnFailure(hr, "Failed to load bootstrapper application manifest.");
@@ -1349,16 +1357,16 @@ private: // privates
         BalExitOnFailure(hr, "Failed to read overridable variables.");
 
         hr = ProcessCommandLine(&m_sczLanguage);
-        ExitOnFailure(hr, "Unknown commandline parameters.");
+        BalExitOnFailure(hr, "Unknown commandline parameters.");
 
         hr = PathRelativeToModule(&sczModulePath, NULL, m_hModule);
         BalExitOnFailure(hr, "Failed to get module path.");
 
         hr = LoadLocalization(sczModulePath, m_sczLanguage);
-        ExitOnFailure(hr, "Failed to load localization.");
+        BalExitOnFailure(hr, "Failed to load localization.");
 
         hr = LoadTheme(sczModulePath, m_sczLanguage);
-        ExitOnFailure(hr, "Failed to load theme.");
+        BalExitOnFailure(hr, "Failed to load theme.");
 
         hr = BalInfoParseFromXml(&m_Bundle, pixdManifest);
         BalExitOnFailure(hr, "Failed to load bundle information.");
@@ -1368,6 +1376,9 @@ private: // privates
 
         hr = LoadBootstrapperBAFunctions();
         BalExitOnFailure(hr, "Failed to load bootstrapper functions.");
+
+        bRes = ::SetEvent(m_hUiReadyEvt);
+        BalExitOnNullWithLastError(bRes, hr, "Failed to set UI-ready event");
 
         GetBundleFileVersion();
         // don't fail if we couldn't get the version info; best-effort only
@@ -1407,7 +1418,7 @@ private: // privates
         if (m_command.wzCommandLine && *m_command.wzCommandLine)
         {
             hr = AppParseCommandLine(m_command.wzCommandLine, &argc, &argv);
-            ExitOnFailure(hr, "Failed to parse command line.");
+            BalExitOnFailure(hr, "Failed to parse command line.");
 
             for (int i = 0; i < argc; ++i)
             {
@@ -1446,7 +1457,7 @@ private: // privates
                             hr = S_OK;
                             continue;
                         }
-                        ExitOnFailure(hr, "Failed to check the dictionary of overridable variables.");
+                        BalExitOnFailure(hr, "Failed to check the dictionary of overridable variables.");
 
                         hr = StrAllocString(&sczVariableValue, ++pwc, 0);
                         BalExitOnFailure(hr, "Failed to copy variable value.");
@@ -1486,10 +1497,10 @@ private: // privates
 
         // Find and load .wxl file.
         hr = FindLocFile(wzModulePath, wzLocFileName, wzLanguage, &sczLocPath);
-        BalExitOnFailure2(hr, "Failed to probe for loc file: %ls in path: %ls", wzLocFileName, wzModulePath);
+        BalExitOnFailure(hr, "Failed to probe for loc file: %ls in path: %ls", wzLocFileName, wzModulePath);
 
         hr = LocLoadFromFile(sczLocPath, &m_pWixLoc);
-        BalExitOnFailure1(hr, "Failed to load loc file from path: %ls", sczLocPath);
+        BalExitOnFailure(hr, "Failed to load loc file from path: %ls", sczLocPath);
 
         // Set WixStdBALanguageId to .wxl language id.
         if (WIX_LOCALIZATION_LANGUAGE_NOT_SET != m_pWixLoc->dwLangId)
@@ -1502,10 +1513,10 @@ private: // privates
 
         // Load ConfirmCancelMessage.
         hr = StrAllocString(&m_sczConfirmCloseMessage, L"#(loc.ConfirmCancelMessage)", 0);
-        ExitOnFailure(hr, "Failed to initialize confirm message loc identifier.");
+        BalExitOnFailure(hr, "Failed to initialize confirm message loc identifier.");
 
         hr = LocLocalizeString(m_pWixLoc, &m_sczConfirmCloseMessage);
-        BalExitOnFailure1(hr, "Failed to localize confirm close message: %ls", m_sczConfirmCloseMessage);
+        BalExitOnFailure(hr, "Failed to localize confirm close message: %ls", m_sczConfirmCloseMessage);
 
         hr = BalFormatString(m_sczConfirmCloseMessage, &sczFormatted);
         if (SUCCEEDED(hr))
@@ -1525,25 +1536,25 @@ private: // privates
             if (SUCCEEDED(LocGetString(m_pWixLoc, L"#(loc.SuccessHeader)", &pLocString)))
             {
                 hr = LocAddString(m_pWixLoc, L"SuccessInstallHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for SuccessInstallHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for SuccessInstallHeader.");
 
                 hr = LocAddString(m_pWixLoc, L"SuccessRepairHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for SuccessRepairHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for SuccessRepairHeader.");
 
                 hr = LocAddString(m_pWixLoc, L"SuccessUninstallHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for SuccessUninstallHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for SuccessUninstallHeader.");
             }
 
             if (SUCCEEDED(LocGetString(m_pWixLoc, L"#(loc.FailureHeader)", &pLocString)))
             {
                 hr = LocAddString(m_pWixLoc, L"FailureInstallHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for FailureInstallHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for FailureInstallHeader.");
 
                 hr = LocAddString(m_pWixLoc, L"FailureRepairHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for FailureRepairHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for FailureRepairHeader.");
 
                 hr = LocAddString(m_pWixLoc, L"FailureUninstallHeader", pLocString->wzText, pLocString->bOverridable);
-                ExitOnFailure(hr, "Failed to duplicate localization string for FailureUninstallHeader.");
+                BalExitOnFailure(hr, "Failed to duplicate localization string for FailureUninstallHeader.");
             }
         }
 
@@ -1566,13 +1577,13 @@ private: // privates
         LPWSTR sczCaption = NULL;
 
         hr = FindLocFile(wzModulePath, wzThemeFileName, wzLanguage, &sczThemePath);
-        BalExitOnFailure2(hr, "Failed to probe for theme file: %ls in path: %ls", wzThemeFileName, wzModulePath);
+        BalExitOnFailure(hr, "Failed to probe for theme file: %ls in path: %ls", wzThemeFileName, wzModulePath);
 
         hr = ThemeLoadFromFile(sczThemePath, &m_pTheme);
-        BalExitOnFailure1(hr, "Failed to load theme from path: %ls", sczThemePath);
+        BalExitOnFailure(hr, "Failed to load theme from path: %ls", sczThemePath);
 
         hr = ThemeLocalize(m_pTheme, m_pWixLoc);
-        BalExitOnFailure1(hr, "Failed to localize theme: %ls", sczThemePath);
+        BalExitOnFailure(hr, "Failed to localize theme: %ls", sczThemePath);
 
         // Update the caption if there are any formatted strings in it.
         // If the wix developer is showing a hidden variable in the UI, then obviously they don't care about keeping it safe
@@ -1607,17 +1618,17 @@ private: // privates
         {
             ExitFunction1(hr = S_OK);
         }
-        ExitOnFailure(hr, "Failed to select option variable nodes.");
+        BalExitOnFailure(hr, "Failed to select option variable nodes.");
 
         hr = pNodes->get_length((long*)&cNodes);
-        ExitOnFailure(hr, "Failed to get option variable node count.");
+        BalExitOnFailure(hr, "Failed to get option variable node count.");
 
         if (cNodes)
         {
             for (DWORD i = 0; i < cNodes; ++i)
             {
                 hr = XmlNextElement(pNodes, &pNode, NULL);
-                ExitOnFailure(hr, "Failed to get next node.");
+                BalExitOnFailure(hr, "Failed to get next node.");
 
                 // @Value
                 hr = XmlGetAttributeEx(pNode, L"Value", &sczValue);
@@ -1627,12 +1638,12 @@ private: // privates
                 }
                 else
                 {
-                    ExitOnFailure(hr, "Failed to get @Value.");
+                    BalExitOnFailure(hr, "Failed to get @Value.");
                 }
 
                 // @Name
                 hr = XmlGetAttributeEx(pNode, L"Name", &sczName);
-                ExitOnFailure(hr, "Failed to get @Name.");
+                BalExitOnFailure(hr, "Failed to get @Name.");
 
                 if (0 == ::wcscmp(sczName, L"UseUILanguages"))
                 {
@@ -1640,7 +1651,7 @@ private: // privates
                     {
                         USHORT us;
                         hr = StrStringToUInt16(sczValue, 0, &us);
-                        ExitOnFailure(hr, "Failed to parse UseUILanguages.");
+                        BalExitOnFailure(hr, "Failed to parse UseUILanguages.");
 
                         m_fUseUILanguages = us ? TRUE : FALSE;
                     }
@@ -1652,7 +1663,7 @@ private: // privates
                 else
                 {
                     hr = E_NOTFOUND;
-                    ExitOnFailure1(hr, "Failed to recognize option variable \"%ls\".", sczName);
+                    BalExitOnFailure(hr, "Failed to recognize option variable \"%ls\".", sczName);
                 }
 
                 // prepare next iteration
@@ -1685,27 +1696,27 @@ private: // privates
         {
             ExitFunction1(hr = S_OK);
         }
-        ExitOnFailure(hr, "Failed to select overridable variable nodes.");
+        BalExitOnFailure(hr, "Failed to select overridable variable nodes.");
 
         hr = pNodes->get_length((long*)&cNodes);
-        ExitOnFailure(hr, "Failed to get overridable variable node count.");
+        BalExitOnFailure(hr, "Failed to get overridable variable node count.");
 
         if (cNodes)
         {
             hr = DictCreateStringList(&m_sdOverridableVariables, 32, DICT_FLAG_NONE);
-            ExitOnFailure(hr, "Failed to create the string dictionary.");
+            BalExitOnFailure(hr, "Failed to create the string dictionary.");
 
             for (DWORD i = 0; i < cNodes; ++i)
             {
                 hr = XmlNextElement(pNodes, &pNode, NULL);
-                ExitOnFailure(hr, "Failed to get next node.");
+                BalExitOnFailure(hr, "Failed to get next node.");
 
                 // @Name
                 hr = XmlGetAttributeEx(pNode, L"Name", &scz);
-                ExitOnFailure(hr, "Failed to get @Name.");
+                BalExitOnFailure(hr, "Failed to get @Name.");
 
                 hr = DictAddKey(m_sdOverridableVariables, scz);
-                ExitOnFailure1(hr, "Failed to add \"%ls\" to the string dictionary.", scz);
+                BalExitOnFailure(hr, "Failed to add \"%ls\" to the string dictionary.", scz);
 
                 // prepare next iteration
                 ReleaseNullObject(pNode);
@@ -1762,31 +1773,31 @@ private: // privates
         {
             ExitFunction1(hr = S_OK);
         }
-        ExitOnFailure(hr, "Failed to select prerequisite support package nodes.");
+        BalExitOnFailure(hr, "Failed to select prerequisite support package nodes.");
 
         hr = pNodes->get_length((long*)&cNodes);
-        ExitOnFailure(hr, "Failed to get prerequisite support package node count.");
+        BalExitOnFailure(hr, "Failed to get prerequisite support package node count.");
 
         m_cPrereqPackages = cNodes + 1;
         m_rgPrereqPackages = static_cast<WIXSTDBA_PREREQ_PACKAGE*>(MemAlloc(sizeof(WIXSTDBA_PREREQ_PACKAGE) * m_cPrereqPackages, TRUE));
 
         hr = DictCreateWithEmbeddedKey(&m_shPrereqSupportPackages, m_cPrereqPackages, reinterpret_cast<void **>(&m_rgPrereqPackages), offsetof(WIXSTDBA_PREREQ_PACKAGE, sczPackageId), DICT_FLAG_NONE);
-        ExitOnFailure(hr, "Failed to create the prerequisite package dictionary.");
+        BalExitOnFailure(hr, "Failed to create the prerequisite package dictionary.");
 
         pPrereqPackage = m_rgPrereqPackages;
         pPrereqPackage->sczPackageId = m_sczPrereqPackage;
         pPrereqPackage->fAlwaysInstall = TRUE;
         hr = DictAddValue(m_shPrereqSupportPackages, pPrereqPackage);
-        ExitOnFailure1(hr, "Failed to add \"%ls\" to the prerequisite package dictionary.", pPrereqPackage->sczPackageId);
+        BalExitOnFailure(hr, "Failed to add \"%ls\" to the prerequisite package dictionary.", pPrereqPackage->sczPackageId);
 
         for (DWORD i = 0; i < cNodes; ++i)
         {
             hr = XmlNextElement(pNodes, &pNode, NULL);
-            ExitOnFailure(hr, "Failed to get next node.");
+            BalExitOnFailure(hr, "Failed to get next node.");
 
             // @PackageId
             hr = XmlGetAttributeEx(pNode, L"PackageId", &scz);
-            ExitOnFailure(hr, "Failed to get @PackageId.");
+            BalExitOnFailure(hr, "Failed to get @PackageId.");
 
             hr = DictGetValue(m_shPrereqSupportPackages, scz, reinterpret_cast<void **>(&pPrereqPackage));
             if (SUCCEEDED(hr))
@@ -1800,7 +1811,7 @@ private: // privates
             }
             else if (E_NOTFOUND != hr)
             {
-                ExitOnFailure1(hr, "Failed to check if \"%ls\" was in the prerequisite package dictionary.", scz);
+                BalExitOnFailure(hr, "Failed to check if \"%ls\" was in the prerequisite package dictionary.", scz);
             }
 
             hr = BalInfoFindPackageById(&m_Bundle.packages, scz, &pPackage);
@@ -1809,7 +1820,7 @@ private: // privates
                 pPrereqPackage = &m_rgPrereqPackages[i + 1];
                 pPrereqPackage->sczPackageId = pPackage->sczId;
                 hr = DictAddValue(m_shPrereqSupportPackages, pPrereqPackage);
-                ExitOnFailure1(hr, "Failed to add \"%ls\" to the prerequisite package dictionary.", pPrereqPackage->sczPackageId);
+                BalExitOnFailure(hr, "Failed to add \"%ls\" to the prerequisite package dictionary.", pPrereqPackage->sczPackageId);
             }
             else
             {
@@ -1958,7 +1969,7 @@ private: // privates
             hr = DictGetValue(m_shPrereqSupportPackages, wzPackageId, reinterpret_cast<void **>(&pPrereqPackage));
             if (E_NOTFOUND != hr)
             {
-                ExitOnFailure(hr, "Failed to check the dictionary of prerequisite packages.");
+                BalExitOnFailure(hr, "Failed to check the dictionary of prerequisite packages.");
 
                 // Ignore error.
                 BalInfoFindPackageById(&m_Bundle.packages, wzPackageId, &pPackage);
@@ -2069,7 +2080,7 @@ private: // privates
         }
 
         m_hWnd = ::CreateWindowExW(0, wc.lpszClassName, m_pTheme->sczCaption, dwWindowStyle, x, y, m_pTheme->nWidth, m_pTheme->nHeight, HWND_DESKTOP, NULL, m_hModule, this);
-        ExitOnNullWithLastError(m_hWnd, hr, "Failed to create window.");
+        BalExitOnNullWithLastError(m_hWnd, hr, "Failed to create window.");
 
         hr = S_OK;
 
@@ -3066,12 +3077,12 @@ private: // privates
         if (ThemeControlExists(m_pTheme, WIXSTDBA_CONTROL_FOLDER_EDITBOX))
         {
             hr = ThemeGetTextControl(m_pTheme, WIXSTDBA_CONTROL_FOLDER_EDITBOX, &sczPath);
-            ExitOnFailure(hr, "Failed to get text from folder edit box.");
+            BalExitOnFailure(hr, "Failed to get text from folder edit box.");
 
             // TODO: verify the path is valid.
 
             hr = m_pEngine->SetVariableString(WIXSTDBA_VARIABLE_INSTALL_FOLDER, sczPath);
-            ExitOnFailure(hr, "Failed to set the install folder.");
+            BalExitOnFailure(hr, "Failed to set the install folder.");
         }
 
         SavePageSettings(WIXSTDBA_PAGE_OPTIONS);
@@ -3146,15 +3157,15 @@ private: // privates
         URI_PROTOCOL protocol = URI_PROTOCOL_UNKNOWN;
 
         hr = StrAllocString(&sczLicenseUrl, m_sczLicenseUrl, 0);
-        BalExitOnFailure1(hr, "Failed to copy license URL: %ls", m_sczLicenseUrl);
+        BalExitOnFailure(hr, "Failed to copy license URL: %ls", m_sczLicenseUrl);
 
         hr = LocLocalizeString(m_pWixLoc, &sczLicenseUrl);
-        BalExitOnFailure1(hr, "Failed to localize license URL: %ls", m_sczLicenseUrl);
+        BalExitOnFailure(hr, "Failed to localize license URL: %ls", m_sczLicenseUrl);
 
         // Assume there is no hidden variables to be formatted
         // so don't worry about securely freeing it.
         hr = BalFormatString(sczLicenseUrl, &sczLicenseUrl);
-        BalExitOnFailure1(hr, "Failed to get formatted license URL: %ls", m_sczLicenseUrl);
+        BalExitOnFailure(hr, "Failed to get formatted license URL: %ls", m_sczLicenseUrl);
 
         hr = UriProtocol(sczLicenseUrl, &protocol);
         if (FAILED(hr) || URI_PROTOCOL_UNKNOWN == protocol)
@@ -3200,21 +3211,21 @@ private: // privates
         int nCmdShow = SW_SHOWNORMAL;
 
         hr = BalGetStringVariable(WIXSTDBA_VARIABLE_LAUNCH_TARGET_PATH, &sczUnformattedLaunchTarget);
-        BalExitOnFailure1(hr, "Failed to get launch target variable '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_TARGET_PATH);
+        BalExitOnFailure(hr, "Failed to get launch target variable '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_TARGET_PATH);
 
         hr = BalFormatString(sczUnformattedLaunchTarget, &sczLaunchTarget);
-        BalExitOnFailure1(hr, "Failed to format launch target variable: %ls", sczUnformattedLaunchTarget);
+        BalExitOnFailure(hr, "Failed to format launch target variable: %ls", sczUnformattedLaunchTarget);
 
         if (BalStringVariableExists(WIXSTDBA_VARIABLE_LAUNCH_TARGET_ELEVATED_ID))
         {
             hr = BalGetStringVariable(WIXSTDBA_VARIABLE_LAUNCH_TARGET_ELEVATED_ID, &sczLaunchTargetElevatedId);
-            BalExitOnFailure1(hr, "Failed to get launch target elevated id '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_TARGET_ELEVATED_ID);
+            BalExitOnFailure(hr, "Failed to get launch target elevated id '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_TARGET_ELEVATED_ID);
         }
 
         if (BalStringVariableExists(WIXSTDBA_VARIABLE_LAUNCH_ARGUMENTS))
         {
             hr = BalGetStringVariable(WIXSTDBA_VARIABLE_LAUNCH_ARGUMENTS, &sczUnformattedArguments);
-            BalExitOnFailure1(hr, "Failed to get launch arguments '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_ARGUMENTS);
+            BalExitOnFailure(hr, "Failed to get launch arguments '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_ARGUMENTS);
         }
 
         if (BalStringVariableExists(WIXSTDBA_VARIABLE_LAUNCH_HIDDEN))
@@ -3225,7 +3236,7 @@ private: // privates
         if (BalStringVariableExists(WIXSTDBA_VARIABLE_LAUNCH_WORK_FOLDER))
         {
             hr = BalGetStringVariable(WIXSTDBA_VARIABLE_LAUNCH_WORK_FOLDER, &sczUnformattedLaunchFolder);
-            BalExitOnFailure1(hr, "Failed to get launch working directory variable '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_WORK_FOLDER);
+            BalExitOnFailure(hr, "Failed to get launch working directory variable '%ls'.", WIXSTDBA_VARIABLE_LAUNCH_WORK_FOLDER);
         }
 
         if (sczLaunchTargetElevatedId && !m_fTriedToLaunchElevated)
@@ -3245,17 +3256,17 @@ private: // privates
             if (sczUnformattedArguments)
             {
                 hr = BalFormatString(sczUnformattedArguments, &sczArguments);
-                BalExitOnFailure1(hr, "Failed to format launch arguments variable: %ls", sczUnformattedArguments);
+                BalExitOnFailure(hr, "Failed to format launch arguments variable: %ls", sczUnformattedArguments);
             }
 
             if (sczUnformattedLaunchFolder)
             {
                 hr = BalFormatString(sczUnformattedLaunchFolder, &sczLaunchFolder);
-                BalExitOnFailure1(hr, "Failed to format launch working directory variable: %ls", sczUnformattedLaunchFolder);
+                BalExitOnFailure(hr, "Failed to format launch working directory variable: %ls", sczUnformattedLaunchFolder);
             }
 
             hr = ShelExec(sczLaunchTarget, sczArguments, L"open", sczLaunchFolder, nCmdShow, m_hWnd, NULL);
-            BalExitOnFailure1(hr, "Failed to launch target: %ls", sczLaunchTarget);
+            BalExitOnFailure(hr, "Failed to launch target: %ls", sczLaunchTarget);
 
             ::PostMessageW(m_hWnd, WM_CLOSE, 0, 0);
         }
@@ -3296,10 +3307,10 @@ private: // privates
         LPWSTR sczLogFile = NULL;
 
         hr = BalGetStringVariable(m_Bundle.sczLogVariable, &sczLogFile);
-        BalExitOnFailure1(hr, "Failed to get log file variable '%ls'.", m_Bundle.sczLogVariable);
+        BalExitOnFailure(hr, "Failed to get log file variable '%ls'.", m_Bundle.sczLogVariable);
 
         hr = ShelExecUnelevated(L"notepad.exe", sczLogFile, L"open", NULL, SW_SHOWDEFAULT);
-        BalExitOnFailure1(hr, "Failed to open log file target: %ls", sczLogFile);
+        BalExitOnFailure(hr, "Failed to open log file target: %ls", sczLogFile);
 
     LExit:
         ReleaseStr(sczLogFile);
@@ -3463,7 +3474,7 @@ private: // privates
 
                 hr = E_WIXSTDBA_CONDITION_FAILED;
                 // todo: remove in WiX v4, in case people are relying on v3.x logging behavior
-                BalExitOnFailure1(hr, "Bundle condition evaluated to false: %ls", pCondition->sczCondition);
+                BalExitOnFailure(hr, "Bundle condition evaluated to false: %ls", pCondition->sczCondition);
             }
         }
 
@@ -3483,7 +3494,7 @@ private: // privates
         if (m_fTaskbarButtonOK)
         {
             hr = m_pTaskbarList->SetProgressValue(m_hWnd, dwOverallPercentage, 100UL);
-            BalExitOnFailure1(hr, "Failed to set taskbar button progress to: %d%%.", dwOverallPercentage);
+            BalExitOnFailure(hr, "Failed to set taskbar button progress to: %d%%.", dwOverallPercentage);
         }
 
     LExit:
@@ -3500,7 +3511,7 @@ private: // privates
         if (m_fTaskbarButtonOK)
         {
             hr = m_pTaskbarList->SetProgressState(m_hWnd, tbpFlags);
-            BalExitOnFailure1(hr, "Failed to set taskbar button state.", tbpFlags);
+            BalExitOnFailure(hr, "Failed to set taskbar button state.", tbpFlags);
         }
 
     LExit:
@@ -3547,6 +3558,7 @@ private: // privates
             {
                 hr = pfnBAFunctionCreateOld(m_pEngine, m_hBAFModule, &m_pBAFunctionOld);
                 BalExitOnFailure(hr, "Failed to create BA function.");
+                BalLog(BOOTSTRAPPER_LOG_LEVEL_DEBUG, "WIXSTDBA: LoadBootstrapperBAFunctions() - Loaded legacy BA function interface");
             }
 
 			PFN_BAFUNCTIONS_CREATE pfnBAFunctionCreate = reinterpret_cast<PFN_BAFUNCTIONS_CREATE>(::GetProcAddress(m_hBAFModule, "CreateBaFunctions"));
@@ -3554,6 +3566,7 @@ private: // privates
             {
                 hr = pfnBAFunctionCreate(m_pEngine, &m_command, this, &m_pBAFunction);
                 BalExitOnFailure(hr, "Failed to create BA function.");
+                BalLog(BOOTSTRAPPER_LOG_LEVEL_DEBUG, "WIXSTDBA: LoadBootstrapperBAFunctions() - Loaded BA function interface");
             }
 
             BalExitOnNullWithLastError1((pfnBAFunctionCreate || pfnBAFunctionCreateOld), hr, "Failed to get CreateBootstrapperBAFunction or CreateBaFunctions entry-point from: '%ls'", sczBafPath);
@@ -3566,7 +3579,7 @@ private: // privates
 #endif
 
     LExit:
-        if (m_hBAFModule)
+        if (m_hBAFModule && !m_pBAFunction && !m_pBAFunctionOld)
         {
             ::FreeLibrary(m_hBAFModule);
             m_hBAFModule = NULL;
@@ -3807,6 +3820,7 @@ public:
         pEngine->AddRef();
         m_pEngine = pEngine;
 
+        m_hUiReadyEvt = NULL;
         m_hBAFModule = NULL;
         m_pBAFunction = NULL;
         m_pBAFunctionOld = NULL;
@@ -4199,6 +4213,7 @@ public:
         ReleaseStr(m_sczPrereqPackage);
         ReleaseStr(m_sczAfterForcedRestartPackage);
         ReleaseNullObject(m_pEngine);
+        ReleaseHandle(m_hUiReadyEvt);
 
         if (m_hBAFModule)
         {
@@ -4272,6 +4287,7 @@ private:
     int m_nLastFilesInUseResult;
 
     HMODULE m_hBAFModule;
+    HANDLE m_hUiReadyEvt;
     IBootstrapperBAFunction* m_pBAFunctionOld;
 	IBootstrapperApplication* m_pBAFunction;
 
@@ -4295,7 +4311,7 @@ HRESULT CreateBootstrapperApplication(
     CWixStandardBootstrapperApplication* pApplication = NULL;
 
     pApplication = new CWixStandardBootstrapperApplication(hModule, fPrereq, hrHostInitialization, pEngine, pCommand);
-    ExitOnNull(pApplication, hr, E_OUTOFMEMORY, "Failed to create new standard bootstrapper application object.");
+    BalExitOnNullWithLastError(pApplication, hr, "Failed to create new standard bootstrapper application object.");
 
     *ppApplication = pApplication;
     pApplication = NULL;
