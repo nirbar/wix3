@@ -331,11 +331,11 @@ public: // IBootstrapperApplication
 
     virtual STDMETHODIMP_(int) OnApplyComplete(
         __in HRESULT /*hrStatus*/,
-        __in BOOTSTRAPPER_APPLY_RESTART restart
+        __in BOOTSTRAPPER_APPLY_RESTART /*restart*/
         )
     {
         m_fApplying = FALSE;
-        return BOOTSTRAPPER_APPLY_RESTART_REQUIRED == restart ? IDRESTART : CheckCanceled() ? IDCANCEL : IDNOACTION;
+        return CheckCanceled() ? IDCANCEL : IDNOACTION;
     }
 
     virtual STDMETHODIMP_(int) OnCacheBegin()
@@ -604,7 +604,7 @@ public: // IBootstrapperApplication
         __in int nRecommendation
         )
     {
-        int nResult = CheckCanceled() ? IDCANCEL : CheckCanceled() ? IDCANCEL : BalRetryEndPackage(BALRETRY_TYPE_EXECUTE, wzPackageId, NULL, hrExitCode);
+        int nResult = CheckCanceled() ? IDCANCEL : BalRetryEndPackage(BALRETRY_TYPE_EXECUTE, wzPackageId, NULL, hrExitCode);
         return IDNOACTION == nResult ? nRecommendation : nResult;
     }
 

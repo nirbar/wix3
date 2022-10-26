@@ -11,11 +11,13 @@
     <projectUrl>https://github.com/nirbar/wix3</projectUrl>
     <repository type="git" url="https://github.com/nirbar/wix3.git" branch="develop-psw" />
     <description>WiX custom build based on v3.11.2 with fixes and additions</description>
+    <readme>README.md</readme>
     <tags>WiX MSI Installer WixToolset XML</tags>
   </metadata>
 
   <files>
     <file src="LICENSE.TXT" target="LICENSE.TXT" />
+    <file src="Readme.md" target="README.md" />
     <file src="src\Setup\Nupkg\WiX.props" target="build\PanelSW.Custom.WiX.props" />
     <file src="build\ship\x86\candle.exe" target="tools\bin\candle.exe" />
     <file src="build\ship\x86\candle.exe.config" target="tools\bin\candle.exe.config" />

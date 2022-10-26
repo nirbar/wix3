@@ -2099,12 +2099,18 @@ extern "C" HRESULT CacheXcrementPackageRefCount(
     hr = RegOpen(hkRoot, szCacheReg, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey);
     if (hr == E_FILENOTFOUND)
     {
+        HKEY hkRootCacheKey = NULL;
+
         // No need to create the key for a zero ref-count
         if (!fIncrement)
         {
             hr = S_OK;
             ExitFunction();
         }
+
+        // Best effort to create root cache key before it's subkey
+        RegCreate(hkRoot, PACKAGE_CACHE_KEY, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkRootCacheKey);
+        RegCloseKey(hkRootCacheKey);
 
         hr = RegCreate(hkRoot, szCacheReg, KEY_ALL_ACCESS | KEY_WOW64_32KEY, &hkCacheKey);
         ExitOnFailure(hr, "Failed to create package cache key '%ls'", szCacheReg);
