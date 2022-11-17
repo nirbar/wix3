@@ -778,7 +778,12 @@ extern "C" HRESULT ElevationMsiCommitTransaction(
 
 	hr = PipeSendMessage(hPipe, BURN_ELEVATION_TRANSACTION_COMMIT, pbData, cbData, NULL, &context, &dwResult);
 	ExitOnFailure(hr, "Failed to send BURN_ELEVATION_MESSAGE_TYPE_EXECUTE_MSI_PACKAGE message to per-machine process.");
-	ExitOnWin32Error(dwResult, hr, "Failed committing an elevated MSI transaction");
+    if ((dwResult == ERROR_SUCCESS_REBOOT_REQUIRED) || (dwResult == ERROR_SUCCESS_REBOOT_INITIATED))
+    {
+        hr = HRESULT_FROM_WIN32(dwResult);
+        dwResult = ERROR_SUCCESS;
+    }
+    ExitOnWin32Error(dwResult, hr, "Failed committing an elevated MSI transaction");
 
 LExit:
     ReleaseMem(pbData);
@@ -807,7 +812,12 @@ extern "C" HRESULT ElevationMsiRollbackTransaction(
 
 	hr = PipeSendMessage(hPipe, BURN_ELEVATION_TRANSACTION_ROLLBACK, pbData, cbData, NULL, &context, &dwResult);
 	ExitOnFailure(hr, "Failed to send BURN_ELEVATION_MESSAGE_TYPE_EXECUTE_MSI_PACKAGE message to per-machine process.");
-	ExitOnWin32Error(dwResult, hr, "Failed rolling back an elevated MSI transaction");
+    if ((dwResult == ERROR_SUCCESS_REBOOT_REQUIRED) || (dwResult == ERROR_SUCCESS_REBOOT_INITIATED))
+    {
+        hr = HRESULT_FROM_WIN32(dwResult);
+        dwResult = ERROR_SUCCESS;
+    }
+    ExitOnWin32Error(dwResult, hr, "Failed rolling back an elevated MSI transaction");
 
 LExit:
     ReleaseMem(pbData);

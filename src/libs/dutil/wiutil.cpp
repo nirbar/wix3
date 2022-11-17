@@ -918,8 +918,9 @@ LExit:
 
 extern "C" HRESULT DAPI WiuEndTransaction(
     __in DWORD dwTransactionState,
-    __in_z LPCWSTR szLogPath
-    )
+    __in_z LPCWSTR szLogPath,
+    __out WIU_RESTART * pRestart
+)
 {
     HRESULT hr = S_OK;
     DWORD er = ERROR_SUCCESS;
@@ -930,6 +931,10 @@ extern "C" HRESULT DAPI WiuEndTransaction(
     ExitOnFailure(hr, "Failed to enable logging for rollback boundary");
 
     er = vpfnMsiEndTransaction(dwTransactionState);
+    if (pRestart)
+    {
+        er = CheckForRestartErrorCode(er, pRestart);
+    }
     ExitOnWin32Error(er, hr, "Failed to end transaction.");
 
 LExit:
