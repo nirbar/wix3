@@ -3,6 +3,7 @@ configuration: Release
 clone_depth: 1
 skip_tags: true
 skip_non_tags: true
+image: Visual Studio 2019
 
 environment:
   my_salt:
@@ -10,17 +11,12 @@ environment:
   my_psw:
     secure: 6u2k6uaCy0GJj3/eaSjsmA==
   OFFICIAL_WIX_BUILD: '%APPVEYOR_BUILD_FOLDER%\psw-wix.snk'
+  NUPKG_VERSION: '3.12.0-c%APPVEYOR_BUILD_NUMBER%'
   SKIP_VS_CHECK: true
-  matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
-      NUSPEC_VS_VERSION: 2013
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      NUSPEC_VS_VERSION: 2017
-
+      
 install:
 - ps: iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
-- cmd: curl.exe -fsS -o nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-- cmd: choco install visualstudio2013-sdk & exit 0
+- cmd: curl.exe -fsS -o nuget-latest.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
 
 before_build:
 - cmd: appveyor-tools\secure-file -decrypt .\psw-wix.snk.enc -secret %my_psw% -salt %my_salt%
@@ -30,20 +26,10 @@ build:
   verbosity: normal
 
 before_package:
-- ps: $inXslt = Join-Path $env:APPVEYOR_BUILD_FOLDER "src\Setup\Nupkg\WiX.nuspec.xslt"
-- ps: $inNuspec = Join-Path $env:APPVEYOR_BUILD_FOLDER "src\Setup\Nupkg\WiX.nuspec"
-- ps: $outNuspec = Join-Path $env:APPVEYOR_BUILD_FOLDER ("build\WiX." + $env:NUSPEC_VS_VERSION + ".nuspec")
-- ps: $outNuspecStream = New-Object IO.FileStream $outNuspec, ([System.IO.FileMode]::Create)
-- ps: $XSLParams = New-Object System.Xml.Xsl.XsltArgumentList
-- ps: $XSLParams.AddParam("NUSPEC_VS_VERSION", "", $env:NUSPEC_VS_VERSION)
-- ps: $XSLInputElement = New-Object System.Xml.Xsl.XslCompiledTransform
-- ps: $XSLInputElement.Load($inXslt)
-- ps: $XSLInputElement.Transform($inNuspec, $XSLParams, $outNuspecStream)
-- ps: $outNuspecStream.Dispose()
-- cmd: .\nuget.exe pack "%APPVEYOR_BUILD_FOLDER%\build\WiX.%NUSPEC_VS_VERSION%.nuspec" -Version "3.12.0-c%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
+- cmd: .\nuget-latest.exe pack "%APPVEYOR_BUILD_FOLDER%\src\Setup\Nupkg\WiX.nuspec" -Version "%NUPKG_VERSION%" -BasePath "%APPVEYOR_BUILD_FOLDER%" -OutputDirectory "%APPVEYOR_BUILD_FOLDER%\build\nuget-out"
 
 test: off
 
 artifacts:
-- path: build\nuget-out\PanelSW.Custom.WiX.3.12.0-c%APPVEYOR_BUILD_NUMBER%-vs%NUSPEC_VS_VERSION%.nupkg
-  name: PanelSW.Custom.WiX.3.12.0-c%build%-vs%NUSPEC_VS_VERSION%.nupkg
+- path: build\nuget-out\PanelSW.Custom.WiX.%NUPKG_VERSION%.nupkg
+  name: PanelSW.Custom.WiX.%NUPKG_VERSION%.nupkg
