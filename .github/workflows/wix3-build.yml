@@ -1,0 +1,49 @@
+name: WiX3
+on:
+  workflow_dispatch:
+    inputs:
+      publish_nuget:
+        description: 'Publish nuget package?'
+        required: true
+        default: false
+        type: boolean
+
+env:
+  SKIP_VS_CHECK: 'true'
+  OFFICIAL_WIX_BUILD: '${{ github.workspace }}\psw-wix.snk'  
+  
+jobs:
+  WiX3-Build:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - uses: microsoft/setup-msbuild@v1.0.2
+      
+      - name: Decrypt snk
+        run: gpg --quiet --batch --yes --decrypt --passphrase="${{ secrets.GPG_PASSPHRASE }}" --output "${{ github.workspace }}\psw-wix.snk" "${{ github.workspace }}\psw-wix.snk.gpg"
+
+      - name: Set version number
+        run: |
+          $version = "3.12.0-c"+(151+$($Env:GITHUB_RUN_NUMBER))
+          echo $version
+          echo "NUPKG_VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          
+      - name: Build
+        run: msbuild wix.proj -p:Configuration=Release
+        
+      - name: Create nuget package
+        run: nuget.exe pack "${{ github.workspace }}\src\Setup\Nupkg\WiX.nuspec" -Version "${{ env.NUPKG_VERSION }}" -BasePath "${{ github.workspace }}" -OutputDirectory "${{ github.workspace }}\build\nuget-out"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: nuget
+          path: ${{ github.workspace }}\build\nuget-out\PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg
+
+      - name: Publish nuget package to github and nuget.org
+        if: ${{ github.event.inputs.publish_nuget == 'true' }}
+        run: |
+          dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget push build\nuget-out\PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source github
+          dotnet nuget push build\nuget-out\PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+          git tag v${{ env.NUPKG_VERSION }}
+          git push --tags
