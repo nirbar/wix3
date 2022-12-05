@@ -557,11 +557,29 @@ DAPI_(HRESULT) PathCreateTempFile(
             {
                 // if the file already exists, just try again
                 hr = HRESULT_FROM_WIN32(::GetLastError());
-                if ((HRESULT_FROM_WIN32(ERROR_FILE_EXISTS) == hr) || (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hr))
+                if (HRESULT_FROM_WIN32(ERROR_FILE_EXISTS) == hr)
                 {
                     hr = S_OK;
                 }
-                ExitOnFailure1(hr, "Failed to create file: %ls", sczTempFile);
+                else if (HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) == hr)
+                {
+                    if (DirExists(sczTempFile, nullptr))
+                    {
+                        hr = S_OK;
+                    }
+                    else if (wzDirectory && *wzDirectory) // Access denied because the supplied folder is write-protected
+                    {
+                        ReleaseNullStr(sczTempPath);
+                        hr = StrAlloc(&sczTempPath, cchTempPath);
+                        ExitOnFailure(hr, "Failed to allocate memory for the temp path.");
+
+                        if (!::GetTempPathW(cchTempPath, sczTempPath))
+                        {
+                            ExitWithLastError(hr, "Failed to get temp path.");
+                        }
+                    }                    
+                }
+                ExitOnFailure(hr, "Failed to create file: %ls", sczTempFile);
             }
         }
     }
