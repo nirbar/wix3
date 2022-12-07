@@ -2162,8 +2162,11 @@ LExit:
     {
         *pdwRefCount = dwRefCount;
     }
-    
-    ReleaseHandle(hLock);
+    if (hLock)
+    {
+        ::ReleaseMutex(hLock);
+        ::CloseHandle(hLock);
+    }
     ReleaseStr(szCacheReg);
     ReleaseStr(szCacheLockName);
     ReleaseStr(szBundleAndCacheId);
