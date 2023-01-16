@@ -1757,7 +1757,10 @@ static HRESULT OnMsiCommitTransaction(
     ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
-	ExitOnFailure(hr, "Failed committing an MSI transaction");
+    if ((HRESULT_CODE(hr) != ERROR_SUCCESS_REBOOT_INITIATED) && (HRESULT_CODE(hr) != ERROR_SUCCESS_REBOOT_REQUIRED))
+    {
+        ExitOnFailure(hr, "Failed committing an MSI transaction");
+    }
 
 LExit:
     ReleaseStr(szLogPath);
@@ -1777,7 +1780,10 @@ static HRESULT OnMsiRollbackTransaction(
     ExitOnFailure(hr, "Failed getting MSI transaction log path");
 
 	hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
-	ExitOnFailure(hr, "Failed rolling back an MSI transaction");
+    if ((HRESULT_CODE(hr) != ERROR_SUCCESS_REBOOT_INITIATED) && (HRESULT_CODE(hr) != ERROR_SUCCESS_REBOOT_REQUIRED))
+    {
+        ExitOnFailure(hr, "Failed rolling back an MSI transaction");
+    }
 
 LExit:
     ReleaseStr(szLogPath);

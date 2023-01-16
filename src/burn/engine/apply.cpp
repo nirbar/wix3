@@ -1728,15 +1728,21 @@ static HRESULT ExecuteMsiCommitTransaction(
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_COMMIT, szLogPath);
     }
 
-    if ((HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED) && (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED))
+    if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED)
     {
         hr = S_OK;
-        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
+        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED)
+        {
+            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
+        }
     }
-    else if ((HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED) && (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED))
+    else if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED)
     {
         hr = S_OK;
-        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
+        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED)
+        {
+            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
+        }
     }
 
     pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_COMMIT, hr);
@@ -1769,15 +1775,21 @@ static HRESULT ExecuteMsiRollbackTransaction(
 		hr = WiuEndTransaction(MSITRANSACTIONSTATE_ROLLBACK, szLogPath);
     }
 
-    if ((HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED) && (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED))
+    if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED)
     {
         hr = S_OK;
-        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
+        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED)
+        {
+            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
+        }
     }
-    else if ((HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED) && (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED))
+    else if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED)
     {
         hr = S_OK;
-        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
+        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED)
+        {
+            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
+        }
     }
 
     pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_ROLLBACK, hr);
@@ -1812,7 +1824,7 @@ static HRESULT DoMsiCommitTransaction(
 	HRESULT hr = S_OK;
 
 	hr = ExecuteMsiCommitTransaction(pContext, pEngineState, pRollbackBoundary->sczId, pRollbackBoundary->sczLogPath, pRestart);
-	ExitOnFailure(hr, "Failed to execute EXE package.");
+	ExitOnFailure(hr, "Failed to commit MSI transaction.");
 
 LExit:
     return hr;
