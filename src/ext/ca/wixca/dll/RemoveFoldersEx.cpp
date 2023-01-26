@@ -32,13 +32,19 @@ static HRESULT RecursePath(
     if (INVALID_HANDLE_VALUE == hFind)
     {
         er = ::GetLastError();
-        if (ERROR_PATH_NOT_FOUND == er)
+        if ((ERROR_PATH_NOT_FOUND == er) || (ERROR_FILE_NOT_FOUND == er))
         {
             WcaLog(LOGMSG_STANDARD, "Search path not found: %ls", sczSearch);
             ExitFunction1(hr = S_FALSE);
         }
         else
         {
+            DWORD dwAttrib = ::GetFileAttributesW(wzPath);
+            if ((dwAttrib != INVALID_FILE_ATTRIBUTES) && ((dwAttrib & FILE_ATTRIBUTE_REPARSE_POINT) == FILE_ATTRIBUTE_REPARSE_POINT))
+            {
+                WcaLog(LOGMSG_STANDARD, "Search path seems to be a link which lost it's target: %ls", wzPath);
+                ExitFunction1(hr = S_FALSE);
+            }
             hr = HRESULT_FROM_WIN32(er);
         }
         ExitOnFailure(hr, "Failed to find all files in path: %S", wzPath);
@@ -59,7 +65,7 @@ static HRESULT RecursePath(
         ExitOnFailure(hr, "Failed to recurse path: %S", sczNext);
 
         // For folder shortcuts for which the target is missing we ensure the shortcut itself is removed
-        if (S_FALSE == hr && FILE_ATTRIBUTE_REPARSE_POINT == (wfd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+        if (S_FALSE == hr && INVALID_FILE_ATTRIBUTES != wfd.dwFileAttributes && FILE_ATTRIBUTE_REPARSE_POINT == (wfd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
         {
             hr = StrAllocFormatted(&sczNext, L"%s%s", wzPath, wfd.cFileName);
             ExitOnFailure(hr, "Failed to concat filename '%S' to string: %S", wfd.cFileName, wzPath);
