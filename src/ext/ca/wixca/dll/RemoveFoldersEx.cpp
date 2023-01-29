@@ -57,16 +57,11 @@ static HRESULT RecursePath(
         {
             continue;
         }
-
-        hr = StrAllocFormatted(&sczNext, L"%s%s\\", wzPath, wfd.cFileName);
-        ExitOnFailure(hr, "Failed to concat filename '%S' to string: %S", wfd.cFileName, wzPath);
-
-        hr = RecursePath(sczNext, wzId, wzComponent, wzProperty, iMode, pdwCounter, phTable, phColumns);
-        ExitOnFailure(hr, "Failed to recurse path: %S", sczNext);
-
-        // For folder shortcuts for which the target is missing we ensure the shortcut itself is removed
-        if (S_FALSE == hr && INVALID_FILE_ATTRIBUTES != wfd.dwFileAttributes && FILE_ATTRIBUTE_REPARSE_POINT == (wfd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
-        {
+        
+        // For reparse point check if it is a symbolic link or mounted volume. If so, delete the link itself. 
+        // See https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-point-tags, https://learn.microsoft.com/en-us/windows/win32/fileio/determining-whether-a-directory-is-a-volume-mount-point
+        if (FILE_ATTRIBUTE_REPARSE_POINT == (wfd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (IO_REPARSE_TAG_SYMLINK == wfd.dwReserved0 || IO_REPARSE_TAG_MOUNT_POINT == wfd.dwReserved0))
+        {            
             hr = StrAllocFormatted(&sczNext, L"%s%s", wzPath, wfd.cFileName);
             ExitOnFailure(hr, "Failed to concat filename '%S' to string: %S", wfd.cFileName, wzPath);
 
@@ -79,8 +74,17 @@ static HRESULT RecursePath(
             ExitOnFailure(hr, "Failed to set Property: %S with path: %S", sczProperty, wzPath);
 
             hr = WcaAddTempRecord(phTable, phColumns, L"RemoveFile", NULL, 1, 5, L"RfxFolder", wzComponent, NULL, sczProperty, iMode);
-            ExitOnFailure(hr, "Failed to add row to remove folder for WixRemoveFolderEx row: %S under path: %S", wzId, wzPath);
+            ExitOnFailure(hr, "Failed to add row to remove reparse point for WixRemoveFolderEx row: %S under path: %S", wzId, wzPath);
+            
+            WcaLog(LOGLEVEL::LOGMSG_STANDARD, "Path '%ls' is a symbolic link or a mounted folder. The link itself will be removed and its target will not be changed", sczNext);
+            continue;
         }
+
+        hr = StrAllocFormatted(&sczNext, L"%s%s\\", wzPath, wfd.cFileName);
+        ExitOnFailure(hr, "Failed to concat filename '%S' to string: %S", wfd.cFileName, wzPath);
+
+        hr = RecursePath(sczNext, wzId, wzComponent, wzProperty, iMode, pdwCounter, phTable, phColumns);
+        ExitOnFailure(hr, "Failed to recurse path: %S", sczNext);
     } while (::FindNextFileW(hFind, &wfd));
 
     er = ::GetLastError();
