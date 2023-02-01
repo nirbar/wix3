@@ -1,7 +1,10 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information.
 
 #include "precomp.h"
+#include <Rpc.h>
+#include <Objbase.h>
 
+#define OUTPUT_BUFFER 1024
 
 // private functions
 static HRESULT CreatePipes(
@@ -415,6 +418,12 @@ static HRESULT CreatePipes(
 {
     HRESULT hr = S_OK;
     SECURITY_ATTRIBUTES sa;
+    RPC_STATUS rs = RPC_S_OK;
+    UUID guid = {};
+    WCHAR wzGuid[39];
+    LPWSTR szStdInPipeName = NULL;
+    LPWSTR szStdOutPipeName = NULL;
+    BOOL fRes = TRUE;
     HANDLE hOutTemp = INVALID_HANDLE_VALUE;
     HANDLE hInTemp = INVALID_HANDLE_VALUE;
 
@@ -424,40 +433,51 @@ static HRESULT CreatePipes(
     HANDLE hInRead = INVALID_HANDLE_VALUE;
     HANDLE hInWrite = INVALID_HANDLE_VALUE;
 
+    // Generate unique pipe names
+    rs = ::UuidCreate(&guid);
+    hr = HRESULT_FROM_RPC(rs);
+    ExitOnFailure(hr, "Failed to create working folder guid.");
+    
+    fRes = ::StringFromGUID2(guid, wzGuid, countof(wzGuid));
+    ExitOnNull(fRes, hr, E_OUTOFMEMORY, "Failed to convert UUID to string");
+    
+    hr = StrAllocFormatted(&szStdInPipeName, L"\\\\.\\pipe\\%ls-stdin", wzGuid);
+    ExitOnFailure(hr, "Failed to create stdin pipe name.");
+    
+    hr = StrAllocFormatted(&szStdOutPipeName, L"\\\\.\\pipe\\%ls-stdout", wzGuid);
+    ExitOnFailure(hr, "Failed to create stdout pipe name.");
+
     // Fill out security structure so we can inherit handles
     ZeroMemory(&sa, sizeof(SECURITY_ATTRIBUTES));
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
     sa.bInheritHandle = TRUE;
     sa.lpSecurityDescriptor = NULL;
-
+    
     // Create pipes
-    if (!::CreatePipe(&hOutTemp, &hOutWrite, &sa, 0))
-    {
-        ExitWithLastError(hr, "failed to create output pipe");
-    }
+    hOutTemp = ::CreateNamedPipeW(szStdOutPipeName, PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, OUTPUT_BUFFER, OUTPUT_BUFFER, NMPWAIT_USE_DEFAULT_WAIT, &sa);
+    ExitOnNullWithLastError((hOutTemp && (hOutTemp != INVALID_HANDLE_VALUE)), hr, "Failed to create named pipe for stdout reader");
 
-    if (!::CreatePipe(&hInRead, &hInTemp, &sa, 0))
-    {
-        ExitWithLastError(hr, "failed to create input pipe");
-    }
+    hOutWrite = ::CreateFileW(szStdOutPipeName, FILE_WRITE_DATA | SYNCHRONIZE | FILE_FLAG_OVERLAPPED, 0, &sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    ExitOnNullWithLastError((hOutWrite && (hOutWrite != INVALID_HANDLE_VALUE)), hr, "Failed to open named pipe for stdout writer");
 
-    // Duplicate output pipe so standard error and standard output write to the same pipe.
-    if (!::DuplicateHandle(::GetCurrentProcess(), hOutWrite, ::GetCurrentProcess(), &hErrWrite, 0, TRUE, DUPLICATE_SAME_ACCESS))
-    {
-        ExitWithLastError(hr, "failed to duplicate write handle");
-    }
+    fRes = ::DuplicateHandle(::GetCurrentProcess(), hOutWrite, ::GetCurrentProcess(), &hErrWrite, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    ExitOnNullWithLastError((fRes && hErrWrite && (hErrWrite != INVALID_HANDLE_VALUE)), hr, "Failed to duplicate named pipe from stdout to stderr");
 
-    // We need to create new "output read" and "input write" handles that are non inheritable.  Otherwise CreateProcess will creates handles in 
-    // the child process that can't be closed.
-    if (!::DuplicateHandle(::GetCurrentProcess(), hOutTemp, ::GetCurrentProcess(), &hOutRead, 0, FALSE, DUPLICATE_SAME_ACCESS))
-    {
-        ExitWithLastError(hr, "failed to duplicate output pipe");
-    }
+    fRes = ::DuplicateHandle(::GetCurrentProcess(), hOutTemp, ::GetCurrentProcess(), &hOutRead, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    ExitOnNullWithLastError((fRes && hOutRead && (hOutRead != INVALID_HANDLE_VALUE)), hr, "Failed to duplicate named pipe for stdout reader");
+    ::CloseHandle(hOutTemp);
+    hOutTemp = INVALID_HANDLE_VALUE;
 
-    if (!::DuplicateHandle(::GetCurrentProcess(), hInTemp, ::GetCurrentProcess(), &hInWrite, 0, FALSE, DUPLICATE_SAME_ACCESS))
-    {
-        ExitWithLastError(hr, "failed to duplicate input pipe");
-    }
+    hInTemp = ::CreateNamedPipeW(szStdInPipeName, PIPE_ACCESS_OUTBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 1, OUTPUT_BUFFER, OUTPUT_BUFFER, NMPWAIT_USE_DEFAULT_WAIT, &sa);
+    ExitOnNullWithLastError((hInTemp && (hInTemp != INVALID_HANDLE_VALUE)), hr, "Failed to create named pipe for stdin writer");
+
+    hInRead = ::CreateFileW(szStdInPipeName, FILE_READ_DATA, 0, &sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    ExitOnNullWithLastError((hInRead && (hInRead != INVALID_HANDLE_VALUE)), hr, "Failed to open named pipe for stdin reader");
+
+     fRes = ::DuplicateHandle(::GetCurrentProcess(), hInTemp, ::GetCurrentProcess(), &hInWrite, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    ExitOnNullWithLastError((hInWrite && (hInWrite != INVALID_HANDLE_VALUE)), hr, "Failed to duplicate named pipe for stdin writer");
+    ::CloseHandle(hInTemp);
+    hInTemp = INVALID_HANDLE_VALUE;
 
     // now that everything has succeeded, assign to the outputs
     *phOutRead = hOutRead;
@@ -483,6 +503,8 @@ LExit:
     ReleaseFileHandle(hInWrite);
     ReleaseFileHandle(hOutTemp);
     ReleaseFileHandle(hInTemp);
+    ReleaseStr(szStdInPipeName);
+    ReleaseStr(szStdOutPipeName);
 
     return hr;
 }

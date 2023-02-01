@@ -99,7 +99,8 @@ LExit:
 
 static HRESULT HandleOutput(
     __in BOOL fLogOutput,
-    __in HANDLE hRead
+    __in HANDLE hRead,
+    __in HANDLE hProcess
     )
 {
     BYTE *pBuffer = NULL;
@@ -113,20 +114,73 @@ static HRESULT HandleOutput(
     BOOL bFirst = TRUE;
     BOOL bUnicode = TRUE;
     HRESULT hr = S_OK;
+    OVERLAPPED overlapped;
+    HANDLE rghHandles[2];
+    BOOL fRes = TRUE;
+    DWORD dwRes = ERROR_SUCCESS;
+
+    ZeroMemory(&overlapped, sizeof(overlapped));
 
     // Get buffer for output
     pBuffer = static_cast<BYTE *>(MemAlloc(OUTPUT_BUFFER, FALSE));
     ExitOnNull(pBuffer, hr, E_OUTOFMEMORY, "Failed to allocate buffer for output.");
 
-    while (0 != dwBytes)
+    overlapped.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    ExitOnNullWithLastError((overlapped.hEvent && (overlapped.hEvent != INVALID_HANDLE_VALUE)), hr, "Failed to create event");
+    
+    rghHandles[0] = hProcess;
+    rghHandles[1] = overlapped.hEvent;
+    
+    fRes = ::ConnectNamedPipe(hRead, &overlapped);
+    if (!fRes)
+    {
+        dwRes = ::GetLastError();
+        if (dwRes == ERROR_IO_PENDING)
+        {
+            dwRes = ::WaitForSingleObject(overlapped.hEvent, INFINITE);
+            ExitOnNull((dwRes == WAIT_OBJECT_0), hr, HRESULT_FROM_WIN32(dwRes), "Failed to wait for process to connect to stdout");
+            fRes = TRUE;
+        }
+        else if (dwRes == ERROR_PIPE_CONNECTED)
+        {
+            fRes = TRUE;
+        }
+        ExitOnNullWithLastError(fRes, hr, "Failed to connect to stdout");
+    }    
+
+    while (true)
     {
         ::ZeroMemory(pBuffer, OUTPUT_BUFFER);
-        if (!::ReadFile(hRead, pBuffer, OUTPUT_BUFFER - 1, &dwBytes, NULL) && GetLastError() != ERROR_BROKEN_PIPE)
+        fRes = ::ResetEvent(overlapped.hEvent);
+        ExitOnNullWithLastError(fRes, hr, "Failed to reset event");
+
+        fRes = ::ReadFile(hRead, pBuffer, OUTPUT_BUFFER - 1, nullptr, &overlapped);
+        if (!fRes)
         {
-            ExitOnLastError(hr, "Failed to read from handle.");
+            dwRes = ::GetLastError();
+            if (dwRes == ERROR_BROKEN_PIPE)
+            {
+                break;
+            }
+            ExitOnNullWithLastError((dwRes == ERROR_IO_PENDING), hr, "Failed to wait for stdout data");
         }
 
-        if (fLogOutput)
+        dwRes = ::WaitForMultipleObjects(ARRAYSIZE(rghHandles), rghHandles, FALSE, INFINITE);
+		// Process terminated, or pipe abandoned
+		if ((dwRes == WAIT_OBJECT_0) || (dwRes == WAIT_ABANDONED_0) || (dwRes == (WAIT_ABANDONED_0 + 1)))
+		{
+			break;
+		}
+		ExitOnNullWithLastError((dwRes != WAIT_FAILED), hr, "Failed to wait for process to terminate or write to stdout");
+		if (dwRes != (WAIT_OBJECT_0 + 1))
+		{
+			ExitOnWin32Error(dwRes, hr, "Failed to wait for process to terminate or write to stdout.");
+		}
+
+        fRes = ::GetOverlappedResult(hRead, &overlapped, &dwBytes, FALSE);
+        ExitOnNullWithLastError(fRes, hr, "Failed to read stdout");
+
+        if (fLogOutput && dwBytes)
         {
             // Check for UNICODE or ANSI output
             if (bFirst)
@@ -220,6 +274,7 @@ LExit:
     ReleaseStr(szTemp);
     ReleaseStr(szWrite);
     ReleaseStr(sczEscaped);
+    ReleaseFile(overlapped.hEvent);
 
     return hr;
 }
@@ -289,7 +344,7 @@ HRESULT WIXAPI QuietExecEx(
         ReleaseFile(hInRead);
 
         // Log output if we were asked to do so; otherwise just read the output handle
-        HandleOutput(fLogOutput, hOutRead);
+        HandleOutput(fLogOutput, hOutRead, oProcInfo.hProcess);
 
         // Wait for everything to finish
         ::WaitForSingleObject(oProcInfo.hProcess, dwTimeout);
