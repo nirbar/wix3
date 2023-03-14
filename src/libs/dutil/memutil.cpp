@@ -31,7 +31,19 @@ extern "C" LPVOID DAPI MemAlloc(
 {
 //    AssertSz(vfMemInitialized, "MemInitialize() not called, this would normally crash");
     AssertSz(0 < cbSize, "MemAlloc() called with invalid size");
-    return ::HeapAlloc(::GetProcessHeap(), fZero ? HEAP_ZERO_MEMORY : 0, cbSize);
+    LPVOID pBuffer = nullptr;
+    HANDLE hHeap = ::GetProcessHeap();
+    
+    for (int i = 0; i < 50; ++i)
+    {
+        pBuffer = ::HeapAlloc(hHeap, fZero ? HEAP_ZERO_MEMORY : 0, cbSize);
+        if (pBuffer)
+        {
+            break;
+        }
+        ::Sleep(0);
+    }
+    return pBuffer;
 }
 
 
@@ -43,7 +55,19 @@ extern "C" LPVOID DAPI MemReAlloc(
 {
 //    AssertSz(vfMemInitialized, "MemInitialize() not called, this would normally crash");
     AssertSz(0 < cbSize, "MemReAlloc() called with invalid size");
-    return ::HeapReAlloc(::GetProcessHeap(), fZero ? HEAP_ZERO_MEMORY : 0, pv, cbSize);
+    LPVOID pBuffer = nullptr;
+    HANDLE hHeap = ::GetProcessHeap();
+    
+    for (int i = 0; i < 50; ++i)
+    {
+        pBuffer = ::HeapReAlloc(hHeap, fZero ? HEAP_ZERO_MEMORY : 0, pv, cbSize);
+        if (pBuffer)
+        {
+            break;
+        }
+        ::Sleep(0);
+    }
+    return pBuffer;
 }
 
 
