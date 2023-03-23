@@ -940,3 +940,10 @@ SymbolicName=MSG_CACHE_PACKAGE_REF_COUNT
 Language=English
 Cached package '%1!ls!' has %2!u! clients
 .
+
+MessageId=708
+Severity=Warning
+SymbolicName=MSG_PIPE_BLOCKED_BY_AV
+Language=English
+Attempt #%1!u! to connect with child process on pipe might have been blocked by antivirus
+.

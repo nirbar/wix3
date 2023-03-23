@@ -531,9 +531,10 @@ extern "C" HRESULT CoreElevate(
         }
 
         hr = ElevationElevate(pEngineState, hwndParent);
-        if (E_SUSPECTED_AV_INTERFERENCE == hr && 1 > cAVRetryAttempts)
+        if (E_SUSPECTED_AV_INTERFERENCE == hr && 10 > cAVRetryAttempts)
         {
             ++cAVRetryAttempts;
+            LogId(REPORT_WARNING, MSG_PIPE_BLOCKED_BY_AV, cAVRetryAttempts);
             continue;
         }
         ExitOnFailure(hr, "Failed to actually elevate.");
