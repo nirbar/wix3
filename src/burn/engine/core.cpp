@@ -1209,6 +1209,12 @@ static HRESULT ParseCommandLine(
                 hr = StrAllocString(psczLogFile, argv[i], 0);
                 ExitOnFailure(hr, "Failed to copy log file path.");
             }
+            else if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"clog", -1) ||
+                     CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"conlog", -1))
+            {
+                *pdwLoggingAttributes |= BURN_LOGGING_ATTRIBUTE_CONSOLE;
+                LogEnableConsole(TRUE);
+            }
             else if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"?", -1) ||
                      CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"h", -1) ||
                      CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, &argv[i][1], -1, L"help", -1))

@@ -46,6 +46,10 @@ HRESULT DAPI LogOpen(
 
 void DAPI LogDisable();
 
+void DAPI LogEnableConsole(
+    __in BOOL fLogToConsole
+    );
+
 void DAPI LogRedirect(
     __in_opt PFN_LOGSTRINGWORKRAW vpfLogStringWorkRaw,
     __in_opt LPVOID pvContext

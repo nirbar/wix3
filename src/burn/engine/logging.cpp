@@ -53,6 +53,10 @@ extern "C" HRESULT LoggingOpen(
             PathCreateTimeBasedTempFile(NULL, L"Setup", NULL, L"log", &pLog->sczPath, NULL);
         }
     }
+    if (pLog->dwAttributes & BURN_LOGGING_ATTRIBUTE_CONSOLE)
+    {
+        LogEnableConsole(TRUE);
+    }
 
     // Open the log approriately.
     if (pLog->sczPath && *pLog->sczPath)

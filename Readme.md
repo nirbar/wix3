@@ -2,6 +2,7 @@
 
 [Panel::Software](http://www.panel-sw.com) provides a customized edition of WiX built on top of WiX 3.11.2 with the following changes
 
+- Add burn command line argument to log to console: /clog or /conlog
 - [6252](https://github.com/wixtoolset/issues/issues/6252): Fix reboot with related bundles when "-norestart" is specified on command line
 - [Bundle/@RunAsAdmin](https://github.com/wixtoolset/issues/issues/5309) attribute creates a bootstrapper that requires elevation when launched
 - Support [MSI transactions](https://github.com/wixtoolset/issues/issues/5386): Execute multiple MSI/MSP packages as an atomic package with unified commit/rollback behavior.

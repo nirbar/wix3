@@ -6,6 +6,7 @@
 static HMODULE LogUtil_hModule = NULL;
 static BOOL LogUtil_fDisabled = FALSE;
 static HANDLE LogUtil_hLog = INVALID_HANDLE_VALUE;
+static HANDLE LogUtil_hConOut = INVALID_HANDLE_VALUE;
 static LPWSTR LogUtil_sczLogPath = NULL;
 static LPSTR LogUtil_sczPreInitBuffer = NULL;
 static REPORT_LEVEL LogUtil_rlCurrent = REPORT_STANDARD;
@@ -178,10 +179,39 @@ void DAPI LogDisable()
     LogUtil_fDisabled = TRUE;
 
     ReleaseFileHandle(LogUtil_hLog);
+    ReleaseFileHandle(LogUtil_hConOut);
     ReleaseNullStr(LogUtil_sczLogPath);
     ReleaseNullStr(LogUtil_sczPreInitBuffer);
 
     ::LeaveCriticalSection(&LogUtil_csLog);
+}
+
+
+/********************************************************************
+ LogEnableConsole - Log to console as well
+********************************************************************/
+void DAPI LogEnableConsole(
+    __in BOOL fLogToConsole
+    )
+{
+    if (fLogToConsole)
+    {
+        if ((LogUtil_hConOut == INVALID_HANDLE_VALUE) && (::AttachConsole(ATTACH_PARENT_PROCESS) || ::AllocConsole()))
+        {
+            SECURITY_ATTRIBUTES sa;
+            
+            ::ZeroMemory(&sa, sizeof(SECURITY_ATTRIBUTES));
+            sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+            sa.bInheritHandle = TRUE;
+            sa.lpSecurityDescriptor = nullptr;
+            
+            LogUtil_hConOut = ::CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_EXISTING, 0, NULL);
+        }
+    }
+    else
+    {
+        ReleaseFileHandle(LogUtil_hConOut);
+    }
 }
 
 
@@ -251,6 +281,7 @@ extern "C" void DAPI LogClose(
     }
 
     ReleaseFileHandle(LogUtil_hLog);
+    ReleaseFileHandle(LogUtil_hConOut);
     ReleaseNullStr(LogUtil_sczLogPath);
     ReleaseNullStr(LogUtil_sczPreInitBuffer);
 }
@@ -881,6 +912,8 @@ static HRESULT LogStringWork(
     LPWSTR scz = NULL;
     LPCWSTR wzLogData = NULL;
     LPSTR sczMultiByte = NULL;
+    BOOL fIsError = FALSE;
+    BOOL fIsWarning = FALSE;
 
     // If logging is disabled, just bail.
     if (LogUtil_fDisabled)
@@ -903,7 +936,9 @@ static HRESULT LogStringWork(
 
         DWORD dwId = dwLogId & 0xFFFFFFF;
         DWORD dwType = dwLogId & 0xF0000000;
-        LPSTR szType = (0xE0000000 == dwType || REPORT_ERROR == rl) ? "e" : (0xA0000000 == dwType || REPORT_WARNING == rl) ? "w" : "i";
+        fIsError = (0xE0000000 == dwType || REPORT_ERROR == rl);
+        fIsWarning = (0xA0000000 == dwType || REPORT_WARNING == rl);
+        LPSTR szType = fIsError ? "e" : fIsWarning ? "w" : "i";
 
         // add line prefix and trailing newline
         hr = StrAllocFormatted(&scz, L"%ls[%04X:%04X][%04hu-%02hu-%02huT%02hu:%02hu:%02hu]%hs%03d:%ls %ls%ls", LogUtil_sczSpecialBeginLine ? LogUtil_sczSpecialBeginLine : L"",
@@ -925,6 +960,25 @@ static HRESULT LogStringWork(
     }
     else
     {
+        if (LogUtil_hConOut != INVALID_HANDLE_VALUE)
+        {
+            DWORD cbLogData = lstrlenA(sczMultiByte);
+            DWORD cbTotal = 0;
+            
+            ::SetConsoleTextAttribute(LogUtil_hConOut, fIsError ? FOREGROUND_RED : fIsWarning ? FOREGROUND_RED | FOREGROUND_GREEN : FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
+            while (cbTotal < cbLogData)
+            {
+                DWORD cbWrote = 0;
+                
+                if (!::WriteFile(LogUtil_hConOut, sczMultiByte + cbTotal, cbLogData - cbTotal, &cbWrote, NULL))
+                {
+                    break;
+                }
+
+                cbTotal += cbWrote;
+            }            
+        }
+
         hr = LogStringWorkRaw(sczMultiByte);
         ExitOnFailure1(hr, "Failed to write string to log using default function: %ls", sczString);
     }
