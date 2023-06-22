@@ -206,12 +206,16 @@ void DAPI LogEnableConsole(
         if (LogUtil_hStdOut == INVALID_HANDLE_VALUE)
         {
             // Attempt to attach to parent console
-            ::AttachConsole(ATTACH_PARENT_PROCESS);
-            
+            if (!::AttachConsole(ATTACH_PARENT_PROCESS))
+            {
+                LogErrorString(HRESULT_FROM_WIN32(::GetLastError()), "Failed to attach parent console");
+            }
+
             LogUtil_hStdErr = ::GetStdHandle(STD_ERROR_HANDLE);
             LogUtil_hStdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
             if (LogUtil_hStdOut == INVALID_HANDLE_VALUE)
             {
+                LogErrorString(HRESULT_FROM_WIN32(::GetLastError()), "Failed to get stdout handle. Attempting to use 'CONOUT$'");
                 SECURITY_ATTRIBUTES sa;
 
                 ::ZeroMemory(&sa, sizeof(SECURITY_ATTRIBUTES));
@@ -220,6 +224,10 @@ void DAPI LogEnableConsole(
                 sa.lpSecurityDescriptor = nullptr;
 
                 LogUtil_hStdOut = ::CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_EXISTING, 0, NULL);
+                if (LogUtil_hStdOut == INVALID_HANDLE_VALUE)
+                {
+                    LogErrorString(HRESULT_FROM_WIN32(::GetLastError()), "Failed to get console or stdout handle");
+                }
             }
         }
     }
