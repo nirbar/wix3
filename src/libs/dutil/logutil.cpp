@@ -1039,4 +1039,5 @@ static void LogStringToConsole(
     {
         ::SetConsoleTextAttribute(hStd, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
+    ::FlushFileBuffers(hStd);
 }
