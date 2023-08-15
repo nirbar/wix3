@@ -3991,13 +3991,24 @@ public:
         return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
     
-    STDMETHODIMP_(int) OnPlanMsiTransaction(__in_z LPCWSTR wzRollbackId, __inout BOOL* pfTransaction) override 
+    STDMETHODIMP_(int) OnPlanMsiTransaction(__in_z LPCWSTR wzTransactionId, __inout BOOL* pfTransaction) override 
     { 
-        int nResult = __super::OnPlanMsiTransaction(wzRollbackId, pfTransaction);
+        int nResult = __super::OnPlanMsiTransaction(wzTransactionId, pfTransaction);
         int nBafResult = IDNOACTION;
         if (m_pBAFunction)
         {
-            nBafResult = m_pBAFunction->OnPlanMsiTransaction(wzRollbackId, pfTransaction);
+            nBafResult = m_pBAFunction->OnPlanMsiTransaction(wzTransactionId, pfTransaction);
+        }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
+    }
+    
+    STDMETHODIMP_(int) OnPlanMsiTransactionCommit(__in_z LPCWSTR wzTransactionId, __in DWORD dwPackageCount, __in BOOL fPlanned) override 
+    { 
+        int nResult = __super::OnPlanMsiTransactionCommit(wzTransactionId, dwPackageCount, fPlanned);
+        int nBafResult = IDNOACTION;
+        if (m_pBAFunction)
+        {
+            nBafResult = m_pBAFunction->OnPlanMsiTransactionCommit(wzTransactionId, dwPackageCount, fPlanned);
         }
         return (nResult == IDNOACTION) ? nBafResult : nResult;
     }

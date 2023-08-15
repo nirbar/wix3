@@ -382,8 +382,20 @@ DECLARE_INTERFACE_IID_(IBootstrapperApplication, IUnknown, "53C31D56-49C0-426B-A
     //
     //  IDNOACTION instructs the engine to continue.
     STDMETHOD_(int, OnPlanMsiTransaction)(
-        __in_z LPCWSTR wzRollbackId,
+        __in_z LPCWSTR wzTransactionId,
         __inout BOOL *pfTransaction
+        ) = 0;
+        
+    // OnPlanMsiTransactionCommit - called when the engine plans an MSI transaction commit.
+    //
+    // Return:
+    //  IDCANCEL instructs the engine to stop planning.
+    //
+    //  IDNOACTION instructs the engine to continue.
+    STDMETHOD_(int, OnPlanMsiTransactionCommit)(
+        __in_z LPCWSTR wzTransactionId,
+        __in DWORD dwPackageCount,
+        __in BOOL fPlanned
         ) = 0;
 
     // OnPlanComplete - called when the engine completes planning.

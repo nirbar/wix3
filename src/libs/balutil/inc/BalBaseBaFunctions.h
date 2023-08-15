@@ -264,8 +264,17 @@ public: // IBootstrapperApplication
     }
 
     virtual STDMETHODIMP_(int) OnPlanMsiTransaction(
-        __in_z LPCWSTR /*wzRollbackId*/,
+        __in_z LPCWSTR /*wzTransactionId*/,
         __inout BOOL* /*pfTransaction*/
+        )
+    {
+        return IDNOACTION;
+    }
+
+    virtual STDMETHODIMP_(int) OnPlanMsiTransactionCommit(
+        __in_z LPCWSTR /*wzTransactionId*/,
+        __in DWORD /*dwPackageCount*/,
+        __in BOOL /*fPlanned*/
         )
     {
         return IDNOACTION;

@@ -7,26 +7,35 @@ namespace Microsoft.Tools.WindowsInstallerXml
     /// <summary>
     /// Rollback boundary info for binding Bundles.
     /// </summary>
-    internal class RollbackBoundaryInfo
+    internal class MsiTransactionInfo
     {
-        public RollbackBoundaryInfo(string id)
+        public enum TransactionBitness
+        {
+            None,
+            X86,
+            X64,
+        }
+        
+        public MsiTransactionInfo(string id)
         {
             this.Default = true;
             this.Id = id;
-            this.Vital = YesNoType.Yes;
+            this.LogPathVariable = "WixBundleLog_" + id;
         }
 
-        public RollbackBoundaryInfo(Row row)
+        public MsiTransactionInfo(Row row)
         {
             this.Id = row[0].ToString();
-
-            this.Vital = (null == row[10] || 1 == (int)row[10]) ? YesNoType.Yes : YesNoType.No;
+            LogPathVariable = row[15] as string;
             this.SourceLineNumbers = row.SourceLineNumbers;
+            Bitness = TransactionBitness.None;
         }
 
         public bool Default { get; private set; }
         public string Id { get; private set; }
-        public YesNoType Vital { get; private set; }
+        public string LogPathVariable { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }
+        public string EndTransactionId { get; set; }
+        public TransactionBitness Bitness { get; set; }
     }
 }

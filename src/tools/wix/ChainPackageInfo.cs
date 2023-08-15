@@ -582,6 +582,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public bool TargetUnspecified { get; private set; }
         public RollbackBoundaryInfo RollbackBoundary { get; set; }
         public string RollbackBoundaryBackwardId { get; set; }
+        public string MsiTransactionId { get; set; }
 
         /// <summary>
         /// Initializes package state from the MSI contents.

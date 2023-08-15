@@ -23,6 +23,9 @@ static void UninitializeCacheAction(
 static void ResetPlannedPackageState(
     __in BURN_PACKAGE* pPackage
     );
+static void ResetPlannedTransactionState(
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
+    );
 static HRESULT ProcessPackage(
     __in BOOL fBundlePerMachine,
     __in BOOL fPlanCompatible,
@@ -36,15 +39,38 @@ static HRESULT ProcessPackage(
     __in_z_opt LPCWSTR wzLayoutDirectory,
     __inout HANDLE* phSyncpointEvent,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction,
     __in_opt PLAN_NONPERMANENT_PACKAGE_INDICES* pNonpermanentPackageIndices
     );
 static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
-    __in BURN_VARIABLES* pVariables,
-    __in BURN_USER_EXPERIENCE* pUX,
-    __in BURN_LOGGING* pLog,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
+    );
+static HRESULT ProcessPackageMsiTransactionBegining(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE* pUX,
+    __in BURN_LOGGING* pLog,
+    __in BURN_VARIABLES* pVariables,
+    __in_opt BURN_MSI_TRANSACTION* pMsiTransaction,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction
+    );
+static HRESULT ProcessPackageMsiTransactionEnding(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE* pUX,
+    __in_opt BURN_MSI_TRANSACTION* pMsiTransaction,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction
+    );
+static HRESULT PlanMsiTransactionBegin(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE* pUX,
+    __in BURN_LOGGING* pLog,
+    __in BURN_VARIABLES* pVariables,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
+    );
+static HRESULT PlanMsiTransactionCommit(
+    __in BURN_PLAN* pPlan,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
     );
 static HRESULT GetActionDefaultRequestState(
     __in BOOTSTRAPPER_ACTION action,
@@ -232,6 +258,15 @@ extern "C" void PlanReset(
         for (DWORD i = 0; i < pPackages->cPackages; ++i)
         {
             ResetPlannedPackageState(&pPackages->rgPackages[i]);
+        }
+    }
+
+    // Reset the planned state for each rollback boundary.
+    if (pPackages->rgMsiTransactions)
+    {
+        for (DWORD i = 0; i < pPackages->cMsiTransactions; ++i)
+        {
+            ResetPlannedTransactionState(&pPackages->rgMsiTransactions[i]);
         }
     }
 }
@@ -455,6 +490,7 @@ extern "C" HRESULT PlanPackages(
     HRESULT hr = S_OK;
     BOOL fBundlePerMachine = pPlan->fPerMachine; // bundle is per-machine if plan starts per-machine.
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundary = NULL;
+    BURN_MSI_TRANSACTION* pMsiTransaction = NULL;
 
     PLAN_NONPERMANENT_PACKAGE_INDICES nonpermanentPackageIndices;
     nonpermanentPackageIndices.iAfterExecuteFirstNonPermanentPackage = BURN_PLAN_INVALID_ACTION_INDEX;
@@ -484,7 +520,7 @@ extern "C" HRESULT PlanPackages(
             }
         }
 
-        hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, wzLayoutDirectory, phSyncpointEvent, &pRollbackBoundary, &nonpermanentPackageIndices);
+        hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, wzLayoutDirectory, phSyncpointEvent, &pRollbackBoundary, &pMsiTransaction, &nonpermanentPackageIndices);
         ExitOnFailure(hr, "Failed to process package.");
 
         // Attempt to remove orphaned packages during uninstall. Currently only MSI packages are supported and should not require source.
@@ -509,7 +545,7 @@ extern "C" HRESULT PlanPackages(
             ExitOnFailure(hr, "Failed to copy installed ProductCode");
 
             // Process the compatible MSI package like any other.
-            hr = ProcessPackage(fBundlePerMachine, TRUE, pUX, pPlan, pCompatiblePackage, pLog, pVariables, display, relationType, wzLayoutDirectory, phSyncpointEvent, &pRollbackBoundary, &nonpermanentPackageIndices);
+            hr = ProcessPackage(fBundlePerMachine, TRUE, pUX, pPlan, pCompatiblePackage, pLog, pVariables, display, relationType, wzLayoutDirectory, phSyncpointEvent, &pRollbackBoundary, &pMsiTransaction, &nonpermanentPackageIndices);
             ExitOnFailure(hr, "Failed to process compatible package.");
 
             if (BOOTSTRAPPER_ACTION_STATE_UNINSTALL == pCompatiblePackage->execute)
@@ -543,16 +579,16 @@ extern "C" HRESULT PlanPackages(
         ExitOnFailure(hr, "Failed to plan uninstall remove registration.");
     }
 
+    // If we still have an open transaction, complete it.
+    if (pMsiTransaction)
+    {
+        hr = ProcessPackageMsiTransactionEnding(pPlan, pUX, NULL, &pMsiTransaction);
+        ExitOnFailure(hr, "Failed to plan final MSI transaction complete.");
+    }
+
     // If we still have an open rollback boundary, complete it.
     if (pRollbackBoundary)
     {
-        // Commit MSI transaction
-        if (pRollbackBoundary->fTransaction)
-        {
-            hr = PlanExecuteCheckpoint(pPlan, TRUE);
-            ExitOnFailure(hr, "Failed to plan checkpoint.");
-        }
-
         hr = PlanRollbackBoundaryComplete(pPlan);
         ExitOnFailure(hr, "Failed to plan rollback boundary complete.");
 
@@ -775,9 +811,10 @@ extern "C" HRESULT PlanPassThroughBundle(
     HRESULT hr = S_OK;
     BOOL fBundlePerMachine = pPlan->fPerMachine; // bundle is per-machine if plan starts per-machine.
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundary = NULL;
+    BURN_MSI_TRANSACTION* pMsiTransaction = NULL;
 
     // Plan passthrough package.
-    hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, NULL, phSyncpointEvent, &pRollbackBoundary, NULL);
+    hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, NULL, phSyncpointEvent, &pRollbackBoundary, &pMsiTransaction, NULL);
     ExitOnFailure(hr, "Failed to process passthrough package.");
 
     // If we still have an open rollback boundary, complete it.
@@ -809,9 +846,10 @@ extern "C" HRESULT PlanUpdateBundle(
     HRESULT hr = S_OK;
     BOOL fBundlePerMachine = pPlan->fPerMachine; // bundle is per-machine if plan starts per-machine.
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundary = NULL;
+    BURN_MSI_TRANSACTION* pMsiTransaction = NULL;
 
     // Plan update package.
-    hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, NULL, phSyncpointEvent, &pRollbackBoundary, NULL);
+    hr = ProcessPackage(fBundlePerMachine, FALSE, pUX, pPlan, pPackage, pLog, pVariables, display, relationType, NULL, phSyncpointEvent, &pRollbackBoundary, &pMsiTransaction, NULL);
     ExitOnFailure(hr, "Failed to process update package.");
 
     // If we still have an open rollback boundary, complete it.
@@ -842,6 +880,7 @@ static HRESULT ProcessPackage(
     __in_z_opt LPCWSTR wzLayoutDirectory,
     __inout HANDLE* phSyncpointEvent,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction,
     __in_opt PLAN_NONPERMANENT_PACKAGE_INDICES* pNonpermanentPackageIndices
     )
 {
@@ -867,9 +906,13 @@ static HRESULT ProcessPackage(
     hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
     ExitOnRootFailure(hr, "UX aborted plan package begin.");
 
+    hr = ProcessPackageMsiTransactionEnding(pPlan, pUX, pPackage->pMsiTransaction, ppMsiTransaction);
+    ExitOnFailure(hr, "Failed to process package MSI transaction ending.");
     pEffectiveRollbackBoundary = (BOOTSTRAPPER_ACTION_UNINSTALL == pPlan->action) ? pPackage->pRollbackBoundaryBackward : pPackage->pRollbackBoundaryForward;
-    hr = ProcessPackageRollbackBoundary(pPlan, pVariables, pUX, pLog, pEffectiveRollbackBoundary, ppRollbackBoundary);
+    hr = ProcessPackageRollbackBoundary(pPlan, pEffectiveRollbackBoundary, ppRollbackBoundary);
     ExitOnFailure(hr, "Failed to process package rollback boundary.");
+    hr = ProcessPackageMsiTransactionBegining(pPlan, pUX, pLog, pVariables, pPackage->pMsiTransaction, ppMsiTransaction);
+    ExitOnFailure(hr, "Failed to process package MSI transaction begining.");
 
     // If the package is in a requested state, plan it.
     if (BOOTSTRAPPER_REQUEST_STATE_NONE != pPackage->requested)
@@ -923,7 +966,7 @@ static HRESULT ProcessPackage(
     // Add the checkpoint after each package and dependency registration action.
     if (BOOTSTRAPPER_ACTION_STATE_NONE != pPackage->execute || BOOTSTRAPPER_ACTION_STATE_NONE != pPackage->rollback || BURN_DEPENDENCY_ACTION_NONE != pPackage->dependencyExecute)
     {
-        hr = PlanExecuteCheckpoint(pPlan, FALSE);
+        hr = PlanExecuteCheckpoint(pPlan);
         ExitOnFailure(hr, "Failed to append execute checkpoint.");
     }
 
@@ -934,9 +977,6 @@ LExit:
 
 static HRESULT ProcessPackageRollbackBoundary(
     __in BURN_PLAN* pPlan,
-    __in BURN_VARIABLES* pVariables,
-    __in BURN_USER_EXPERIENCE* pUX,
-    __in BURN_LOGGING* pLog,
     __in_opt BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary,
     __inout BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     )
@@ -949,19 +989,12 @@ static HRESULT ProcessPackageRollbackBoundary(
         // Complete previous rollback boundary.
         if (*ppRollbackBoundary)
         {
-            // Terminate earlier MSI transaction
-            if ((*ppRollbackBoundary)->fTransaction)
-            {
-                hr = PlanExecuteCheckpoint(pPlan, TRUE);
-                ExitOnFailure(hr, "Failed to plan checkpoint.");
-            }
-
             hr = PlanRollbackBoundaryComplete(pPlan);
             ExitOnFailure(hr, "Failed to plan rollback boundary complete.");
         }
 
         // Start new rollback boundary.
-        hr = PlanRollbackBoundaryBegin(pPlan, pVariables, pUX, pLog, pEffectiveRollbackBoundary);
+        hr = PlanRollbackBoundaryBegin(pPlan, pEffectiveRollbackBoundary);
         ExitOnFailure(hr, "Failed to plan rollback boundary begin.");
 
         *ppRollbackBoundary = pEffectiveRollbackBoundary;
@@ -1587,7 +1620,7 @@ extern "C" HRESULT PlanExecuteCacheSyncAndRollback(
         pAction->type = BURN_EXECUTE_ACTION_TYPE_UNCACHE_PACKAGE;
         pAction->uncachePackage.pPackage = pPackage;
 
-        hr = PlanExecuteCheckpoint(pPlan, FALSE);
+        hr = PlanExecuteCheckpoint(pPlan);
         ExitOnFailure(hr, "Failed to append execute checkpoint for cache rollback.");
     }
 
@@ -1596,8 +1629,7 @@ LExit:
 }
 
 extern "C" HRESULT PlanExecuteCheckpoint(
-    __in BURN_PLAN* pPlan,
-    __in BOOL fCommitTransaction
+    __in BURN_PLAN* pPlan
     )
 {
     HRESULT hr = S_OK;
@@ -1610,7 +1642,6 @@ extern "C" HRESULT PlanExecuteCheckpoint(
 
     pAction->type = BURN_EXECUTE_ACTION_TYPE_CHECKPOINT;
     pAction->checkpoint.dwId = dwCheckpointId;
-    pAction->checkpoint.fCommitTransaction = fCommitTransaction;
 
     // rollback checkpoint
     hr = PlanAppendRollbackAction(pPlan, &pAction);
@@ -1757,42 +1788,11 @@ LExit:
 
 extern "C" HRESULT PlanRollbackBoundaryBegin(
     __in BURN_PLAN* pPlan,
-    __in BURN_VARIABLES * pVariables,
-    __in BURN_USER_EXPERIENCE * pUX,
-    __in BURN_LOGGING * pLog,
     __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary
     )
 {
     HRESULT hr = S_OK;
     BURN_EXECUTE_ACTION* pExecuteAction = NULL;
-    int nResult = IDNOACTION;
-
-    // Best effort to support MSI transactions
-    pRollbackBoundary->fTransaction = FALSE;
-    if (pRollbackBoundary->fTransactionInManifest)
-    {
-        if (WiuIsMsiTransactionSupported())
-        {
-            pRollbackBoundary->fTransaction = TRUE;
-
-            LoggingIncrementPackageSequence();
-            LoggingSetMsiTransactionVariable(pRollbackBoundary, pLog, pVariables); // ignore errors.
-
-            nResult = pUX->pUserExperience->OnPlanMsiTransaction(pRollbackBoundary->sczId, &pRollbackBoundary->fTransaction);
-
-            hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
-            ExitOnRootFailure(hr, "UX aborted plan rollback boundary.");
-
-            if (!pRollbackBoundary->fTransaction)
-            {
-                LogId(REPORT_STANDARD, MSG_UX_DECLINED_MSI_TRANSACTION, pRollbackBoundary->sczId);
-            }
-        }
-        else
-        {
-            LogId(REPORT_WARNING, MSG_UNSUPPORTED_MSI_TRANSACTION);
-        }
-    }
 
     // Add begin rollback boundary to execute plan.
     hr = PlanAppendExecuteAction(pPlan, &pExecuteAction);
@@ -1834,6 +1834,147 @@ extern "C" HRESULT PlanRollbackBoundaryComplete(
 
     pExecuteAction->type = BURN_EXECUTE_ACTION_TYPE_CHECKPOINT;
     pExecuteAction->checkpoint.dwId = dwCheckpointId;
+
+LExit:
+    return hr;
+}
+
+static HRESULT ProcessPackageMsiTransactionEnding(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE* pUX,
+    __in_opt BURN_MSI_TRANSACTION* pMsiTransaction,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction
+    )
+{
+    HRESULT hr = S_OK;
+    int nResult = IDNOACTION;
+
+    // If the previous transaction is different than the new one, end it
+    if (*ppMsiTransaction && (!pMsiTransaction || pMsiTransaction != *ppMsiTransaction))
+    {
+        BURN_MSI_TRANSACTION* pEndingMsiTransaction = *ppMsiTransaction;
+        *ppMsiTransaction = NULL;
+
+        if (pEndingMsiTransaction->fPlanned)
+        {
+            hr = PlanMsiTransactionCommit(pPlan, pEndingMsiTransaction);
+            ExitOnFailure(hr, "Failed to plan MSI transaction complete.");
+
+            // Cancel the transaction if it has 1 or 0 packages.
+            if (pEndingMsiTransaction->dwPackageCount < 2)
+            {
+                pEndingMsiTransaction->fPlanned = FALSE;
+                LogId(REPORT_STANDARD, MSG_PLAN_CANCEL_MSI_TRANSACTION, pEndingMsiTransaction->sczId, pEndingMsiTransaction->dwPackageCount);
+
+                for (DWORD i = 0; i < pPlan->cExecuteActions; ++i)
+                {
+                    if ((BURN_EXECUTE_ACTION_TYPE_BEGIN_MSI_TRANSACTION == pPlan->rgExecuteActions[i].type || BURN_EXECUTE_ACTION_TYPE_COMMIT_MSI_TRANSACTION == pPlan->rgExecuteActions[i].type) && (pPlan->rgExecuteActions[i].msiTransaction.pMsiTransaction == pEndingMsiTransaction))
+                    {
+                        pPlan->rgExecuteActions[i].fDeleted = TRUE;
+                    }
+                }
+            }
+        }
+
+        nResult = pUX->pUserExperience->OnPlanMsiTransactionCommit(pEndingMsiTransaction->sczId, pEndingMsiTransaction->dwPackageCount, pEndingMsiTransaction->fPlanned);
+        hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
+        ExitOnRootFailure(hr, "UX aborted plan on MSI transaction commit.");
+    }
+
+LExit:
+    return hr;
+}
+
+static HRESULT ProcessPackageMsiTransactionBegining(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE* pUX,
+    __in BURN_LOGGING* pLog,
+    __in BURN_VARIABLES* pVariables,
+    __in_opt BURN_MSI_TRANSACTION* pMsiTransaction,
+    __inout BURN_MSI_TRANSACTION** ppMsiTransaction
+    )
+{
+    HRESULT hr = S_OK;
+
+    // If the package marks the start of a MSI transaction, start it.
+    if (pMsiTransaction && pMsiTransaction != *ppMsiTransaction)
+    {
+        hr = PlanMsiTransactionBegin(pPlan, pUX, pLog, pVariables, pMsiTransaction);
+        ExitOnFailure(hr, "Failed to plan MSI transaction.");
+
+        *ppMsiTransaction = pMsiTransaction;
+    }
+
+LExit:
+    return hr;
+}
+
+static HRESULT PlanMsiTransactionBegin(
+    __in BURN_PLAN* pPlan,
+    __in BURN_USER_EXPERIENCE * pUX,
+    __in BURN_LOGGING * pLog,
+    __in BURN_VARIABLES * pVariables,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
+    )
+{
+    HRESULT hr = S_OK;
+    BURN_EXECUTE_ACTION* pExecuteAction = NULL;
+    int nResult = IDNOACTION;
+    BOOL fSupported = WiuIsMsiTransactionSupported();
+
+    // Best effort to support MSI transactions
+    pMsiTransaction->fPlanned = fSupported;
+    nResult = pUX->pUserExperience->OnPlanMsiTransaction(pMsiTransaction->sczId, &pMsiTransaction->fPlanned);
+
+    hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
+    ExitOnRootFailure(hr, "UX aborted plan on MSI transaction.");
+    
+    if (fSupported && !pMsiTransaction->fPlanned)
+    {
+        LogId(REPORT_STANDARD, MSG_UX_DECLINED_MSI_TRANSACTION, pMsiTransaction->sczId);
+        hr = S_FALSE;
+        ExitFunction();
+    }
+    if (!fSupported)
+    {
+        LogId(REPORT_WARNING, MSG_UNSUPPORTED_MSI_TRANSACTION);
+        pMsiTransaction->fPlanned = FALSE;
+        hr = S_FALSE;
+        ExitFunction();
+    }
+
+    LoggingIncrementPackageSequence();
+    LoggingSetMsiTransactionVariable(pMsiTransaction, pLog, pVariables); // ignore errors.
+
+    hr = PlanAppendExecuteAction(pPlan, &pExecuteAction);
+    ExitOnFailure(hr, "Failed to append MSI transaction begin action.");
+
+    pExecuteAction->type = BURN_EXECUTE_ACTION_TYPE_BEGIN_MSI_TRANSACTION;
+    pExecuteAction->msiTransaction.pMsiTransaction = pMsiTransaction;
+    
+    hr = PlanExecuteCheckpoint(pPlan);
+    ExitOnFailure(hr, "Failed to append checkpoint action.");
+
+LExit:
+    return hr;
+}
+
+static HRESULT PlanMsiTransactionCommit(
+    __in BURN_PLAN* pPlan,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
+    )
+{
+    HRESULT hr = S_OK;
+    BURN_EXECUTE_ACTION* pExecuteAction = NULL;
+
+    hr = PlanAppendExecuteAction(pPlan, &pExecuteAction);
+    ExitOnFailure(hr, "Failed to append MSI transaction commit action.");
+
+    pExecuteAction->type = BURN_EXECUTE_ACTION_TYPE_COMMIT_MSI_TRANSACTION;
+    pExecuteAction->msiTransaction.pMsiTransaction = pMsiTransaction;
+    
+    hr = PlanExecuteCheckpoint(pPlan);
+    ExitOnFailure(hr, "Failed to append checkpoint action.");
 
 LExit:
     return hr;
@@ -1945,6 +2086,16 @@ static void ResetPlannedPackageState(
             pTargetProduct->rollback = BOOTSTRAPPER_ACTION_STATE_NONE;
         }
     }
+}
+
+static void ResetPlannedTransactionState(
+    __in BURN_MSI_TRANSACTION* pMsiTransaction
+    )
+{
+    pMsiTransaction->fActive = FALSE;
+    pMsiTransaction->fPlanned = TRUE;
+    pMsiTransaction->dwPackageCount = 0;
+    ReleaseNullStr(pMsiTransaction->sczLogPath);
 }
 
 static HRESULT GetActionDefaultRequestState(
@@ -3045,7 +3196,7 @@ static void ExecuteActionLog(
         break;
 
     case BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY:
-        LogStringLine(REPORT_STANDARD, "%ls action[%u]: ROLLBACK_BOUNDARY id: %ls, vital: %ls, transaction: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no", pAction->rollbackBoundary.pRollbackBoundary->fTransaction ? L"yes" : L"no");
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: ROLLBACK_BOUNDARY id: %ls, vital: %ls", wzBase, iAction, pAction->rollbackBoundary.pRollbackBoundary->sczId, pAction->rollbackBoundary.pRollbackBoundary->fVital ? L"yes" : L"no");
         break;
 
     case BURN_EXECUTE_ACTION_TYPE_WAIT_SYNCPOINT:
@@ -3056,6 +3207,14 @@ static void ExecuteActionLog(
         LogStringLine(REPORT_STANDARD, "%ls action[%u]: UNCACHE_PACKAGE id: %ls", wzBase, iAction, pAction->uncachePackage.pPackage->sczId);
         break;
 
+    case BURN_EXECUTE_ACTION_TYPE_BEGIN_MSI_TRANSACTION:
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: BEGIN_MSI_TRANSACTION id: %ls", wzBase, iAction, pAction->msiTransaction.pMsiTransaction->sczId);
+        break;
+
+    case BURN_EXECUTE_ACTION_TYPE_COMMIT_MSI_TRANSACTION:
+        LogStringLine(REPORT_STANDARD, "%ls action[%u]: COMMIT_MSI_TRANSACTION id: %ls", wzBase, iAction, pAction->msiTransaction.pMsiTransaction->sczId);
+        break;
+
     case BURN_EXECUTE_ACTION_TYPE_COMPATIBLE_PACKAGE:
         LogStringLine(REPORT_STANDARD, "%ls action[%u]: COMPATIBLE_PACKAGE reference id: %ls, installed ProductCode: %ls", wzBase, iAction, pAction->compatiblePackage.pReferencePackage->sczId, pAction->compatiblePackage.sczInstalledProductCode);
         break;
@@ -3063,6 +3222,11 @@ static void ExecuteActionLog(
     default:
         AssertSz(FALSE, "Unknown execute action type.");
         break;
+    }
+    
+    if (pAction->fDeleted)
+    {
+        LogStringLine(REPORT_STANDARD, "          (action deleted)");
     }
 }
 

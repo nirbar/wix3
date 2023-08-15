@@ -149,14 +149,20 @@ typedef struct _BURN_DEPENDENCY_PROVIDER
     BOOL fImported;
 } BURN_DEPENDENCY_PROVIDER;
 
+typedef struct _BURN_MSI_TRANSACTION
+{
+    LPWSTR sczId;
+    BOOL fPlanned;
+    BOOL fActive;
+    DWORD dwPackageCount;
+    LPWSTR sczLogPathVariable;
+    LPWSTR sczLogPath;
+} BURN_MSI_TRANSACTION;
+
 typedef struct _BURN_ROLLBACK_BOUNDARY
 {
     LPWSTR sczId;
     BOOL fVital;
-    BOOL fTransaction;
-    BOOL fTransactionInManifest; // This should be used in plan phase, to allow multiple plan calls
-    LPWSTR sczLogPathVariable;
-    LPWSTR sczLogPath;
 } BURN_ROLLBACK_BOUNDARY;
 
 typedef struct _BURN_PATCH_TARGETCODE
@@ -186,7 +192,8 @@ typedef struct _BURN_PACKAGE
 
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundaryForward;  // used during install and repair.
     BURN_ROLLBACK_BOUNDARY* pRollbackBoundaryBackward; // used during uninstall.
-
+    BURN_MSI_TRANSACTION* pMsiTransaction;
+    
     BOOTSTRAPPER_PACKAGE_STATE currentState;    // only valid after Detect.
     BURN_CACHE_STATE cache;                     // only valid after Detect.
     BOOTSTRAPPER_PACKAGE_STATE expected;        // only valid during Plan.
@@ -283,6 +290,9 @@ typedef struct _BURN_PACKAGES
 {
     BURN_ROLLBACK_BOUNDARY* rgRollbackBoundaries;
     DWORD cRollbackBoundaries;
+
+    BURN_MSI_TRANSACTION* rgMsiTransactions;
+    DWORD cMsiTransactions;
 
     BURN_PACKAGE* rgPackages;
     DWORD cPackages;

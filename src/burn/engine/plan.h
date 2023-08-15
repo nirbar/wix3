@@ -67,6 +67,8 @@ enum BURN_EXECUTE_ACTION_TYPE
     BURN_EXECUTE_ACTION_TYPE_PACKAGE_PROVIDER,
     BURN_EXECUTE_ACTION_TYPE_PACKAGE_DEPENDENCY,
     BURN_EXECUTE_ACTION_TYPE_ROLLBACK_BOUNDARY,
+    BURN_EXECUTE_ACTION_TYPE_BEGIN_MSI_TRANSACTION,
+    BURN_EXECUTE_ACTION_TYPE_COMMIT_MSI_TRANSACTION,
     BURN_EXECUTE_ACTION_TYPE_REGISTRATION,
     BURN_EXECUTE_ACTION_TYPE_COMPATIBLE_PACKAGE,
 };
@@ -208,7 +210,6 @@ typedef struct _BURN_EXECUTE_ACTION
         struct
         {
             DWORD dwId;
-            BOOL fCommitTransaction;
         } checkpoint;
         struct
         {
@@ -272,6 +273,10 @@ typedef struct _BURN_EXECUTE_ACTION
         {
             BURN_ROLLBACK_BOUNDARY* pRollbackBoundary;
         } rollbackBoundary;
+        struct
+        {
+            BURN_MSI_TRANSACTION* pMsiTransaction;
+        } msiTransaction;
         struct
         {
             BURN_PACKAGE* pPackage;
@@ -466,8 +471,7 @@ HRESULT PlanExecuteCacheSyncAndRollback(
     __in BOOL fPlanPackageCacheRollback
     );
 HRESULT PlanExecuteCheckpoint(
-    __in BURN_PLAN* pPlan,
-    __in BOOL fCommitTransaction
+    __in BURN_PLAN* pPlan
     );
 HRESULT PlanInsertExecuteAction(
     __in DWORD dwIndex,
@@ -499,9 +503,6 @@ HRESULT PlanRemoveRegistration(
     );
 HRESULT PlanRollbackBoundaryBegin(
     __in BURN_PLAN* pPlan,
-    __in BURN_VARIABLES* pVariables,
-    __in BURN_USER_EXPERIENCE* pUX,
-    __in BURN_LOGGING* pLog,
     __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary
     );
 HRESULT PlanRollbackBoundaryComplete(

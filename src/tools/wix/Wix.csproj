@@ -195,6 +195,7 @@
     <Compile Include="RelatedBundleInfo.cs" />
     <Compile Include="RelatedPackage.cs" />
     <Compile Include="ResolvedDirectory.cs" />
+    <Compile Include="MsiTransactionInfo.cs" />
     <Compile Include="RollbackBoundaryInfo.cs" />
     <Compile Include="VariableInfo.cs" />
     <Compile Include="VariableRow.cs" />

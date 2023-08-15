@@ -128,6 +128,8 @@ namespace Microsoft.Tools.WindowsInstallerXml
             Msu,
             Exe,
             RollbackBoundary,
+            MsiTransaction,
+            MsiTransactionCommit,
         }
 
         /// <summary>
@@ -21311,6 +21313,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 previousId = this.ParseRollbackBoundaryElement(child, ComplexReferenceParentType.PackageGroup, "WixChain", previousType, previousId);
                                 previousType = ComplexReferenceChildType.Package;
                                 break;
+                            case "MsiTransaction":
+                                previousId = this.ParseMsiTransactionElement(child, ComplexReferenceParentType.PackageGroup, "WixChain", previousType, previousId);
+                                previousType = ComplexReferenceChildType.Package;
+                                break;
                             case "PackageGroupRef":
                                 previousId = this.ParsePackageGroupRefElement(child, ComplexReferenceParentType.PackageGroup, "WixChain", previousType, previousId);
                                 previousType = ComplexReferenceChildType.PackageGroup;
@@ -21412,8 +21418,6 @@ namespace Microsoft.Tools.WindowsInstallerXml
             SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
             string id = null;
             YesNoType vital = YesNoType.Yes;
-            YesNoType transaction = YesNoType.No;
-            string logPathVariable = null;
 
             // This crazy list lets us evaluate extension attributes *after* all core attributes
             // have been parsed and dealt with, regardless of authoring order.
@@ -21433,11 +21437,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                         case "Vital":
                             vital = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
                             break;
-                        case "Transaction":
-                            transaction = this.core.GetAttributeYesNoValue(sourceLineNumbers, attrib);
-                            break;
                         case "LogPathVariable":
-                            logPathVariable = this.core.GetAttributeValue(sourceLineNumbers, attrib, true);
+                        case "Transaction":
+                            this.core.OnMessage(WixErrors.ObsoleteAttribute(sourceLineNumbers, node.Name, attrib.Name, "MsiTransaction"));
+                            allowed = false;
                             break;
                         default:
                             allowed = false;
@@ -21472,19 +21475,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                     this.core.OnMessage(WixErrors.IllegalIdentifier(sourceLineNumbers, node.Name, "Id", id));
                 }
             }
-            if (!string.IsNullOrEmpty(logPathVariable) && (YesNoType.Yes != transaction))
-            {
-                this.core.OnMessage(WixErrors.IllegalAttributeValueWithoutOtherAttribute(sourceLineNumbers, node.LocalName, "LogPathVariable", logPathVariable, "Transaction", "yes"));
-            }
-            else if ((null == logPathVariable) && (YesNoType.Yes == transaction))
-            {
-                logPathVariable = "WixBundleLog_" + id;
-            }
 
             // Now that the package ID is known, we can parse the extension attributes...
             Dictionary<string, string> contextValues = new Dictionary<string, string>();
             contextValues["RollbackBoundaryId"] = id;
-            contextValues["Transaction"] = transaction.ToString();
             foreach (KeyValuePair<SourceLineNumberCollection, XmlAttribute> pair in extensionAttributes)
             {
                 this.core.ParseExtensionAttribute(pair.Key, (XmlElement)node, pair.Value, contextValues);
@@ -21515,14 +21509,151 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 {
                     row[10] = (YesNoType.Yes == vital) ? 1 : 0;
                 }
-                if (YesNoType.NotSet != transaction)
+
+                this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);
+            }
+
+            return id;
+        }
+
+        /// <summary>
+        /// Parse MsiTransaction element
+        /// </summary>
+        /// <param name="node">Element to parse</param>
+        /// <param name="parentType">Type of parent group, if known.</param>
+        /// <param name="parentId">Identifier of parent group, if known.</param>
+        /// <param name="previousType">Type of previous item, if known.</param>
+        /// <param name="previousId">Identifier of previous item, if known</param>
+        /// <returns>Identifier for package element.</returns>
+        private string ParseMsiTransactionElement(XmlNode node, ComplexReferenceParentType parentType, string parentId, ComplexReferenceChildType previousType, string previousId)
+        {
+            Debug.Assert(ComplexReferenceParentType.PackageGroup == parentType);
+            Debug.Assert(ComplexReferenceChildType.Unknown == previousType || ComplexReferenceChildType.PackageGroup == previousType || ComplexReferenceChildType.Package == previousType);
+
+            SourceLineNumberCollection sourceLineNumbers = Preprocessor.GetSourceLineNumbers(node);
+            string id = null;
+            string logPathVariable = null;
+
+            // This crazy list lets us evaluate extension attributes *after* all core attributes
+            // have been parsed and dealt with, regardless of authoring order.
+            List<KeyValuePair<SourceLineNumberCollection, XmlAttribute>> extensionAttributes =
+                new List<KeyValuePair<SourceLineNumberCollection, XmlAttribute>>();
+
+            foreach (XmlAttribute attrib in node.Attributes)
+            {
+                if (0 == attrib.NamespaceURI.Length || attrib.NamespaceURI == this.schema.TargetNamespace)
                 {
-                    row[23] = (YesNoType.Yes == transaction) ? 1 : 0;
-                    if (YesNoType.Yes == transaction)
+                    bool allowed = true;
+                    switch (attrib.LocalName)
                     {
-                        row[15] = logPathVariable;
+                        case "Id":
+                            id = this.core.GetAttributeIdentifierValue(sourceLineNumbers, attrib);
+                            break;
+                        case "LogPathVariable":
+                            logPathVariable = this.core.GetAttributeValue(sourceLineNumbers, attrib, true);
+                            break;
+                        default:
+                            allowed = false;
+                            break;
+                    }
+
+                    if (!allowed)
+                    {
+                        this.core.UnexpectedAttribute(sourceLineNumbers, attrib);
                     }
                 }
+                else
+                {
+                    // Save the extension attributes for later...
+                    extensionAttributes.Add(new KeyValuePair<SourceLineNumberCollection, XmlAttribute>(sourceLineNumbers, attrib));
+                }
+            }
+
+            if (String.IsNullOrEmpty(id))
+            {
+                if (!String.IsNullOrEmpty(previousId))
+                {
+                    id = this.core.GenerateIdentifier("tx", previousId);
+                }
+                else 
+                {
+                    id = "mtx" + Guid.NewGuid().ToString("N").ToUpper();
+                }
+
+                if (null == id)
+                {
+                    this.core.OnMessage(WixErrors.ExpectedAttribute(sourceLineNumbers, node.Name, "Id"));
+                }
+                else if (!CompilerCore.IsIdentifier(id))
+                {
+                    this.core.OnMessage(WixErrors.IllegalIdentifier(sourceLineNumbers, node.Name, "Id", id));
+                }
+            }
+            if (String.IsNullOrEmpty(logPathVariable))
+            {
+                logPathVariable = "WixBundleLog_" + id;
+            }
+
+            // Now that the package ID is known, we can parse the extension attributes...
+            Dictionary<string, string> contextValues = new Dictionary<string, string>();
+            contextValues["TransactionId"] = id;
+            foreach (KeyValuePair<SourceLineNumberCollection, XmlAttribute> pair in extensionAttributes)
+            {
+                this.core.ParseExtensionAttribute(pair.Key, (XmlElement)node, pair.Value, contextValues);
+            }
+
+            if (!this.core.EncounteredError)
+            {
+                Row row = this.core.CreateRow(sourceLineNumbers, "ChainPackage");
+                row[0] = id;
+                row[1] = ChainPackageType.MsiTransaction.ToString();
+                row[23] = 1;
+                row[15] = logPathVariable;
+
+                this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);
+
+                previousType = ComplexReferenceChildType.Package;
+                previousId = id;
+            }
+
+            foreach (XmlNode child in node.ChildNodes)
+            {
+                if (XmlNodeType.Element == child.NodeType)
+                {
+                    if (child.NamespaceURI == this.schema.TargetNamespace)
+                    {
+                        switch (child.LocalName)
+                        {
+                        case "MsiPackage":
+                            previousId = this.ParseMsiPackageElement(child, parentType, parentId, previousType, previousId);
+                            previousType = ComplexReferenceChildType.Package;
+                            break;
+                        case "MspPackage":
+                            previousId = this.ParseMspPackageElement(child, parentType, parentId, previousType, previousId);
+                            previousType = ComplexReferenceChildType.Package;
+                            break;
+                        case "PackageGroupRef":
+                            previousId = this.ParsePackageGroupRefElement(child, parentType, parentId, previousType, previousId);
+                            previousType = ComplexReferenceChildType.PackageGroup;
+                            break;
+                        default:
+                            this.core.UnexpectedElement(node, child);
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        this.core.ParseExtensionElement(sourceLineNumbers, (XmlElement)node, (XmlElement)child, id);
+                    }
+                }
+            }
+
+            id = this.core.GenerateIdentifier("etx", previousId);
+            if (!this.core.EncounteredError)
+            {
+                Row row = this.core.CreateRow(sourceLineNumbers, "ChainPackage");
+                row[0] = id;
+                row[1] = ChainPackageType.MsiTransactionCommit.ToString();
 
                 this.CreateChainPackageMetaRows(sourceLineNumbers, parentType, parentId, ComplexReferenceChildType.Package, id, previousType, previousId, null);
             }
@@ -22274,6 +22405,10 @@ namespace Microsoft.Tools.WindowsInstallerXml
                                 break;
                             case "RollbackBoundary":
                                 previousId = this.ParseRollbackBoundaryElement(child, ComplexReferenceParentType.PackageGroup, id, previousType, previousId);
+                                previousType = ComplexReferenceChildType.Package;
+                                break;
+                            case "MsiTransaction":
+                                previousId = this.ParseMsiTransactionElement(child, ComplexReferenceParentType.PackageGroup, id, previousType, previousId);
                                 previousType = ComplexReferenceChildType.Package;
                                 break;
                             case "PackageGroupRef":

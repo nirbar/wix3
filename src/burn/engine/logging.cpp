@@ -196,7 +196,7 @@ extern "C" void LoggingIncrementPackageSequence()
 }
 
 extern "C" HRESULT LoggingSetMsiTransactionVariable(
-    __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction,
     __in BURN_LOGGING* pLog,
     __in BURN_VARIABLES* pVariables
     )
@@ -204,18 +204,18 @@ extern "C" HRESULT LoggingSetMsiTransactionVariable(
     HRESULT hr = S_OK;
     LPWSTR szLogPath = NULL;
 
-    if (pRollbackBoundary && pRollbackBoundary->sczLogPathVariable && *pRollbackBoundary->sczLogPathVariable)
+    if (pMsiTransaction && pMsiTransaction->sczLogPathVariable && *pMsiTransaction->sczLogPathVariable)
     {
         if (BURN_LOGGING_STATE_DISABLED == pLog->state)
         {
-            VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, L"", FALSE);
+            VariableSetString(pVariables, pMsiTransaction->sczLogPathVariable, L"", FALSE);
             ExitFunction();
         }
 
-        hr = StrAllocFormatted(&szLogPath, L"%ls_%03u_%ls.%ls", pLog->sczPrefix, vdwPackageSequence, pRollbackBoundary->sczId, pLog->sczExtension);
+        hr = StrAllocFormatted(&szLogPath, L"%ls_%03u_%ls.%ls", pLog->sczPrefix, vdwPackageSequence, pMsiTransaction->sczId, pLog->sczExtension);
         ExitOnFailure(hr, "Failed to allocate path for MSI transaction log.");
 
-        hr = VariableSetString(pVariables, pRollbackBoundary->sczLogPathVariable, szLogPath, FALSE);
+        hr = VariableSetString(pVariables, pMsiTransaction->sczLogPathVariable, szLogPath, FALSE);
         ExitOnFailure(hr, "Failed to set log path into variable.");
     }
 

@@ -940,3 +940,19 @@ SymbolicName=MSG_CACHE_PACKAGE_REF_COUNT
 Language=English
 Cached package '%1!ls!' has %2!u! clients
 .
+
+MessageId=708
+Severity=Success
+SymbolicName=MSG_PLANNED_MSI_TRANSACTION
+Language=English
+Planned MSI transaction: '%1!ls!', planned: %2!hs!
+.
+
+
+MessageId=709
+Severity=Success
+SymbolicName=MSG_PLAN_CANCEL_MSI_TRANSACTION
+Language=English
+Canceling planned MSI transaction '%1!ls!' because it contains %2!lu! packages.
+.
+

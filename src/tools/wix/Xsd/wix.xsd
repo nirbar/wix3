@@ -543,6 +543,7 @@
         <xs:element ref="ExePackage" />
         <xs:element ref="RollbackBoundary" />
         <xs:element ref="PackageGroupRef" />
+        <xs:element ref="MsiTransaction" />
       </xs:choice>
       <xs:attribute name="DisableRollback" type="YesNoTypeUnion">
         <xs:annotation>
@@ -576,13 +577,6 @@
             packages will start executing when a rollback boundary is
             encountered. The default is "no" which dictates all packages
             must be cached before any packages will start to be installed.
-          </xs:documentation>
-        </xs:annotation>
-      </xs:attribute>
-      <xs:attribute name="Transaction" type="YesNoTypeUnion">
-        <xs:annotation>
-          <xs:documentation>
-            Specifies whether the first rollback boundary (or the entire chain, if there are no internal rollback boundaries) is wrapped in an MSI transaction. The default is "no"
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
@@ -879,18 +873,49 @@
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
-      <xs:attribute name="Transaction" type="YesNoTypeUnion">
+      <xs:anyAttribute namespace="##other" processContents="lax">
         <xs:annotation>
           <xs:documentation>
-            Specifies whether the rollback boundary is wrapped in an MSI transaction. The default is "no"
+            Extensibility point in the WiX XML Schema.  Schema extensions can register additional
+            attributes at this point in the schema.  The extension's
+            <html:code><html:nobr>CompilerExtension.ParseAttribute()</html:nobr></html:code>
+            method will be called with the rollback boundary identifier as the 'RollbackBoundaryId' key in
+            <html:code>contextValues</html:code>.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:anyAttribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="MsiTransaction">
+    <xs:annotation>
+      <xs:documentation>Describes a rollback boundary in the chain.</xs:documentation>
+      <xs:appinfo>
+        <xse:parent namespace="http://schemas.microsoft.com/wix/2006/wi" ref="Chain" />
+        <xse:parent namespace="http://schemas.microsoft.com/wix/2006/wi" ref="PackageGroup" />
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:sequence>
+          <xs:choice minOccurs="0">
+            <xs:element ref="MsiPackage" />
+            <xs:element ref="MspPackage" />
+            <xs:element ref="PackageGroupRef" />
+            </xs:choice>
+        </xs:sequence>
+      </xs:choice>
+      <xs:attribute name="Id" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>
+            Identifier for this MSI transaction
+            not provided a stable identifier will be generated.
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
       <xs:attribute name="LogPathVariable" type="xs:string">
         <xs:annotation>
           <xs:documentation>
-            When Transaction="yes", name of a Variable that will hold the path to the MSI transaction log file. An empty value will cause the variable to not
-            be set. The default is "WixBundleLog_[RollbackId]".
+            Name of a Variable that will hold the path to the MSI transaction log file. The default is "WixBundleLog_[RollbackId]".
           </xs:documentation>
         </xs:annotation>
       </xs:attribute>
@@ -900,7 +925,7 @@
             Extensibility point in the WiX XML Schema.  Schema extensions can register additional
             attributes at this point in the schema.  The extension's
             <html:code><html:nobr>CompilerExtension.ParseAttribute()</html:nobr></html:code>
-            method will be called with the rollback boundary identifier as the 'RollbackBoundaryId' key in
+            method will be called with the rollback boundary identifier as the 'MsiTransactionId' key in
             <html:code>contextValues</html:code>.
           </xs:documentation>
         </xs:annotation>
@@ -1075,6 +1100,7 @@
         <xs:element ref="MsuPackage" />
         <xs:element ref="ExePackage" />
         <xs:element ref="RollbackBoundary" />
+        <xs:element ref="MsiTransaction" />
         <xs:element ref="PackageGroupRef" />
       </xs:choice>
       <xs:attribute name="Id" type="xs:string" use="required">

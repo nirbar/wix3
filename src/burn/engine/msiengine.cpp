@@ -934,7 +934,7 @@ extern "C" HRESULT MsiEnginePlanAddPackage(
         // Plan a checkpoint between rollback and execute so that we always attempt
         // rollback in the case that the MSI was not able to rollback itself (e.g.
         // user pushes cancel after InstallFinalize).
-        hr = PlanExecuteCheckpoint(pPlan, FALSE);
+        hr = PlanExecuteCheckpoint(pPlan);
         ExitOnFailure(hr, "Failed to append execute checkpoint.");
     }
 
@@ -950,6 +950,11 @@ extern "C" HRESULT MsiEnginePlanAddPackage(
         pAction->msiPackage.uiLevel = MsiEngineCalculateInstallUiLevel(pPackage->Msi.fDisplayInternalUI, display, pAction->msiPackage.action);
         pAction->msiPackage.rgFeatures = rgFeatureActions;
         rgFeatureActions = NULL;
+
+        if (pPackage->pMsiTransaction && pPackage->pMsiTransaction->fPlanned)
+        {
+            ++pPackage->pMsiTransaction->dwPackageCount;
+        }
 
         LoggingSetPackageVariable(pPackage, NULL, FALSE, pLog, pVariables, &pAction->msiPackage.sczLogPath); // ignore errors.
         pAction->msiPackage.dwLoggingAttributes = pLog->dwAttributes;

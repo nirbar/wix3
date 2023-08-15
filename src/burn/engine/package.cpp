@@ -19,6 +19,11 @@ static HRESULT FindRollbackBoundaryById(
     __in_z LPCWSTR wzId,
     __out BURN_ROLLBACK_BOUNDARY** ppRollbackBoundary
     );
+static HRESULT FindMsiTransactionById(
+    __in BURN_PACKAGES* pPackages,
+    __in_z LPCWSTR wzId,
+    __out BURN_MSI_TRANSACTION** ppMsiTransaction
+    );
 
 
 // function definitions
@@ -69,14 +74,6 @@ extern "C" HRESULT PackagesParseFromXml(
             hr = XmlGetYesNoAttribute(pixnNode, L"Vital", &pRollbackBoundary->fVital);
             ExitOnFailure(hr, "Failed to get @Vital.");
 
-			// @Transaction
-			hr = XmlGetYesNoAttribute(pixnNode, L"Transaction", &pRollbackBoundary->fTransactionInManifest);
-			ExitOnFailure(hr, "Failed to get @Transaction.");
-
-			// @LogPathVariable
-			hr = XmlGetAttributeEx(pixnNode, L"LogPathVariable", &pRollbackBoundary->sczLogPathVariable);
-			ExitOnFailure(hr, "Failed to get @Transaction.");
-
             // prepare next iteration
             ReleaseNullObject(pixnNode);
             ReleaseNullBSTR(bstrNodeName);
@@ -84,6 +81,45 @@ extern "C" HRESULT PackagesParseFromXml(
     }
 
     ReleaseNullObject(pixnNodes); // done with the RollbackBoundary elements.
+
+    // select MSI transaction nodes
+    hr = XmlSelectNodes(pixnBundle, L"MsiTransaction", &pixnNodes);
+    ExitOnFailure(hr, "Failed to select MSI transaction nodes.");
+
+    hr = pixnNodes->get_length((long*)&cNodes);
+    ExitOnFailure(hr, "Failed to get MSI transaction node count.");
+
+    if (cNodes)
+    {
+        // allocate memory for rollback boundaries
+        pPackages->rgMsiTransactions = (BURN_MSI_TRANSACTION*)MemAlloc(sizeof(BURN_MSI_TRANSACTION) * cNodes, TRUE);
+        ExitOnNull(pPackages->rgMsiTransactions, hr, E_OUTOFMEMORY, "Failed to allocate memory for MSI transaction structs.");
+
+        pPackages->cMsiTransactions = cNodes;
+
+        // parse MSI transaction elements
+        for (DWORD i = 0; i < cNodes; ++i)
+        {
+            BURN_MSI_TRANSACTION* pMsiTransaction = &pPackages->rgMsiTransactions[i];
+
+            hr = XmlNextElement(pixnNodes, &pixnNode, &bstrNodeName);
+            ExitOnFailure(hr, "Failed to get next node.");
+
+            // @Id
+            hr = XmlGetAttributeEx(pixnNode, L"Id", &pMsiTransaction->sczId);
+            ExitOnFailure(hr, "Failed to get @Id.");
+
+			// @LogPathVariable
+			hr = XmlGetAttributeEx(pixnNode, L"LogPathVariable", &pMsiTransaction->sczLogPathVariable);
+			ExitOnFailure(hr, "Failed to get @LogPathVariable.");
+
+            // prepare next iteration
+            ReleaseNullObject(pixnNode);
+            ReleaseNullBSTR(bstrNodeName);
+        }
+    }
+
+    ReleaseNullObject(pixnNodes); // done with the MSI transaction elements.
 
     // select package nodes
     hr = XmlSelectNodes(pixnBundle, L"Chain/ExePackage|Chain/MsiPackage|Chain/MspPackage|Chain/MsuPackage", &pixnNodes);
@@ -204,6 +240,16 @@ extern "C" HRESULT PackagesParseFromXml(
 
             hr =  FindRollbackBoundaryById(pPackages, scz, &pPackage->pRollbackBoundaryBackward);
             ExitOnFailure1(hr, "Failed to find backward transaction boundary: %ls", scz);
+        }
+
+        // @MsiTransaction
+        hr = XmlGetAttributeEx(pixnNode, L"MsiTransaction", &scz);
+        if (E_NOTFOUND != hr)
+        {
+            ExitOnFailure(hr, "Failed to get @MsiTransaction.");
+
+            hr =  FindMsiTransactionById(pPackages, scz, &pPackage->pMsiTransaction);
+            ExitOnFailure1(hr, "Failed to find MSI transaction: %ls", scz);
         }
 
         // read type specific attributes
@@ -360,10 +406,19 @@ extern "C" void PackagesUninitialize(
         for (DWORD i = 0; i < pPackages->cRollbackBoundaries; ++i)
         {
             ReleaseStr(pPackages->rgRollbackBoundaries[i].sczId);
-            ReleaseStr(pPackages->rgRollbackBoundaries[i].sczLogPathVariable);
-            ReleaseStr(pPackages->rgRollbackBoundaries[i].sczLogPath);
         }
         MemFree(pPackages->rgRollbackBoundaries);
+    }
+
+    if (pPackages->rgMsiTransactions)
+    {
+        for (DWORD i = 0; i < pPackages->cMsiTransactions; ++i)
+        {
+            ReleaseStr(pPackages->rgMsiTransactions[i].sczId);
+            ReleaseStr(pPackages->rgMsiTransactions[i].sczLogPathVariable);
+            ReleaseStr(pPackages->rgMsiTransactions[i].sczLogPath);
+        }
+        MemFree(pPackages->rgMsiTransactions);
     }
 
     if (pPackages->rgPackages)
@@ -673,6 +728,32 @@ static HRESULT FindRollbackBoundaryById(
         if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, 0, pRollbackBoundary->sczId, -1, wzId, -1))
         {
             *ppRollbackBoundary = pRollbackBoundary;
+            ExitFunction1(hr = S_OK);
+        }
+    }
+
+    hr = E_NOTFOUND;
+
+LExit:
+    return hr;
+}
+
+static HRESULT FindMsiTransactionById(
+    __in BURN_PACKAGES* pPackages,
+    __in_z LPCWSTR wzId,
+    __out BURN_MSI_TRANSACTION** ppMsiTransaction
+    )
+{
+    HRESULT hr = S_OK;
+    BURN_MSI_TRANSACTION* pMsiTransaction = NULL;
+
+    for (DWORD i = 0; i < pPackages->cMsiTransactions; ++i)
+    {
+        pMsiTransaction = &pPackages->rgMsiTransactions[i];
+
+        if (CSTR_EQUAL == ::CompareStringW(LOCALE_INVARIANT, 0, pMsiTransaction->sczId, -1, wzId, -1))
+        {
+            *ppMsiTransaction = pMsiTransaction;
             ExitFunction1(hr = S_OK);
         }
     }

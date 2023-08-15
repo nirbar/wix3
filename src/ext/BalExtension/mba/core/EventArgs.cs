@@ -1139,7 +1139,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public PlanMsiTransactionEventArgs(string id, bool transaction, int recommendation)
             : base(recommendation)
         {
-            RollbackId = id;
+            TransactionId = id;
             Transaction = transaction;
         }
 
@@ -1148,7 +1148,36 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// Set to false to disable the MSI transaction.
         /// </summary>
         public bool Transaction { get; set; }
-        public string RollbackId { get; private set; }
+        public string TransactionId { get; private set; }
+    }
+
+    /// <summary>
+    /// Additional arguments used when the engine plans an MSI transaction commit.
+    /// </summary>
+    [Serializable]
+    public class PlanMsiTransactionCommitEventArgs : ResultEventArgs
+    {
+        /// <summary>
+        /// Creates a new instance of the <see cref="PlanMsiTransactionEventArgs"/> class.
+        /// </summary>
+        /// <param name="id">Transaction Id.</param>
+        /// <param name="packageCount">The number of planned packages within this transaction.</param>
+        /// <param name="planned">Whether or not transaction is requested and supported for this rollback boundary.</param>
+        /// <param name="recommendation">The return code of the operation.</param>
+        public PlanMsiTransactionCommitEventArgs(string id, int packageCount, bool planned, int recommendation)
+            : base(recommendation)
+        {
+            TransactionId = id;
+            PackageCount = packageCount;
+            Planned = planned;
+        }
+
+        /// <summary>
+        /// On entry, True if MSI transaction was requested and supported on the target machine.
+        /// </summary>
+        public int PackageCount { get; private set; }
+        public bool Planned { get; private set; }
+        public string TransactionId { get; private set; }
     }
 
     /// <summary>

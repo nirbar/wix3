@@ -159,9 +159,14 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<PlanPackageCompleteEventArgs> PlanPackageComplete;
 
         /// <summary>
-        /// Fired when the engine plans an MSI transaction. The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
+        /// Fired when the engine plans an MSI transaction. The event will only be raised when MSI transaction was found to be supported on the target machine
         /// </summary>
         public event EventHandler<PlanMsiTransactionEventArgs> PlanMsiTransaction;
+
+        /// <summary>
+        /// Fired when the engine plans an MSI transaction commit. The event will only be raised when MSI transaction was found to be supported on the target machine, and requested
+        /// </summary>
+        public event EventHandler<PlanMsiTransactionCommitEventArgs> PlanMsiTransactionCommit;
 
         /// <summary>
         /// Fired when the engine has completed planning the installation.
@@ -734,6 +739,26 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         protected virtual void OnPlanMsiTransaction(PlanMsiTransactionEventArgs args)
         {
             EventHandler<PlanMsiTransactionEventArgs> handler = this.PlanMsiTransaction;
+            if (null != handler)
+            {
+                handler(this, args);
+            }
+        }
+
+        /// <summary>
+        /// Called when the engine plans an MSI transaction commit.
+        /// The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
+        /// <para>
+        /// Planned is TRUE if MSI transactions are supported by Windows Installer version on the target machine, requested on OnPlanMsiTransaction, and contains 2 or more planned packages.
+        /// </para>
+        /// <para>
+        /// Result may be one of None, OK, Cancel
+        /// </para>
+        /// </summary>
+        /// <param name="args">Additional arguments for this event.</param>
+        protected virtual void OnPlanMsiTransactionCommit(PlanMsiTransactionCommitEventArgs args)
+        {
+            EventHandler<PlanMsiTransactionCommitEventArgs> handler = this.PlanMsiTransactionCommit;
             if (null != handler)
             {
                 handler(this, args);
@@ -1382,12 +1407,20 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             this.OnPlanPackageComplete(new PlanPackageCompleteEventArgs(wzPackageId, hrStatus, state, requested, execute, rollback));
         }
 
-        Result IBootstrapperApplication.OnPlanMsiTransaction(string wzRollbackId, ref bool pfTransaction)
+        Result IBootstrapperApplication.OnPlanMsiTransaction(string wzTransactionId, ref bool pfTransaction)
         {
-            PlanMsiTransactionEventArgs args = new PlanMsiTransactionEventArgs(wzRollbackId, pfTransaction, 0);
+            PlanMsiTransactionEventArgs args = new PlanMsiTransactionEventArgs(wzTransactionId, pfTransaction, 0);
             this.OnPlanMsiTransaction(args);
 
             pfTransaction = args.Transaction;
+            return args.Result;
+        }
+
+        Result IBootstrapperApplication.OnPlanMsiTransactionCommit(string wzTransactionId, int dwPackageCount, bool fPlanned)
+        {
+            PlanMsiTransactionCommitEventArgs args = new PlanMsiTransactionCommitEventArgs(wzTransactionId, dwPackageCount, fPlanned, 0);
+            this.OnPlanMsiTransactionCommit(args);
+
             return args.Result;
         }
 

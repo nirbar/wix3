@@ -442,6 +442,11 @@ extern "C" HRESULT MspEnginePlanAddPackage(
         {
             hr = PlanTargetProduct(display, FALSE, pPlan, pLog, pVariables, pTargetProduct->execute, pPackage, pTargetProduct, hCacheEvent);
             ExitOnFailure(hr, "Failed to plan target product.");
+            
+            if (pPackage->pMsiTransaction && pPackage->pMsiTransaction->fPlanned)
+            {
+                ++pPackage->pMsiTransaction->dwPackageCount;
+            }
         }
 
         if (BOOTSTRAPPER_ACTION_STATE_NONE != pTargetProduct->rollback)

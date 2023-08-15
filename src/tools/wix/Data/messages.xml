@@ -2989,6 +2989,21 @@
                 <Parameter Type="System.Int64" Name="maxAllowed" />
             </Instance>
         </Message>
+        <Message Id="ObsoleteAttribute" Number="393">
+            <Instance>
+                The {0}/@{1} attribute is obsolete. Use element '{2}' instead.
+                <Parameter Type="System.String" Name="elementName" />
+                <Parameter Type="System.String" Name="attributeName" />
+                <Parameter Type="System.String" Name="newElementName" />
+            </Instance>
+        </Message>
+        <Message Id="IllegalNestedTransaction" Number="394">
+            <Instance>
+                MSI transaction '{0}' is nested within another MSI transaction, '{1}'. MSI transactions can not be nested.
+                <Parameter Type="System.String" Name="childTransaction" />
+                <Parameter Type="System.String" Name="parentTransaction" />
+            </Instance>
+        </Message>
     </Class>
 
     <Class Name="WixWarnings" ContainerName="WixWarningEventArgs" BaseContainerName="MessageEventArgs" Level="Warning">

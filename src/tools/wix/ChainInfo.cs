@@ -20,6 +20,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
             this.Transaction = (BundleChainAttributes.Transaction == (attributes & BundleChainAttributes.Transaction));
             this.Packages = new List<ChainPackageInfo>();
             this.RollbackBoundaries = new List<RollbackBoundaryInfo>();
+            this.MsiTransactions = new List<MsiTransactionInfo>();
             this.SourceLineNumbers = row.SourceLineNumbers;
 
             if (BundleChainAttributes.NoRestart == (attributes & BundleChainAttributes.NoRestart))
@@ -43,6 +44,7 @@ namespace Microsoft.Tools.WindowsInstallerXml
         public bool? Restart { get; private set; }
         public List<ChainPackageInfo> Packages { get; private set; }
         public List<RollbackBoundaryInfo> RollbackBoundaries { get; private set; }
+        public List<MsiTransactionInfo> MsiTransactions { get; private set; }
         public SourceLineNumberCollection SourceLineNumbers { get; private set; }
     }
 }

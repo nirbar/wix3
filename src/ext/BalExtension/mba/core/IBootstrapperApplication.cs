@@ -186,8 +186,16 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         [PreserveSig]
         [return: MarshalAs(UnmanagedType.I4)]
         Result OnPlanMsiTransaction(
-            [MarshalAs(UnmanagedType.LPWStr)] string wzRollbackId,
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
             ref bool transaction
+            );
+
+        [PreserveSig]
+        [return: MarshalAs(UnmanagedType.I4)]
+        Result OnPlanMsiTransactionCommit(
+            [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
+            int packageCount,
+            bool transaction
             );
 
         void OnPlanComplete(

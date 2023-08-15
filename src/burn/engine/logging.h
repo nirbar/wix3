@@ -54,7 +54,7 @@ void LoggingOpenFailed();
 void LoggingIncrementPackageSequence();
 
 HRESULT LoggingSetMsiTransactionVariable(
-    __in BURN_ROLLBACK_BOUNDARY* pRollbackBoundary,
+    __in BURN_MSI_TRANSACTION* pMsiTransaction,
     __in BURN_LOGGING* pLog,
     __in BURN_VARIABLES* pVariables
     );
