@@ -159,12 +159,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<PlanPackageCompleteEventArgs> PlanPackageComplete;
 
         /// <summary>
-        /// Fired when the engine plans an MSI transaction. The event will only be raised when MSI transaction was found to be supported on the target machine
+        /// Fired when the engine plans an MSI transaction, before <see cref="PlanPackageBegin"/> of the first package in the transaction. The event will only be raised when MSI transaction was found to be supported on the target machine
         /// </summary>
         public event EventHandler<PlanMsiTransactionEventArgs> PlanMsiTransaction;
 
         /// <summary>
-        /// Fired when the engine plans an MSI transaction commit. The event will only be raised when MSI transaction was found to be supported on the target machine, and requested
+        /// Fired when the engine plans an MSI transaction commit, after <see cref="PlanPackageComplete"/> of the last package in the transaction. The event will only be raised when MSI transaction was found to be supported on the target machine, and requested
         /// </summary>
         public event EventHandler<PlanMsiTransactionCommitEventArgs> PlanMsiTransactionCommit;
 
@@ -727,7 +727,8 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
 
         /// <summary>
         /// Called when the engine plans an MSI transaction.
-        /// The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
+        /// The event will only be raised when MSI transaction was authored and was found to be supported on the target machine.
+        /// Called before <see cref="OnPlanPackageComplete(PlanPackageCompleteEventArgs)"/> of the first package in the transaction.
         /// <para>
         /// Transaction is TRUE on entry if MSI transactions are requested and supported by Windows Installer version on the target machine.
         /// </para>
@@ -748,6 +749,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// <summary>
         /// Called when the engine plans an MSI transaction commit.
         /// The event will only be raised when MSI transaction was authored and was found to be supported on the target machine
+        /// Called after <see cref="OnPlanPackageComplete(PlanPackageCompleteEventArgs)"/> of the last package in the transaction.
         /// <para>
         /// Planned is TRUE if MSI transactions are supported by Windows Installer version on the target machine, requested on OnPlanMsiTransaction, and contains 2 or more planned packages.
         /// </para>

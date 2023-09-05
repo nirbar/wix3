@@ -1077,6 +1077,7 @@ extern "C" HRESULT MsiEngineAddCompatiblePackage(
 
     pCompatiblePackage->type = BURN_PACKAGE_TYPE_MSI;
     pCompatiblePackage->Msi.fDisplayInternalUI = pPackage->Msi.fDisplayInternalUI;
+    pCompatiblePackage->pMsiTransaction = pPackage->pMsiTransaction;
 
     if (ppCompatiblePackage)
     {

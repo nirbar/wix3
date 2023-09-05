@@ -887,6 +887,12 @@ static HRESULT ProcessPackage(
     HRESULT hr = S_OK;
     BURN_ROLLBACK_BOUNDARY* pEffectiveRollbackBoundary = NULL;
 
+    hr = ProcessPackageMsiTransactionEnding(pPlan, pUX, pPackage->pMsiTransaction, ppMsiTransaction);
+    ExitOnFailure(hr, "Failed to process package MSI transaction commit.");
+
+    hr = ProcessPackageMsiTransactionBegining(pPlan, pUX, pLog, pVariables, pPackage->pMsiTransaction, ppMsiTransaction);
+    ExitOnFailure(hr, "Failed to process package MSI transaction begin.");
+
     // Remember the default requested state so the engine doesn't get blamed for planning the wrong thing if the UX changes it.
     hr = PlanDefaultPackageRequestState(pPackage->type, pPackage->currentState, !pPackage->fUninstallable, pPlan->action, pVariables, pPackage->sczInstallCondition, relationType, &pPackage->defaultRequested);
     ExitOnFailure(hr, "Failed to set default package state.");
@@ -906,13 +912,9 @@ static HRESULT ProcessPackage(
     hr = UserExperienceInterpretResult(pUX, MB_OKCANCEL, nResult);
     ExitOnRootFailure(hr, "UX aborted plan package begin.");
 
-    hr = ProcessPackageMsiTransactionEnding(pPlan, pUX, pPackage->pMsiTransaction, ppMsiTransaction);
-    ExitOnFailure(hr, "Failed to process package MSI transaction ending.");
     pEffectiveRollbackBoundary = (BOOTSTRAPPER_ACTION_UNINSTALL == pPlan->action) ? pPackage->pRollbackBoundaryBackward : pPackage->pRollbackBoundaryForward;
     hr = ProcessPackageRollbackBoundary(pPlan, pEffectiveRollbackBoundary, ppRollbackBoundary);
     ExitOnFailure(hr, "Failed to process package rollback boundary.");
-    hr = ProcessPackageMsiTransactionBegining(pPlan, pUX, pLog, pVariables, pPackage->pMsiTransaction, ppMsiTransaction);
-    ExitOnFailure(hr, "Failed to process package MSI transaction begining.");
 
     // If the package is in a requested state, plan it.
     if (BOOTSTRAPPER_REQUEST_STATE_NONE != pPackage->requested)
