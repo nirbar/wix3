@@ -844,6 +844,15 @@ DAPI_(BOOL) PathIsAbsolute(
 }
 
 
+DAPI_(BOOL) PathIsFolderName(
+    __in_z LPCWSTR wzPath
+    )
+{
+    DWORD dwLength = lstrlenW(wzPath);
+    return (dwLength && (DirExists(wzPath, NULL) || (wzPath[dwLength - 1] == L'\\') || (wzPath[dwLength - 1] == L'/')));
+}
+
+
 DAPI_(HRESULT) PathConcat(
     __in_opt LPCWSTR wzPath1,
     __in_opt LPCWSTR wzPath2,

@@ -168,6 +168,14 @@ DAPI_(BOOL) PathIsAbsolute(
     );
 
 /*******************************************************************
+ PathIsFolderName - returns true if the path is an existing directory or if it ends with a slash; false 
+    otherwise.
+*******************************************************************/
+DAPI_(BOOL) PathIsFolderName(
+    __in_z LPCWSTR wzPath
+    );
+
+/*******************************************************************
  PathConcat - like .NET's Path.Combine, lets you build up a path
     one piece -- file or directory -- at a time.
 *******************************************************************/

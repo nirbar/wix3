@@ -33,6 +33,9 @@ extern "C" HRESULT LoggingOpen(
 {
     HRESULT hr = S_OK;
     LPWSTR sczLoggingBaseFolder = NULL;
+    LPWSTR sczPrefix = NULL;
+    LPWSTR sczProcessPath = NULL;
+    LPWSTR sczNamePrefix = NULL;
 
     // Check if the logging policy is set and configure the logging appropriately.
     CheckLoggingPolicy(&pLog->dwAttributes);
@@ -111,6 +114,30 @@ extern "C" HRESULT LoggingOpen(
     {
         hr = GetNonSessionSpecificTempFolder(&sczLoggingBaseFolder);
         ExitOnFailure(hr, "Failed to get non-session specific TEMP folder.");
+        
+        // Format prefix
+        hr = VariableFormatString(pVariables, pLog->sczPrefix, &sczPrefix, NULL);
+        ExitOnFailure(hr, "Failed to format string.");
+        
+        // If the prefix is a folder, append my file name
+        if (PathIsFolderName(sczPrefix))
+        {
+            hr = PathForCurrentProcess(&sczProcessPath, NULL);
+            ExitOnFailure(hr, "Failed to get process full path.");
+            
+            hr = FileStripExtension(sczProcessPath, &sczNamePrefix);
+            ExitOnFailure(hr, "Failed to get file name from path.");
+            
+            hr = PathBackslashTerminate(&sczPrefix);
+            ExitOnFailure(hr, "Failed to backslash-terminate path.");
+            
+            hr = StrAllocConcat(&sczPrefix, sczNamePrefix, 0);
+            ExitOnFailure(hr, "Failed to concatenate strings.");
+        }
+        
+        ReleaseNullStr(pLog->sczPrefix);
+        pLog->sczPrefix = sczPrefix;
+        sczPrefix = NULL;
 
         // Best effort to open default logging.
         hr = LogOpen(sczLoggingBaseFolder, pLog->sczPrefix, NULL, pLog->sczExtension, FALSE, FALSE, &pLog->sczPath);
@@ -159,6 +186,9 @@ extern "C" HRESULT LoggingOpen(
 
 LExit:
     ReleaseStr(sczLoggingBaseFolder);
+    ReleaseStr(sczProcessPath);
+    ReleaseStr(sczNamePrefix);
+    ReleaseStr(sczPrefix);
 
     return hr;
 }
