@@ -235,7 +235,8 @@ static HRESULT DoMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT *context,
 	__in BURN_ENGINE_STATE* pEngineState,
     __in BURN_MSI_TRANSACTION* pMsiTransaction,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
 	);
 static HRESULT DoMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT *context,
@@ -254,14 +255,16 @@ static HRESULT ExecuteMsiCommitTransaction(
 	__in BURN_ENGINE_STATE* pEngineState,
     __in_z LPCWSTR wzTransactionId,
     __in_z LPCWSTR szLogPath,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
     );
 static HRESULT ExecuteMsiRollbackTransaction(
 	__in BURN_EXECUTE_CONTEXT* pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
     __in_z LPCWSTR wzTransactionId,
     __in_z LPCWSTR szLogPath,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
 	);
 
 // function definitions
@@ -1712,7 +1715,8 @@ static HRESULT ExecuteMsiCommitTransaction(
 	__in BURN_ENGINE_STATE* pEngineState,
     __in_z LPCWSTR szTransactionId,
     __in_z LPCWSTR szLogPath,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
     )
 {
 	HRESULT hr = S_OK;
@@ -1732,21 +1736,20 @@ static HRESULT ExecuteMsiCommitTransaction(
     if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED)
     {
         hr = S_OK;
-        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED)
-        {
-            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
-        }
+        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
     }
     else if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED)
     {
         hr = S_OK;
-        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED)
-        {
-            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
-        }
+        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
     }
 
-    pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_COMMIT, hr);
+    int nResult = pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_COMMIT, hr);
+    if ((IDRETRY == nResult) || (IDTRYAGAIN == nResult))
+    {
+        *pfRetry = TRUE;
+		hr = S_FALSE;
+    }
     ExitOnFailure(hr, "Failed to commit an MSI transaction."); // Fail after notifying UX
 
 LExit:
@@ -1758,7 +1761,8 @@ static HRESULT ExecuteMsiRollbackTransaction(
 	__in BURN_ENGINE_STATE* pEngineState,
     __in_z LPCWSTR szTransactionId,
     __in_z LPCWSTR szLogPath,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
     )
 {
 	HRESULT hr = S_OK;
@@ -1779,21 +1783,20 @@ static HRESULT ExecuteMsiRollbackTransaction(
     if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_REQUIRED)
     {
         hr = S_OK;
-        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED)
-        {
-            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
-        }
+        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_REQUIRED;
     }
     else if (HRESULT_CODE(hr) == ERROR_SUCCESS_REBOOT_INITIATED)
     {
         hr = S_OK;
-        if (*pRestart < BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED)
-        {
-            *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
-        }
+        *pRestart = BOOTSTRAPPER_APPLY_RESTART::BOOTSTRAPPER_APPLY_RESTART_INITIATED;
     }
 
-    pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_ROLLBACK, hr);
+    int nResult = pEngineState->userExperience.pUserExperience->OnMsiTransactionComplete(szTransactionId, MSITRANSACTIONSTATE_ROLLBACK, hr);
+    if ((IDRETRY == nResult) || (IDTRYAGAIN == nResult))
+    {
+        *pfRetry = TRUE;
+		hr = S_FALSE;
+    }
     ExitOnFailure(hr, "Failed to rollback an MSI transaction."); // Fail after notifying UX
 
 LExit:
@@ -1820,12 +1823,13 @@ static HRESULT DoMsiCommitTransaction(
 	__in BURN_EXECUTE_CONTEXT *pContext,
 	__in BURN_ENGINE_STATE* pEngineState,
     __in BURN_MSI_TRANSACTION* pMsiTransaction,
-    __inout BOOTSTRAPPER_APPLY_RESTART* pRestart
+    __out BOOL* pfRetry,
+    __out BOOTSTRAPPER_APPLY_RESTART* pRestart
 	)
 {
 	HRESULT hr = S_OK;
 
-	hr = ExecuteMsiCommitTransaction(pContext, pEngineState, pMsiTransaction->sczId, pMsiTransaction->sczLogPath, pRestart);
+	hr = ExecuteMsiCommitTransaction(pContext, pEngineState, pMsiTransaction->sczId, pMsiTransaction->sczLogPath, pfRetry, pRestart);
 	ExitOnFailure(hr, "Failed to commit MSI transaction.");
 
 LExit:
@@ -1840,8 +1844,13 @@ static HRESULT DoMsiRollbackTransaction(
 	)
 {
 	HRESULT hr = S_OK;
+	BOOL fRetry = FALSE;
 
-	hr = ExecuteMsiRollbackTransaction(pContext, pEngineState, pMsiTransaction->sczId, pMsiTransaction->sczLogPath, pRestart);
+	do 
+	{
+		fRetry = FALSE;
+		hr = ExecuteMsiRollbackTransaction(pContext, pEngineState, pMsiTransaction->sczId, pMsiTransaction->sczLogPath, &fRetry, pRestart);
+    } while (fRetry && *pRestart < BOOTSTRAPPER_APPLY_RESTART_INITIATED);
 	ExitOnFailure(hr, "Failed to execute EXE package.");
 
 LExit:
@@ -1976,7 +1985,7 @@ static HRESULT DoExecuteAction(
                 ExitOnFailure(hr, "MSI transaction commit but MSI transaction isn't active")
             }
             LogId(REPORT_STANDARD, MSG_COMMIT_MSI_TRANSACTION, (*ppMsiTransaction)->sczId);
-            hr = DoMsiCommitTransaction(pContext, pEngineState, *ppMsiTransaction, pRestart);
+            hr = DoMsiCommitTransaction(pContext, pEngineState, *ppMsiTransaction, &fRetry, &restart);
             ExitOnFailure(hr, "Failed committing an MSI transaction");
             *ppMsiTransaction = NULL;
             break;

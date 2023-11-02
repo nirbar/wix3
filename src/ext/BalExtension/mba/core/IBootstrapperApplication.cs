@@ -339,7 +339,9 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             [MarshalAs(UnmanagedType.U4)] ref ApplyRestart restart
             );
 
-        void OnMsiTransactionComplete(
+        [PreserveSig]
+        [return: MarshalAs(UnmanagedType.I4)]
+        Result OnMsiTransactionComplete(
             [MarshalAs(UnmanagedType.LPWStr)] string wzTransactionId,
             [MarshalAs(UnmanagedType.U4)] MsiTransactionState state,
             [MarshalAs(UnmanagedType.I4)] int result

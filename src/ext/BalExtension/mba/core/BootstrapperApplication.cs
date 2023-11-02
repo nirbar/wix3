@@ -1582,10 +1582,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             pRestart = args.Restart;
         }
 
-        void IBootstrapperApplication.OnMsiTransactionComplete(string wzTransactionId, MsiTransactionState state, int result)
+        Result IBootstrapperApplication.OnMsiTransactionComplete(string wzTransactionId, MsiTransactionState state, int result)
         {
             MsiTransactionCompleteEventArgs args = new MsiTransactionCompleteEventArgs(wzTransactionId, state, result);
             this.OnMsiTransactionComplete(args);
+
+            return args.Result;
         }
 
         Result IBootstrapperApplication.OnExecutePackageBegin(string wzPackageId, bool fExecute)

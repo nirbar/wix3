@@ -4060,13 +4060,15 @@ public:
         }
     }
 
-    STDMETHODIMP_(void) OnMsiTransactionComplete(__in_z LPCWSTR wzTransactionId, __in MSITRANSACTIONSTATE eState, __in HRESULT hrStatus) override
+    STDMETHODIMP_(int) OnMsiTransactionComplete(__in_z LPCWSTR wzTransactionId, __in MSITRANSACTIONSTATE eState, __in HRESULT hrStatus) override
     {
-        __super::OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
+        int nResult = __super::OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
+        int nBafResult = IDNOACTION;
         if (m_pBAFunction)
         {
-            m_pBAFunction->OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
+            nBafResult = m_pBAFunction->OnMsiTransactionComplete(wzTransactionId, eState, hrStatus);
         }
+        return (nResult == IDNOACTION) ? nBafResult : nResult;
     }
 
     STDMETHODIMP_(int) OnElevate() override 

@@ -645,7 +645,7 @@ DECLARE_INTERFACE_IID_(IBootstrapperApplication, IUnknown, "53C31D56-49C0-426B-A
 
     // OnMsiTransactionComplete - Called when the engine has completed MSI transaction commit or rollback.
     //
-    STDMETHOD_(void, OnMsiTransactionComplete)(
+    STDMETHOD_(int, OnMsiTransactionComplete)(
         __in_z LPCWSTR wzTransactionId,
         __in MSITRANSACTIONSTATE eState,
         __in HRESULT hrStatus

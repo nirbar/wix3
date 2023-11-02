@@ -1239,7 +1239,7 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             : base(id)
         {
             State = state;
-            Result = result;
+            Status = result;
         }
 
         /// <summary>
@@ -1251,7 +1251,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         /// <summary>
         /// Transaction rollback or commit status
         /// </summary>
-        public int Result { get; private set; }
+        public int Status { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Result"/> of the operation. This is passed back to the engine.
+        /// </summary>
+		public Result Result { get; set; } 
     }
 
     /// <summary>

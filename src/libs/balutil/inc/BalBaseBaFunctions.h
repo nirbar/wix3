@@ -443,13 +443,13 @@ public: // IBootstrapperApplication
         return;
     }
 
-    STDMETHODIMP_(void) OnMsiTransactionComplete(
+    STDMETHODIMP_(int) OnMsiTransactionComplete(
         __in_z LPCWSTR /*wzTransactionId*/,
         __in MSITRANSACTIONSTATE /*eState*/,
         __in HRESULT /*hrStatus*/
     ) override
     {
-        return;
+        return IDNOACTION;
     }
 
     virtual STDMETHODIMP_(int) OnExecutePackageBegin(
