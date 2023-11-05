@@ -1,0 +1,53 @@
+name: Publish a Build to nuget
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build ID'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Publish
+    runs-on: windows-latest
+    steps:
+      - name: Resolve build commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: | 
+          $buildSha = (gh run view "${{ github.event.inputs.run_id }}" --json headSha --jq ".headSha" --repo "${{ github.repositoryUrl }}") | Out-String
+          Write-Host ("Build SHA is " + $buildSha)
+          if ($buildSha -notmatch '[0-9a-fA-F]{40}') {
+            exit 1
+          }          
+          Add-Content -Path ${{ github.env }} -Value ("BUILD_SHA=" + $buildSha)
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BUILD_SHA }}
+
+      - name: Download build artifact
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: | 
+          gh run download "${{ github.event.inputs.run_id }}" --name nuget
+
+      - name: Resolve build version
+        run: |
+          $fileName = Get-Childitem –Path "PanelSW.Custom.WiX.*.nupkg" -Name
+          $fileName = $fileName.Replace("PanelSW.Custom.WiX.", "");
+          $fileName = $fileName.Replace(".nupkg", "");
+          Add-Content -Path ${{ github.env }} -Value ("NUPKG_VERSION=" + $fileName)
+
+      - name: Publish nuget package
+        if: ${{ env.NUPKG_VERSION != '' }}
+        run: |
+          dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget push PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source github
+          dotnet nuget push PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+          git tag v${{ env.NUPKG_VERSION }}
+          git push --tags
