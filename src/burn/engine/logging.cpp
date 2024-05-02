@@ -255,6 +255,78 @@ LExit:
     return hr;
 }
 
+HRESULT LoggingPromoteLogFile(
+    __in BURN_EXECUTE_ACTION* pExecuteAction,
+    __in BURN_VARIABLES* pVariables
+    )
+{
+    HRESULT hr = S_OK;
+    LPWSTR sczLogPath = NULL;
+    LPWSTR sczNewLogPath = NULL;
+    LPCWSTR sczLogPathVariable = NULL;
+
+    switch (pExecuteAction->type)
+    {
+    case BURN_EXECUTE_ACTION_TYPE_EXE_PACKAGE:
+        sczLogPathVariable = pExecuteAction->exePackage.pPackage->sczLogPathVariable;
+        break;
+    case BURN_EXECUTE_ACTION_TYPE_MSI_PACKAGE:
+        sczLogPathVariable = pExecuteAction->msiPackage.pPackage->sczLogPathVariable;
+        break;
+    case BURN_EXECUTE_ACTION_TYPE_MSP_TARGET:
+        sczLogPathVariable = pExecuteAction->mspTarget.pPackage->sczLogPathVariable;
+        break;
+    case BURN_EXECUTE_ACTION_TYPE_MSU_PACKAGE:
+        sczLogPathVariable = pExecuteAction->msuPackage.pPackage->sczLogPathVariable;
+        break;
+    }
+
+    if (!sczLogPathVariable || !*sczLogPathVariable)
+    {
+        hr = S_FALSE;
+        ExitFunction();
+    }
+
+    hr = VariableGetFormatted(pVariables, sczLogPathVariable, &sczLogPath);
+    if ((hr == E_NOTFOUND) || !sczLogPath || !*sczLogPath)
+    {
+        hr = S_FALSE;
+        ExitFunction();
+    }
+    ExitOnFailure(hr, "Failed to get log path.");
+
+    hr = FileAddSuffixToBaseName(sczLogPath, L"_", &sczNewLogPath);
+    ExitOnFailure(hr, "Failed to append to log path.");
+
+    hr = VariableSetString(pVariables, sczLogPathVariable, sczNewLogPath, FALSE);
+    ExitOnFailure(hr, "Failed to set log path into variable.");
+
+    switch (pExecuteAction->type)
+    {
+    case BURN_EXECUTE_ACTION_TYPE_MSI_PACKAGE:
+        ReleaseStr(pExecuteAction->msiPackage.sczLogPath);
+        pExecuteAction->msiPackage.sczLogPath = sczNewLogPath;
+        sczNewLogPath = NULL;
+        break;
+    case BURN_EXECUTE_ACTION_TYPE_MSP_TARGET:
+        ReleaseStr(pExecuteAction->mspTarget.sczLogPath);
+        pExecuteAction->mspTarget.sczLogPath = sczNewLogPath;
+        sczNewLogPath = NULL;
+        break;
+    case BURN_EXECUTE_ACTION_TYPE_MSU_PACKAGE:
+        ReleaseStr(pExecuteAction->msuPackage.sczLogPath);
+        pExecuteAction->msuPackage.sczLogPath = sczNewLogPath;
+        sczNewLogPath = NULL;
+        break;
+    }
+
+LExit:
+    ReleaseStr(sczLogPath);
+    ReleaseStr(sczNewLogPath);
+
+    return hr;
+}
+
 extern "C" HRESULT LoggingSetPackageVariable(
     __in BURN_PACKAGE* pPackage,
     __in_z_opt LPCWSTR wzSuffix,

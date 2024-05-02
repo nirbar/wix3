@@ -1883,6 +1883,12 @@ static HRESULT DoExecuteAction(
 
     do
     {
+        if (fRetry)
+        {
+            LoggingPromoteLogFile(pExecuteAction, &pEngineState->variables);
+            fRetry = FALSE;
+        }
+        
         switch (pExecuteAction->type)
         {
         case BURN_EXECUTE_ACTION_TYPE_CHECKPOINT:

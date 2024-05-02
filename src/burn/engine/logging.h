@@ -59,6 +59,11 @@ HRESULT LoggingSetMsiTransactionVariable(
     __in BURN_VARIABLES* pVariables
     );
 
+HRESULT LoggingPromoteLogFile(
+    __in BURN_EXECUTE_ACTION* pExecuteAction,
+    __in BURN_VARIABLES* pVariables
+    );
+
 HRESULT LoggingSetPackageVariable(
     __in BURN_PACKAGE* pPackage,
     __in_z_opt LPCWSTR wzSuffix,
