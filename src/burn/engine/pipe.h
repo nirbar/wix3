@@ -6,11 +6,22 @@
 extern "C" {
 #endif
 
+
+enum BURN_PIPE_CAPABILITIES
+{
+    BURN_PIPE_CAPABILITIES_NONE = 0,
+    BURN_PIPE_CAPABILITIES_CUSTOM_MESSAGE = 1,
+    
+    // All the capabilities that this engine supports, used when creating capabilities command line for the embedded bundle
+    BURN_PIPE_CAPABILITIES_ALL = BURN_PIPE_CAPABILITIES_CUSTOM_MESSAGE,
+};
+
 typedef struct _BURN_PIPE_CONNECTION
 {
     LPWSTR sczName;
     LPWSTR sczSecret;
     DWORD dwProcessId;
+    DWORD dwCapabilities; // Capabilities of the engine that created the pipe
 
     HANDLE hProcess;
     HANDLE hPipe;

@@ -370,6 +370,44 @@ public: // IBootstrapperEngine
         return hr;
     }
 
+    virtual STDMETHODIMP SendEmbeddedCustomMessage(
+        __in DWORD dwCode,
+        __in_z_opt LPCWSTR wzMessage,
+        __out int* pnResult
+        )
+    {
+        HRESULT hr = S_OK;
+        BYTE* pbData = NULL;
+        DWORD cbData = 0;
+        DWORD dwResult = 0;
+
+        if (BURN_MODE_EMBEDDED != m_pEngineState->mode)
+        {
+            hr = HRESULT_FROM_WIN32(ERROR_INVALID_STATE);
+            ExitOnRootFailure(hr, "Application requested to send embedded custom message when not in embedded mode.");
+        }
+        if ((m_pEngineState->embeddedConnection.dwCapabilities & BURN_PIPE_CAPABILITIES_CUSTOM_MESSAGE) != BURN_PIPE_CAPABILITIES_CUSTOM_MESSAGE)
+        {
+            hr = HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+            ExitOnRootFailure(hr, "Parent engine does not support receiving embedded custom messages.");
+        }
+
+        hr = BuffWriteNumber(&pbData, &cbData, dwCode);
+        ExitOnFailure(hr, "Failed to write code to message buffer.");
+
+        hr = BuffWriteString(&pbData, &cbData, wzMessage ? wzMessage : L"");
+        ExitOnFailure(hr, "Failed to write text to message buffer.");
+
+        hr = PipeSendMessage(m_pEngineState->embeddedConnection.hPipe, BURN_EMBEDDED_MESSAGE_TYPE_CUSTOM, pbData, cbData, NULL, NULL, &dwResult);
+        ExitOnFailure(hr, "Failed to send embedded custom message over pipe.");
+
+        *pnResult = static_cast<int>(dwResult);
+
+    LExit:
+        ReleaseBuffer(pbData);
+        return hr;
+    }
+
     virtual STDMETHODIMP SetUpdate(
         __in_z_opt LPCWSTR wzLocalSource,
         __in_z_opt LPCWSTR wzDownloadSource,

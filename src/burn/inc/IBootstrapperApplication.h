@@ -725,6 +725,16 @@ DECLARE_INTERFACE_IID_(IBootstrapperApplication, IUnknown, "53C31D56-49C0-426B-A
         __in DWORD cFiles,
         __in_ecount_z(cFiles) LPCWSTR* rgwzFiles
         ) = 0;
+        
+    // OnEmbeddedCustomMessage - called when an embedded burn package send a SendEmbeddedCustomMessage(...).
+    //
+    // Return:
+    //  Any code that the sender and recipient agree on.
+    STDMETHOD_(int, OnEmbeddedCustomMessage)(
+        __in_z LPCWSTR wzPackageId,
+        __in DWORD dwCode,
+        __in_z LPCWSTR wzMessage
+        ) = 0;
 
     // OnExecutePackageComplete - called when a package execution is complete.
     //

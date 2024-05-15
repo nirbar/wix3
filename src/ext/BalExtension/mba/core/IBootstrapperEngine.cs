@@ -76,6 +76,12 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
             [MarshalAs(UnmanagedType.I4)] out int pnResult
             );
 
+        void SendEmbeddedCustomMessage(
+            [MarshalAs(UnmanagedType.U4)] int dwCode,
+            [MarshalAs(UnmanagedType.LPWStr)] string wzMessage,
+            [MarshalAs(UnmanagedType.I4)] out int pnResult
+            );
+
         void SetUpdate(
             [MarshalAs(UnmanagedType.LPWStr)] string wzLocalSource,
             [MarshalAs(UnmanagedType.LPWStr)] string wzDownloadSource,

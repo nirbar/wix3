@@ -35,6 +35,7 @@
 - Changes by WiX up to git commit 376423b8101f4b59ee865e8a255cfe190fa5a7f1
 - Build for .NET Framework 4.0
 - Not overwriting log files when retrying to execute a package
+- Support sending custom messages on embedded pipe
 
 # WiX Toolset on GitHub
 The WiX Toolset builds Windows installation packages from XML source code. The toolset supports a command-line environment that developers may integrate into their build processes to build Windows Installer (MSI) packages and executable bundles. The WiX GitHub project hosts the WiX source code Git repositories. The following links will take you to more details:

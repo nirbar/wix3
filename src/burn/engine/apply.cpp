@@ -2492,6 +2492,10 @@ static int GenericExecuteMessageHandler(
     case GENERIC_EXECUTE_MESSAGE_FILES_IN_USE:
         nResult = pContext->pUX->pUserExperience->OnExecuteFilesInUse(pContext->pExecutingPackage->sczId, pMessage->filesInUse.cFiles, pMessage->filesInUse.rgwzFiles);
         break;
+
+    case GENERIC_EXECUTE_MESSAGE_CUSTOM:
+        nResult = pContext->pUX->pUserExperience->OnEmbeddedCustomMessage(pContext->pExecutingPackage->sczId, pMessage->custom.dwCode, pMessage->custom.wzMessage);
+        break;
     }
 
     nResult = UserExperienceCheckExecuteResult(pContext->pUX, pContext->fRollback, pMessage->dwAllowedResults, nResult);

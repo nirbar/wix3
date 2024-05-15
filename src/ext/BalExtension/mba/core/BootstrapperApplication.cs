@@ -316,6 +316,11 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         public event EventHandler<ExecuteFilesInUseEventArgs> ExecuteFilesInUse;
 
         /// <summary>
+        /// Fired when an embedded burn package sends a SendEmbeddedCustomMessage(...)
+        /// </summary>
+        public event EventHandler<EmbeddedCustomMessageEventArgs> EmbeddedCustomMessage;
+
+        /// <summary>
         /// Fired when the engine has completed installing a specific package.
         /// </summary>
         public event EventHandler<ExecutePackageCompleteEventArgs> ExecutePackageComplete;
@@ -1142,6 +1147,19 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         }
 
         /// <summary>
+        /// Called when an embedded burn package sends a SendEmbeddedCustomMessage(...).
+        /// </summary>
+        /// <param name="args">Additional arguments for this event.</param>
+        protected virtual void OnEmbeddedCustomMessage(EmbeddedCustomMessageEventArgs args)
+        {
+            EventHandler<EmbeddedCustomMessageEventArgs> handler = this.EmbeddedCustomMessage;
+            if (null != handler)
+            {
+                handler(this, args);
+            }
+        }
+
+        /// <summary>
         /// Called when the engine has completed installing a specific package.
         /// </summary>
         /// <param name="args">Additional arguments for this event.</param>
@@ -1634,6 +1652,14 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         {
             ExecuteFilesInUseEventArgs args = new ExecuteFilesInUseEventArgs(wzPackageId, rgwzFiles);
             this.OnExecuteFilesInUse(args);
+
+            return args.Result;
+        }
+
+        Result IBootstrapperApplication.OnEmbeddedCustomMessage(string wzPackageId, int dwCode, string wzMessage)
+        {
+            EmbeddedCustomMessageEventArgs args = new EmbeddedCustomMessageEventArgs(wzPackageId, dwCode, wzMessage);
+            this.OnEmbeddedCustomMessage(args);
 
             return args.Result;
         }

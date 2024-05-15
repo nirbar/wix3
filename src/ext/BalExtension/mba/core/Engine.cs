@@ -441,6 +441,21 @@ namespace Microsoft.Tools.WindowsInstallerXml.Bootstrapper
         }
 
         /// <summary>
+        /// Sends a custom embedded message.
+        /// </summary>
+        /// <param name="code">Custom message code.</param>
+        /// <param name="message">Optional text.</param>
+        /// <exception cref="System.NotSupportedException">
+        /// Thrown when the parent burn engine does not support receiving custom messages
+        /// </exception>
+        public int SendEmbeddedCustomMessage(int code, string message)
+        {
+            int result = 0;
+            this.engine.SendEmbeddedCustomMessage(code, message, out result);
+            return result;
+        }
+
+        /// <summary>
         /// Shuts down the engine.
         /// </summary>
         /// <param name="exitCode">Exit code indicating reason for shut down.</param>

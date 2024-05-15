@@ -32,6 +32,13 @@ static HRESULT OnEmbeddedProgress(
     __in DWORD cbData,
     __out DWORD* pdwResult
     );
+static HRESULT OnEmbeddedCustomMessage(
+    __in PFN_GENERICMESSAGEHANDLER pfnMessageHandler,
+    __in LPVOID pvContext,
+    __in_bcount(cbData) BYTE* pbData,
+    __in DWORD cbData,
+    __out DWORD* pdwResult
+    );
 
 // function definitions
 
@@ -68,7 +75,7 @@ extern "C" HRESULT EmbeddedRunBundle(
     hr = PipeCreatePipes(&connection, FALSE, &hCreatedPipesEvent);
     ExitOnFailure(hr, "Failed to create embedded pipe.");
 
-    hr = StrAllocFormattedSecure(&sczCommand, L"%ls -%ls %ls %ls %u", wzArguments, BURN_COMMANDLINE_SWITCH_EMBEDDED, connection.sczName, connection.sczSecret, dwCurrentProcessId);
+    hr = StrAllocFormattedSecure(&sczCommand, L"%ls -%ls %ls %ls %u -%ls %u", wzArguments, BURN_COMMANDLINE_SWITCH_EMBEDDED, connection.sczName, connection.sczSecret, dwCurrentProcessId, BURN_COMMANDLINE_SWITCH_EMBEDDED_CAPABILITIES, BURN_PIPE_CAPABILITIES_ALL);
     ExitOnFailure(hr, "Failed to allocate embedded command.");
 
     if (!::CreateProcessW(wzExecutablePath, sczCommand, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
@@ -127,6 +134,11 @@ static HRESULT ProcessEmbeddedMessages(
         ExitOnFailure(hr, "Failed to process embedded progress message.");
         break;
 
+    case BURN_EMBEDDED_MESSAGE_TYPE_CUSTOM:
+        hr = OnEmbeddedCustomMessage(pContext->pfnGenericMessageHandler, pContext->pvContext, static_cast<BYTE*>(pMsg->pvData), pMsg->cbData, &dwResult);
+        ExitOnFailure(hr, "Failed to process embedded custom message.");
+        break;
+
     default:
         hr = E_INVALIDARG;
         ExitOnRootFailure1(hr, "Unexpected embedded message sent to child process, msg: %u", pMsg->dwMessage);
@@ -163,6 +175,38 @@ static HRESULT OnEmbeddedErrorMessage(
 
     hr = BuffReadNumber(pbData, cbData, &iData, &message.dwAllowedResults);
     ExitOnFailure(hr, "Failed to read UI hint from buffer.");
+
+    *pdwResult = (DWORD)pfnMessageHandler(&message, pvContext);
+
+LExit:
+    ReleaseStr(sczMessage);
+
+    return hr;
+}
+
+static HRESULT OnEmbeddedCustomMessage(
+    __in PFN_GENERICMESSAGEHANDLER pfnMessageHandler,
+    __in LPVOID pvContext,
+    __in_bcount(cbData) BYTE* pbData,
+    __in DWORD cbData,
+    __out DWORD* pdwResult
+    )
+{
+    HRESULT hr = S_OK;
+    DWORD iData = 0;
+    GENERIC_EXECUTE_MESSAGE message = { };
+    LPWSTR sczMessage = NULL;
+
+    message.type = GENERIC_EXECUTE_MESSAGE_CUSTOM;
+    message.dwAllowedResults = 0xFFFFFFFF;
+
+    hr = BuffReadNumber(pbData, cbData, &iData, &message.custom.dwCode);
+    ExitOnFailure(hr, "Failed to read custom code from buffer.");
+
+    hr = BuffReadString(pbData, cbData, &iData, &sczMessage);
+    ExitOnFailure(hr, "Failed to read custom message from buffer.");
+
+    message.custom.wzMessage = sczMessage;
 
     *pdwResult = (DWORD)pfnMessageHandler(&message, pvContext);
 

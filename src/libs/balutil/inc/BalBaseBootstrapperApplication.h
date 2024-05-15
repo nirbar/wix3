@@ -606,6 +606,15 @@ public: // IBootstrapperApplication
         return CheckCanceled() ? IDCANCEL : IDNOACTION;
     }
 
+    virtual STDMETHODIMP_(int) OnEmbeddedCustomMessage(
+        __in_z LPCWSTR /*wzPackageId*/,
+        __in DWORD /*dwCode*/,
+        __in_z LPCWSTR /*wzMessage*/
+        )
+    {
+        return CheckCanceled() ? IDCANCEL : IDNOACTION;
+    }
+
     virtual STDMETHODIMP_(int) OnExecutePackageComplete(
         __in_z LPCWSTR wzPackageId,
         __in HRESULT hrExitCode,
