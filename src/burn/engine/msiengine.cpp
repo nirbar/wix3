@@ -433,7 +433,7 @@ extern "C" HRESULT MsiEngineDetectPackage(
         // report related MSI package to UX
         if (BOOTSTRAPPER_RELATED_OPERATION_NONE != operation)
         {
-            LogId(REPORT_STANDARD, MSG_DETECTED_RELATED_PACKAGE, pPackage->Msi.sczProductCode, LoggingPerMachineToString(pPackage->fPerMachine), LoggingVersionToString(pPackage->Msi.qwInstalledVersion), pPackage->Msi.dwLanguage, LoggingRelatedOperationToString(operation));
+            LogId(REPORT_STANDARD, MSG_DETECTED_RELATED_PACKAGE, pPackage->sczId, pPackage->Msi.sczProductCode, LoggingPerMachineToString(pPackage->fPerMachine), LoggingVersionToString(pPackage->Msi.qwInstalledVersion), pPackage->Msi.dwLanguage, LoggingRelatedOperationToString(operation));
 
             nResult = pUserExperience->pUserExperience->OnDetectRelatedMsiPackage(pPackage->sczId, pPackage->Msi.sczProductCode, pPackage->fPerMachine, pPackage->Msi.qwInstalledVersion, operation);
             hr = UserExperienceInterpretResult(pUserExperience, MB_OKCANCEL, nResult);
@@ -600,7 +600,7 @@ extern "C" HRESULT MsiEngineDetectPackage(
                 operation = BOOTSTRAPPER_RELATED_OPERATION_MAJOR_UPGRADE;
             }
 
-            LogId(REPORT_STANDARD, MSG_DETECTED_RELATED_PACKAGE, wzProductCode, LoggingPerMachineToString(fPerMachine), LoggingVersionToString(qwVersion), uLcid, LoggingRelatedOperationToString(relatedMsiOperation));
+            LogId(REPORT_STANDARD, MSG_DETECTED_RELATED_PACKAGE, pPackage->sczId, wzProductCode, LoggingPerMachineToString(fPerMachine), LoggingVersionToString(qwVersion), uLcid, LoggingRelatedOperationToString(relatedMsiOperation));
 
             // pass to UX
             nResult = pUserExperience->pUserExperience->OnDetectRelatedMsiPackage(pPackage->sczId, wzProductCode, fPerMachine, qwVersion, relatedMsiOperation);

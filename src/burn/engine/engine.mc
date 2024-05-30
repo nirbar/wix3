@@ -181,7 +181,7 @@ MessageId=103
 Severity=Success
 SymbolicName=MSG_DETECTED_RELATED_PACKAGE
 Language=English
-Detected related package: %1!ls!, scope: %2!hs!, version: %3!hs!, language: %4!u! operation: %5!hs!
+Detected related package for %1!ls!: %2!ls!, scope: %3!hs!, version: %4!hs!, language: %5!u! operation: %6!hs!
 .
 
 MessageId=104
