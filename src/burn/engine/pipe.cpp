@@ -60,6 +60,8 @@ void PipeConnectionUninitialize(
 {
     ReleaseFileHandle(pConnection->hCachePipe);
     ReleaseFileHandle(pConnection->hPipe);
+    ReleaseHandle(pConnection->hQuitRequested);
+    ReleaseHandle(pConnection->hQuitMonitorThread);
     ReleaseHandle(pConnection->hProcess);
     ReleaseStr(pConnection->sczSecret);
     ReleaseStr(pConnection->sczName);
@@ -552,6 +554,11 @@ extern "C" HRESULT PipeTerminateChildProcess(
     HRESULT hr = S_OK;
     BYTE* pbData = NULL;
     SIZE_T cbData = 0;
+    
+    if (pConnection->hQuitRequested)
+    {
+        ::SetEvent(pConnection->hQuitRequested);
+    }
 
     // Prepare the exit message.
     hr = BuffWriteNumber(&pbData, &cbData, dwParentExitCode);

@@ -55,6 +55,9 @@ static void LogPackages(
     __in const BURN_RELATED_BUNDLES* pRelatedBundles,
     __in const BOOTSTRAPPER_ACTION action
     );
+static DWORD WINAPI MonitorCompanionProcess(
+    __in LPVOID lpParameter
+    );
 
 
 // function definitions
@@ -540,10 +543,45 @@ extern "C" HRESULT CoreElevate(
 
         hr = VariableSetNumeric(&pEngineState->variables, BURN_BUNDLE_ELEVATED, TRUE, TRUE);
         ExitOnFailure(hr, "Failed to overwrite the %ls built-in variable.", BURN_BUNDLE_ELEVATED);
+        
+        // Best effort to log premature termination of the process
+        pEngineState->companionConnection.hQuitRequested = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+        if (pEngineState->companionConnection.hQuitRequested)
+        {
+            pEngineState->companionConnection.hQuitMonitorThread = ::CreateThread(NULL, 0, MonitorCompanionProcess, &pEngineState->companionConnection, 0, NULL);
+        }
     }
 
 LExit:
     return hr;
+}
+
+static DWORD WINAPI MonitorCompanionProcess(
+    __in LPVOID lpParameter
+    )
+{
+    BURN_PIPE_CONNECTION* pConnection = (BURN_PIPE_CONNECTION*)lpParameter;
+    HANDLE rghHandles[2] = { pConnection->hQuitRequested, pConnection->hProcess };
+    DWORD dwRes = ERROR_SUCCESS;
+    HRESULT hr = S_OK;
+    
+    dwRes = ::WaitForMultipleObjects(ARRAYSIZE(rghHandles), rghHandles, FALSE, INFINITE);
+    switch (dwRes)
+    {
+        case WAIT_OBJECT_0:
+            hr = S_OK;
+            break;
+        case WAIT_OBJECT_0 + 1:
+            hr = E_SUSPECTED_AV_INTERFERENCE;
+            ExitOnFailure(hr, "Companion process has been terminated prematurely.");
+            break;
+        default:
+            ExitWithLastError(hr, "Failed to monitor proper termination of companion process.");
+            break;
+    }
+    
+LExit:
+    return HRESULT_CODE(hr);
 }
 
 extern "C" HRESULT CoreApply(
