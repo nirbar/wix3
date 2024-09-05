@@ -127,7 +127,13 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 this.OnMessage(we.Error);
                 if (cabinetWorkItem != null)
                 {
-                    this.OnMessage(WixVerboses.CabinetFailureInfo(null, cabinetWorkItem.CabinetFile, cabinetWorkItem.FileRows.Count, cabinetWorkItem.CompressionLevel.ToString(), cabinetWorkItem.MaxThreshold));
+                    long uncompressedSize = 0;
+                    foreach (FileRow fileRow in cabinetWorkItem.FileRows)
+                    {
+                        uncompressedSize += fileRow.FileSize;
+                    }
+
+                    this.OnMessage(WixVerboses.CabinetFailureInfo(null, cabinetWorkItem.CabinetFile, cabinetWorkItem.FileRows.Count, cabinetWorkItem.CompressionLevel.ToString(), uncompressedSize, cabinetWorkItem.MaxThreshold));
                     foreach (FileRow fileRow in cabinetWorkItem.FileRows)
                     {
                         this.OnMessage(WixVerboses.CabinetFailureFileInfo(fileRow.SourceLineNumbers, fileRow.File, fileRow.Source, fileRow.FileSize));

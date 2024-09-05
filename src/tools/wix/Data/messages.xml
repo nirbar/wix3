@@ -4084,10 +4084,11 @@
         </Message>
         <Message Id="CabinetFailureInfo" Number="9037">
             <Instance>
-                Additional info on cab creation failure: cabinet '{0}', file count {1}, compression level '{2}', max threshold {3}.
+                Additional info on cab creation failure: cabinet '{0}', file count {1}, compression level '{2}', uncompressed size {3}, max threshold {4}.
                 <Parameter Type="System.String" Name="cabinet" />
                 <Parameter Type="System.Int32" Name="fileCount" />
                 <Parameter Type="System.String" Name="compressionLevel" />
+                <Parameter Type="System.Int64" Name="uncompressedSize" />
                 <Parameter Type="System.Int32" Name="maxThreshold" />
             </Instance>
         </Message>

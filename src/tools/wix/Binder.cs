@@ -4411,24 +4411,38 @@ namespace Microsoft.Tools.WindowsInstallerXml
                 ++payloadCount;
             }
 
-            using (WixCreateCab cab = new WixCreateCab(Path.GetFileName(container.TempPath), Path.GetDirectoryName(container.TempPath), payloadCount, 0, 0, this.defaultCompressionLevel))
+            try
             {
-                // If a manifest was provided always add it as "payload 0" to the container.
-                if (!String.IsNullOrEmpty(manifestFile))
+                using (WixCreateCab cab = new WixCreateCab(Path.GetFileName(container.TempPath), Path.GetDirectoryName(container.TempPath), payloadCount, 0, 0, this.defaultCompressionLevel))
                 {
-                    cab.AddFile(manifestFile, "0");
-                }
+                    // If a manifest was provided always add it as "payload 0" to the container.
+                    if (!String.IsNullOrEmpty(manifestFile))
+                    {
+                        cab.AddFile(manifestFile, "0");
+                    }
 
-                foreach (PayloadInfoRow payload in container.Payloads)
-                {
+                    foreach (PayloadInfoRow payload in container.Payloads)
+                    {
+                        ThrowIfCanceled();
+                        Debug.Assert(PackagingType.Embedded == payload.Packaging);
+                        this.core.OnMessage(WixVerboses.LoadingPayload(payload.FullFileName));
+                        cab.AddFile(payload.FullFileName, payload.EmbeddedId);
+                    }
+
                     ThrowIfCanceled();
-                    Debug.Assert(PackagingType.Embedded == payload.Packaging);
-                    this.core.OnMessage(WixVerboses.LoadingPayload(payload.FullFileName));
-                    cab.AddFile(payload.FullFileName, payload.EmbeddedId);
+                    cab.Complete();
                 }
+            }
+            catch (WixException)
+            {
+                long uncompressedSize = container.Payloads.Sum(p => p.FileSize);
 
-                ThrowIfCanceled();
-                cab.Complete();
+                this.core.OnMessage(WixVerboses.CabinetFailureInfo(null, container.Name, container.Payloads.Count, this.defaultCompressionLevel.ToString(), uncompressedSize, 0));
+                foreach (PayloadInfoRow payloadRow in container.Payloads)
+                {
+                    this.core.OnMessage(WixVerboses.CabinetFailureFileInfo(payloadRow.SourceLineNumbers, payloadRow.Id, payloadRow.SourceFile, payloadRow.FileSize));
+                }
+                throw;
             }
         }
 
