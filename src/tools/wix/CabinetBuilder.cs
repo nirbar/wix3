@@ -100,11 +100,12 @@ namespace Microsoft.Tools.WindowsInstallerXml
         /// </summary>
         private void ProcessWorkItems()
         {
+            CabinetWorkItem cabinetWorkItem = null;
             try
             {
                 while (true)
                 {
-                    CabinetWorkItem cabinetWorkItem;
+                    cabinetWorkItem = null;
 
                     lock (this.cabinetWorkItems)
                     {
@@ -124,6 +125,14 @@ namespace Microsoft.Tools.WindowsInstallerXml
             catch (WixException we)
             {
                 this.OnMessage(we.Error);
+                if (cabinetWorkItem != null)
+                {
+                    this.OnMessage(WixVerboses.CabinetFailureInfo(null, cabinetWorkItem.CabinetFile, cabinetWorkItem.FileRows.Count, cabinetWorkItem.CompressionLevel.ToString(), cabinetWorkItem.MaxThreshold));
+                    foreach (FileRow fileRow in cabinetWorkItem.FileRows)
+                    {
+                        this.OnMessage(WixVerboses.CabinetFailureFileInfo(fileRow.SourceLineNumbers, fileRow.File, fileRow.Source, fileRow.FileSize));
+                    }
+                }
             }
             catch (Exception e)
             {

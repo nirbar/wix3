@@ -22,7 +22,7 @@
 - [6450](https://github.com/wixtoolset/issues/issues/6450): Support multiple firewall rules with the same name.
 - [6472](https://github.com/wixtoolset/issues/issues/6472): Bundle can install multi-instance MSI packages. See [Authoring Multiple Instances with Instance Transforms](https://docs.microsoft.com/en-us/windows/win32/msi/authoring-multiple-instances-with-instance-transforms).
 - [5220](https://github.com/wixtoolset/issues/issues/5220): Automatically add logging flag for any burn ExePackage and related bundles
-- [1488](https://github.com/wixtoolset/issues/issues/1488): Add -inc "**.pat1;**.pat2" and -exc "**.pat3;**.pat4" options to heat dir to include and exclude files matching widlcard patterns
+- [1488](https://github.com/wixtoolset/issues/issues/1488): Add -inc "**.pat1;**.pat2" and -exc "**.pat3;**.pat4" options to heat dir to include and exclude files matching wildcard patterns
 - [5783](https://github.com/wixtoolset/issues/issues/5783): Allow MSMQ Windows Feature to be enabled during the installation.
 - [4676](https://github.com/wixtoolset/issues/issues/4676): bafunctions can implement IBootstrapperApplication or IBootstrapperBAFunction
 - Add -ssub flag to heat dir to harvest files in top folder only and skip subfolders
@@ -37,6 +37,7 @@
 - Not overwriting log files when retrying to execute a package
 - Support sending custom messages on embedded pipe
 - Best effort to log premature termination of companion process
+- Add informational verbose logging for cab creation failures
 
 # WiX Toolset on GitHub
 The WiX Toolset builds Windows installation packages from XML source code. The toolset supports a command-line environment that developers may integrate into their build processes to build Windows Installer (MSI) packages and executable bundles. The WiX GitHub project hosts the WiX source code Git repositories. The following links will take you to more details:
