@@ -16,8 +16,8 @@ jobs:
   WiX3-Build:
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
-      - uses: microsoft/setup-msbuild@v1.0.2
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
       
       - name: Decrypt snk
         run: gpg --quiet --batch --yes --decrypt --passphrase="${{ secrets.GPG_PASSPHRASE }}" --output "${{ github.workspace }}\psw-wix.snk" "${{ github.workspace }}\psw-wix.snk.gpg"
@@ -34,7 +34,7 @@ jobs:
       - name: Create nuget package
         run: nuget.exe pack "${{ github.workspace }}\src\Setup\Nupkg\WiX.nuspec" -Version "${{ env.NUPKG_VERSION }}" -BasePath "${{ github.workspace }}" -OutputDirectory "${{ github.workspace }}\build\nuget-out"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4.4.3
         with:
           name: nuget
           path: ${{ github.workspace }}\build\nuget-out\PanelSW.Custom.WiX.${{ env.NUPKG_VERSION }}.nupkg
